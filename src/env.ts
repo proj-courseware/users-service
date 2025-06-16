@@ -8,26 +8,46 @@ dotenv.config();
 const envSchema = z.object({
   NODE_ENV: z.string().default("development"),
   PORT: z.coerce.number().default(3000),
-  // External authentication service
-  AUTH_SERVICE_URL: z.string().url().optional(),
   // MongoDB URI Configuration
   MONGODB_HOST: z.string().default("localhost"),
   MONGODB_PORT: z.coerce.number().default(27017),
   MONGODB_USER: z.string().optional(),
   MONGODB_PASSWORD: z.string().optional(),
-  MONGODB_DATABASE: z.string().default("backend-template"),
+  MONGODB_DATABASE: z.string().default("users-service"),
+  // JWT Configuration
+  JWT_ACCESS_SECRET: z.string().min(32, "JWT access secret must be at least 32 characters"),
+  JWT_REFRESH_SECRET: z.string().min(32, "JWT refresh secret must be at least 32 characters"),
+  JWT_ACCESS_EXPIRY_MINUTES: z.coerce.number().default(15),
+  JWT_REFRESH_EXPIRY_DAYS: z.coerce.number().default(7),
+  // Email Configuration
+  SMTP_HOST: z.string().default("localhost"),
+  SMTP_PORT: z.coerce.number().default(1025),
+  SMTP_SECURE: z.coerce.boolean().default(false),
+  SMTP_USER: z.string().optional(),
+  SMTP_PASSWORD: z.string().optional(),
+  // Frontend Configuration
+  FRONTEND_URL: z.string().url().default("http://localhost:3001"),
 });
 
 // Create an object to allow (potentially) mapping environment variables with different names
 const mappedEnv = {
   NODE_ENV: process.env.NODE_ENV,
   PORT: process.env.PORT,
-  AUTH_SERVICE_URL: process.env.AUTH_SERVICE_URL,
   MONGODB_HOST: process.env.MONGODB_HOST,
   MONGODB_PORT: process.env.MONGODB_PORT,
   MONGODB_USER: process.env.MONGODB_USER,
   MONGODB_PASSWORD: process.env.MONGODB_PASSWORD,
   MONGODB_DATABASE: process.env.MONGODB_DATABASE,
+  JWT_ACCESS_SECRET: process.env.JWT_ACCESS_SECRET,
+  JWT_REFRESH_SECRET: process.env.JWT_REFRESH_SECRET,
+  JWT_ACCESS_EXPIRY_MINUTES: process.env.JWT_ACCESS_EXPIRY_MINUTES,
+  JWT_REFRESH_EXPIRY_DAYS: process.env.JWT_REFRESH_EXPIRY_DAYS,
+  SMTP_HOST: process.env.SMTP_HOST,
+  SMTP_PORT: process.env.SMTP_PORT,
+  SMTP_SECURE: process.env.SMTP_SECURE,
+  SMTP_USER: process.env.SMTP_USER,
+  SMTP_PASSWORD: process.env.SMTP_PASSWORD,
+  FRONTEND_URL: process.env.FRONTEND_URL,
 };
 
 const _env = envSchema.safeParse(mappedEnv);
