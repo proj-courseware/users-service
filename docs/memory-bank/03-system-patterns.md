@@ -1,0 +1,675 @@
+# System Patterns
+
+## Architecture Overview
+
+The application follows a strict **6-layer architecture** pattern that ensures clear separation of concerns and maintainability for authentication services:
+
+```plaintext
+┌─────────────────┐
+│ Routes Layer   │ ← HTTP route definitions and middleware application
+├─────────────────┤
+│ Controllers    │ ← HTTP request/response handling
+├─────────────────┤
+│ Middlewares    │ ← Cross-cutting concerns (auth, validation, errors)
+├─────────────────┤
+│ Services       │ ← Business logic and authentication orchestration
+├─────────────────┤
+│ Repositories   │ ← Data access abstraction
+├─────────────────┤
+│ Models/Schemas │ ← Data structure and validation
+└─────────────────┘
+```
+
+## Layer Responsibilities
+
+### 1. Model Layer (`src/schemas/`)
+
+- **Purpose**: Single source of truth for data structures and validation
+- **Technology**: Zod schemas with TypeScript type inference
+- **Pattern**: Schema-first design with automatic type generation
+- **Key Files**: `user.schema.ts`, `refresh-token.schema.ts`, `admin-setting.schema.ts`
+
+**Schema Definition Guidelines**:
+
+All types and schemas must be defined in `src/schemas` directory, following `entity-name.schema.ts` pattern. Each type must be defined using Zod schema and the typescript type must be inferred from the Zod schema.
+
+```typescript
+import { z } from "zod";
+
+export const userSchema = z.object({
+  _id: z.string().optional(), // MongoDB ObjectId
+  userId: z.string(), // UUID for public identification
+  firstName: z.string().optional(),
+  lastName: z.string().optional(),
+  primaryEmail: z.string().email(),
+  passwordHash: z.string().optional(), // Only for password-based accounts
+  globalRole: z.enum(["student", "teacher", "admin"]).default("student"),
+  emails: z.array(emailObjectSchema),
+  socialIdentities: z.array(socialIdentityObjectSchema),
+  lastLoginAt: z.date().optional(),
+  passwordLastChangedAt: z.date().optional(),
+  isAccountLocked: z.boolean().default(false),
+  failedLoginAttempts: z.number().default(0),
+  createdAt: z.date(),
+  updatedAt: z.date(),
+});
+
+export type UserType = z.infer<typeof userSchema>;
+```
+
+**Authentication-Specific Schemas**:
+
+```typescript
+// Email object schema
+export const emailObjectSchema = z.object({
+  emailAddress: z.string().email(),
+  isVerified: z.boolean().default(false),
+  verificationToken: z.string().optional(),
+  verificationTokenExpiresAt: z.date().optional(),
+  addedAt: z.date(),
+});
+
+// Social identity schema
+export const socialIdentityObjectSchema = z.object({
+  provider: z.enum(["google", "github", "linkedin"]),
+  providerUserId: z.string(),
+  email: z.string().email().optional(),
+  name: z.string().optional(),
+  linkedAt: z.date(),
+});
+
+// Registration schema
+export const registerUserSchema = userSchema
+  .omit({
+    _id: true,
+    userId: true,
+    createdAt: true,
+    updatedAt: true,
+    emails: true,
+    socialIdentities: true,
+  })
+  .extend({
+    email: z.string().email(),
+    password: z.string().min(8),
+  });
+
+export type RegisterUserType = z.infer<typeof registerUserSchema>;
+```
+
+### 2. Repository Layer (`src/repositories/`)
+
+- **Pattern**: Repository Pattern with interface segregation
+- **Structure**: Interface definition + MongoDB implementation
+- **Data Mapping**: MongoDB documents ↔ Domain models
+- **Validation**: Parse data from DB using Zod schemas
+
+**Key Authentication Repository Patterns**:
+
+```typescript
+// User repository interface
+export interface IUserRepository {
+  create(user: CreateUserType): Promise<UserType>;
+  findByEmail(email: string): Promise<UserType | null>;
+  findByUserId(userId: string): Promise<UserType | null>;
+  findBySocialIdentity(provider: string, providerUserId: string): Promise<UserType | null>;
+  updatePassword(userId: string, passwordHash: string): Promise<void>;
+  updateLoginAttempts(email: string, attempts: number, lockAccount?: boolean): Promise<void>;
+  addEmail(userId: string, email: EmailObjectType): Promise<void>;
+  verifyEmail(userId: string, email: string): Promise<void>;
+  linkSocialIdentity(userId: string, socialIdentity: SocialIdentityObjectType): Promise<void>;
+  // ... other methods
+}
+
+// MongoDB implementation with authentication-specific patterns
+export class MongoDbUserRepository implements IUserRepository {
+  private mapDocumentToEntity(doc: WithId<MongoUserDocument>): UserType {
+    return userSchema.parse({
+      _id: doc._id.toHexString(),
+      userId: doc.userId,
+      firstName: doc.firstName,
+      lastName: doc.lastName,
+      primaryEmail: doc.primaryEmail,
+      passwordHash: doc.passwordHash,
+      globalRole: doc.globalRole,
+      emails: doc.emails,
+      socialIdentities: doc.socialIdentities,
+      lastLoginAt: doc.lastLoginAt,
+      passwordLastChangedAt: doc.passwordLastChangedAt,
+      isAccountLocked: doc.isAccountLocked,
+      failedLoginAttempts: doc.failedLoginAttempts,
+      createdAt: doc.createdAt,
+      updatedAt: doc.updatedAt,
+    });
+  }
+}
+```
+
+### 3. Service Layer (`src/services/`)
+
+- **Purpose**: Business logic, authentication flows, and security orchestration
+- **Dependencies**: Repository interfaces (injected)
+- **Responsibilities**: Authentication logic, password hashing, token management, email verification
+
+**Key Authentication Service Patterns**:
+
+```typescript
+export class AuthenticationService {
+  constructor(
+    private userRepository: IUserRepository,
+    private refreshTokenRepository: IRefreshTokenRepository,
+    private emailService: IEmailService,
+  ) {}
+
+  async register(data: RegisterUserType): Promise<UserType> {
+    // Business logic for user registration
+    // 1. Validate input data
+    // 2. Check if user already exists
+    // 3. Hash password
+    // 4. Create user with verification token
+    // 5. Send verification email
+    // 6. Return user without sensitive data
+  }
+
+  async loginWithPassword(email: string, password: string): Promise<{
+    user: UserType;
+    accessToken?: string;
+    refreshToken?: string;
+  }> {
+    // Business logic for password-based login
+    // 1. Find user by email
+    // 2. Check account status (locked, verified)
+    // 3. Verify password
+    // 4. Update login attempts
+    // 5. Generate tokens (if token-based)
+    // 6. Update last login time
+    // 7. Return authentication result
+  }
+
+  async refreshToken(refreshToken: string): Promise<{
+    accessToken: string;
+    refreshToken: string;
+  }> {
+    // Business logic for token refresh
+    // 1. Validate refresh token
+    // 2. Check if token is revoked
+    // 3. Generate new access token
+    // 4. Optionally rotate refresh token
+    // 5. Return new tokens
+  }
+}
+```
+
+### 4. Controller Layer (`src/controllers/`)
+
+- **Purpose**: HTTP request/response handling for authentication endpoints
+- **Pattern**: Thin controllers that delegate to services
+- **Validation**: Uses pre-validated data from middleware
+- **Error Mapping**: Converts service errors to HTTP exceptions
+
+**Authentication Controller Patterns**:
+
+```typescript
+export class AuthController {
+  constructor(private authService: AuthenticationService) {}
+
+  async register(c: Context<AppEnv>) {
+    const validatedBody = c.var.validatedBody as RegisterUserType;
+    
+    try {
+      const user = await this.authService.register(validatedBody);
+      return c.json(
+        { 
+          message: "User registered successfully. Please verify your email.",
+          user: this.sanitizeUserResponse(user)
+        },
+        201
+      );
+    } catch (error) {
+      // Error mapping to HTTP responses
+      if (error instanceof UserAlreadyExistsError) {
+        throw new ConflictHTTPException({ message: "User already exists" });
+      }
+      throw error;
+    }
+  }
+
+  async loginSession(c: Context<AppEnv>) {
+    const { email, password } = c.var.validatedBody as LoginCredentialsType;
+    
+    try {
+      const result = await this.authService.loginWithPassword(email, password);
+      
+      // Set HTTP-only session cookie
+      c.res.headers.set(
+        'Set-Cookie',
+        `session=${result.sessionToken}; HttpOnly; Secure; SameSite=Strict; Path=/`
+      );
+      
+      return c.json({
+        message: "Login successful",
+        user: this.sanitizeUserResponse(result.user)
+      });
+    } catch (error) {
+      // Authentication error handling
+    }
+  }
+
+  async loginToken(c: Context<AppEnv>) {
+    const { email, password } = c.var.validatedBody as LoginCredentialsType;
+    
+    try {
+      const result = await this.authService.loginWithPassword(email, password);
+      
+      return c.json({
+        accessToken: result.accessToken,
+        refreshToken: result.refreshToken,
+        user: this.sanitizeUserResponse(result.user)
+      });
+    } catch (error) {
+      // Authentication error handling
+    }
+  }
+}
+```
+
+### 5. Middleware Layer (`src/middlewares/`)
+
+- **Purpose**: Cross-cutting concerns and request preprocessing
+- **Types**: JWT validation, session validation, rate limiting, CSRF protection
+- **Pattern**: Hono middleware with context modification
+
+**Authentication Middleware Patterns**:
+
+```typescript
+// JWT token validation middleware
+export const jwtAuthMiddleware = async (c: Context, next: Next) => {
+  const authHeader = c.req.header('Authorization');
+  
+  if (!authHeader?.startsWith('Bearer ')) {
+    throw new UnauthorizedHTTPException({ message: "Missing or invalid token" });
+  }
+
+  try {
+    const token = authHeader.substring(7);
+    const payload = await verifyJWT(token);
+    
+    // Load user from database to ensure current data
+    const user = await userRepository.findByUserId(payload.userId);
+    if (!user || user.isAccountLocked) {
+      throw new UnauthorizedHTTPException({ message: "User not found or locked" });
+    }
+    
+    c.set('user', user);
+    await next();
+  } catch (error) {
+    throw new UnauthorizedHTTPException({ message: "Invalid token" });
+  }
+};
+
+// Session validation middleware
+export const sessionAuthMiddleware = async (c: Context, next: Next) => {
+  const sessionCookie = c.req.header('Cookie')?.match(/session=([^;]+)/)?.[1];
+  
+  if (!sessionCookie) {
+    throw new UnauthorizedHTTPException({ message: "No session found" });
+  }
+
+  try {
+    const session = await sessionRepository.findByToken(sessionCookie);
+    if (!session || session.expiresAt < new Date()) {
+      throw new UnauthorizedHTTPException({ message: "Session expired" });
+    }
+    
+    const user = await userRepository.findByUserId(session.userId);
+    if (!user || user.isAccountLocked) {
+      throw new UnauthorizedHTTPException({ message: "User not found or locked" });
+    }
+    
+    c.set('user', user);
+    await next();
+  } catch (error) {
+    throw new UnauthorizedHTTPException({ message: "Invalid session" });
+  }
+};
+
+// Rate limiting middleware
+export const rateLimitMiddleware = (maxAttempts: number, windowMs: number) => {
+  return async (c: Context, next: Next) => {
+    const clientIP = c.req.header('x-forwarded-for') || c.req.header('remote-addr');
+    const key = `rate_limit:${clientIP}`;
+    
+    // Check rate limit logic
+    const attempts = await redis.get(key);
+    if (attempts && parseInt(attempts) >= maxAttempts) {
+      throw new TooManyRequestsHTTPException({ 
+        message: "Too many requests. Please try again later." 
+      });
+    }
+    
+    await next();
+    
+    // Increment attempts after successful request
+    await redis.incr(key);
+    await redis.expire(key, Math.ceil(windowMs / 1000));
+  };
+};
+```
+
+### 6. Routes Layer (`src/routes/`)
+
+- **Purpose**: HTTP route definitions and middleware application
+- **Pattern**: Feature-based route modules organized by authentication flow
+- **Organization**: Separate routers for different authentication contexts
+
+**Authentication Route Patterns**:
+
+```typescript
+// Authentication routes
+export function createAuthRoutes({
+  authController,
+}: {
+  authController: AuthController;
+}) {
+  const router = new Hono<AppEnv>();
+
+  // Registration
+  router.post(
+    "/register",
+    rateLimitMiddleware(5, 15 * 60 * 1000), // 5 attempts per 15 minutes
+    validateBody(registerUserSchema),
+    (c) => authController.register(c)
+  );
+
+  // Session-based login
+  router.post(
+    "/login/session",
+    rateLimitMiddleware(5, 15 * 60 * 1000),
+    validateBody(loginCredentialsSchema),
+    (c) => authController.loginSession(c)
+  );
+
+  // Token-based login
+  router.post(
+    "/login/token",
+    rateLimitMiddleware(5, 15 * 60 * 1000),
+    validateBody(loginCredentialsSchema),
+    (c) => authController.loginToken(c)
+  );
+
+  // Token refresh
+  router.post(
+    "/token/refresh",
+    rateLimitMiddleware(10, 5 * 60 * 1000), // 10 attempts per 5 minutes
+    validateBody(refreshTokenSchema),
+    (c) => authController.refreshToken(c)
+  );
+
+  // Social login routes
+  router.get("/google", (c) => authController.redirectToGoogle(c));
+  router.get("/google/callback", (c) => authController.handleGoogleCallback(c));
+  
+  router.get("/github", (c) => authController.redirectToGitHub(c));
+  router.get("/github/callback", (c) => authController.handleGitHubCallback(c));
+
+  return router;
+}
+
+// User account management routes (authenticated)
+export function createUserRoutes({
+  userController,
+}: {
+  userController: UserController;
+}) {
+  const router = new Hono<AppEnv>();
+
+  // All routes require authentication
+  router.use("*", jwtAuthMiddleware); // or sessionAuthMiddleware
+
+  router.get("/", (c) => userController.getProfile(c));
+  router.put("/", validateBody(updateUserSchema), (c) => userController.updateProfile(c));
+  router.put("/password", validateBody(changePasswordSchema), (c) => userController.changePassword(c));
+  
+  // Email management
+  router.get("/emails", (c) => userController.getEmails(c));
+  router.post("/emails", validateBody(addEmailSchema), (c) => userController.addEmail(c));
+  router.delete("/emails/:email", (c) => userController.removeEmail(c));
+  router.post("/emails/set-primary", validateBody(setPrimaryEmailSchema), (c) => userController.setPrimaryEmail(c));
+
+  return router;
+}
+```
+
+## Critical Implementation Patterns
+
+### Password Security Patterns
+
+```typescript
+// Password hashing service
+export class PasswordService {
+  async hashPassword(password: string): Promise<string> {
+    // Use Argon2id for password hashing
+    return await argon2.hash(password, {
+      type: argon2.argon2id,
+      memoryCost: 2 ** 16, // 64MB
+      timeCost: 3,
+      parallelism: 1,
+    });
+  }
+
+  async verifyPassword(password: string, hash: string): Promise<boolean> {
+    try {
+      return await argon2.verify(hash, password);
+    } catch (error) {
+      return false;
+    }
+  }
+
+  validatePasswordStrength(password: string, policy: PasswordPolicyType): boolean {
+    // Implement password policy validation
+    if (password.length < policy.minLength) return false;
+    if (policy.requireUppercase && !/[A-Z]/.test(password)) return false;
+    if (policy.requireLowercase && !/[a-z]/.test(password)) return false;
+    if (policy.requireNumbers && !/\d/.test(password)) return false;
+    if (policy.requireSpecialChars && !/[!@#$%^&*(),.?":{}|<>]/.test(password)) return false;
+    return true;
+  }
+}
+```
+
+### JWT Token Management Patterns
+
+```typescript
+// JWT service for token management
+export class JWTService {
+  private readonly accessTokenSecret: string;
+  private readonly refreshTokenSecret: string;
+  private readonly accessTokenExpiryMinutes: number = 15;
+  private readonly refreshTokenExpiryDays: number = 7;
+
+  async generateAccessToken(user: UserType): Promise<string> {
+    const payload = {
+      userId: user.userId,
+      email: user.primaryEmail,
+      role: user.globalRole,
+      iat: Math.floor(Date.now() / 1000),
+      exp: Math.floor(Date.now() / 1000) + (this.accessTokenExpiryMinutes * 60),
+    };
+
+    return jwt.sign(payload, this.accessTokenSecret, { algorithm: 'HS256' });
+  }
+
+  async generateRefreshToken(user: UserType): Promise<string> {
+    const payload = {
+      userId: user.userId,
+      type: 'refresh',
+      iat: Math.floor(Date.now() / 1000),
+      exp: Math.floor(Date.now() / 1000) + (this.refreshTokenExpiryDays * 24 * 60 * 60),
+    };
+
+    return jwt.sign(payload, this.refreshTokenSecret, { algorithm: 'HS256' });
+  }
+
+  async verifyAccessToken(token: string): Promise<JWTPayload> {
+    try {
+      return jwt.verify(token, this.accessTokenSecret) as JWTPayload;
+    } catch (error) {
+      throw new InvalidTokenError('Invalid access token');
+    }
+  }
+
+  async verifyRefreshToken(token: string): Promise<JWTPayload> {
+    try {
+      return jwt.verify(token, this.refreshTokenSecret) as JWTPayload;
+    } catch (error) {
+      throw new InvalidTokenError('Invalid refresh token');
+    }
+  }
+}
+```
+
+### Social Login Integration Patterns
+
+```typescript
+// OAuth service for social login
+export class OAuthService {
+  async handleGoogleCallback(code: string, state: string): Promise<{
+    user: UserType;
+    isNewUser: boolean;
+    accessToken?: string;
+    refreshToken?: string;
+  }> {
+    // 1. Exchange code for access token with Google
+    const googleTokens = await this.exchangeCodeForTokens('google', code);
+    
+    // 2. Get user info from Google
+    const googleUser = await this.getUserInfo('google', googleTokens.access_token);
+    
+    // 3. Find existing user by email or social identity
+    let user = await this.userRepository.findByEmail(googleUser.email);
+    let isNewUser = false;
+    
+    if (!user) {
+      // 4. Create new user if not found
+      user = await this.userRepository.create({
+        userId: uuidv4(),
+        firstName: googleUser.given_name,
+        lastName: googleUser.family_name,
+        primaryEmail: googleUser.email,
+        globalRole: 'student',
+        emails: [{
+          emailAddress: googleUser.email,
+          isVerified: true, // Auto-verify emails from trusted providers
+          addedAt: new Date(),
+        }],
+        socialIdentities: [{
+          provider: 'google',
+          providerUserId: googleUser.id,
+          email: googleUser.email,
+          name: googleUser.name,
+          linkedAt: new Date(),
+        }],
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+      isNewUser = true;
+    } else {
+      // 5. Link social identity to existing user
+      await this.userRepository.linkSocialIdentity(user.userId, {
+        provider: 'google',
+        providerUserId: googleUser.id,
+        email: googleUser.email,
+        name: googleUser.name,
+        linkedAt: new Date(),
+      });
+    }
+    
+    // 6. Generate tokens for authenticated user
+    const accessToken = await this.jwtService.generateAccessToken(user);
+    const refreshToken = await this.jwtService.generateRefreshToken(user);
+    
+    return { user, isNewUser, accessToken, refreshToken };
+  }
+}
+```
+
+### Email Verification Patterns
+
+```typescript
+// Email verification service
+export class EmailVerificationService {
+  async sendVerificationEmail(user: UserType, email: string): Promise<void> {
+    // 1. Generate verification token
+    const verificationToken = this.generateSecureToken();
+    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+    
+    // 2. Store token in database
+    await this.userRepository.setEmailVerificationToken(
+      user.userId,
+      email,
+      verificationToken,
+      expiresAt
+    );
+    
+    // 3. Send email with verification link
+    const verificationUrl = `${process.env.FRONTEND_URL}/verify-email?token=${verificationToken}`;
+    await this.emailService.sendVerificationEmail(email, verificationUrl);
+  }
+
+  async verifyEmail(token: string): Promise<{ success: boolean; message: string }> {
+    // 1. Find user by verification token
+    const user = await this.userRepository.findByVerificationToken(token);
+    
+    if (!user) {
+      return { success: false, message: 'Invalid verification token' };
+    }
+    
+    // 2. Check token expiry
+    const emailToVerify = user.emails.find(e => e.verificationToken === token);
+    if (!emailToVerify || emailToVerify.verificationTokenExpiresAt! < new Date()) {
+      return { success: false, message: 'Verification token expired' };
+    }
+    
+    // 3. Mark email as verified
+    await this.userRepository.verifyEmail(user.userId, emailToVerify.emailAddress);
+    
+    return { success: true, message: 'Email verified successfully' };
+  }
+}
+```
+
+## File Naming Conventions
+
+Files should follow this naming pattern: `entity-name.type.ts`
+
+**Authentication Service Specific Naming**:
+
+- **Schemas**: `user.schema.ts`, `refresh-token.schema.ts`, `admin-setting.schema.ts`
+- **Repositories**: `user.repository.ts`, `refresh-token.repository.ts`
+- **Services**: `authentication.service.ts`, `authorization.service.ts`, `password.service.ts`, `jwt.service.ts`, `oauth.service.ts`, `email-verification.service.ts`
+- **Controllers**: `auth.controller.ts`, `user.controller.ts`, `admin.controller.ts`
+- **Routes**: `auth.router.ts`, `user.router.ts`, `admin.router.ts`
+- **Middlewares**: `jwt-auth.middleware.ts`, `session-auth.middleware.ts`, `rate-limit.middleware.ts`
+
+## Security Patterns
+
+### Account Security
+
+- **Password Hashing**: Argon2id with proper parameters
+- **Account Lockout**: Progressive delays and account locking
+- **Rate Limiting**: Per-endpoint and per-IP rate limiting
+- **Token Security**: Short-lived access tokens, secure refresh tokens
+- **Session Security**: HTTP-only cookies, CSRF protection
+
+### Input Validation and Sanitization
+
+- **Schema Validation**: Comprehensive Zod schemas for all inputs
+- **Email Validation**: Proper email format and domain validation
+- **Password Policies**: Configurable password strength requirements
+- **Input Sanitization**: Sanitize all user inputs to prevent injection attacks
+
+### Authentication Flow Security
+
+- **Secure Token Storage**: Refresh tokens hashed in database
+- **Token Rotation**: Refresh token rotation on each use
+- **Social Login Security**: Proper OAuth2/OIDC implementation with state validation
+- **Email Verification**: Secure token-based email verification with expiry
