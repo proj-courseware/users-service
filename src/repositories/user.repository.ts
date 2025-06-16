@@ -3,7 +3,9 @@ import type {
   CreateUserType,
   EmailObjectType,
   SocialIdentityObjectType,
+  UserQueryParamsType,
 } from "@/schemas/user.schema";
+import type { PaginatedResultType } from "@/schemas/shared.schema";
 
 export interface IUserRepository {
   // Core CRUD operations
@@ -50,18 +52,6 @@ export interface IUserRepository {
 
   // Admin operations
   findAll(
-    options?: {
-      page?: number;
-      limit?: number;
-      sortBy?: string;
-      sortOrder?: "asc" | "desc";
-      search?: string;
-      role?: string;
-    },
-  ): Promise<{
-    users: UserType[];
-    total: number;
-    page: number;
-    limit: number;
-  }>;
+    queryParams?: UserQueryParamsType,
+  ): Promise<PaginatedResultType<UserType>>;
 }
