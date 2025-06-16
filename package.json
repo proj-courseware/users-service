@@ -1,7 +1,7 @@
 {
-  "name": "backend-template",
+  "name": "users-service",
   "version": "1.0.0",
-  "description": "A template for a backend service built with TypeScript and Hono.js",
+  "description": "Authentication service providing user identity management, authentication, and authorization",
   "type": "module",
   "author": "Ali Madooei",
   "license": "MIT",
@@ -32,14 +32,18 @@
   },
   "dependencies": {
     "@hono/node-server": "^1.14.2",
+    "bcrypt": "^5.1.1",
     "dotenv": "^16.5.0",
     "hono": "^4.7.10",
+    "jsonwebtoken": "^9.0.2",
     "mongodb": "^6.17.0",
     "uuid": "^11.1.0",
     "zod": "^3.25.20"
   },
   "devDependencies": {
     "@eslint/js": "^9.27.0",
+    "@types/bcrypt": "^5.0.2",
+    "@types/jsonwebtoken": "^9.0.7",
     "@types/node": "^20.11.17",
     "@types/uuid": "^10.0.0",
     "@vitest/coverage-v8": "^3.1.4",
