@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { globalRoleSchema } from "@/schemas/roles.schemas";
+import { queryParamsSchema } from "@/schemas/shared.schema";
 
 // Base User Schema (matches SPECS.md User model)
 export const userSchema = z.object({
@@ -179,3 +180,10 @@ export const refreshJWTPayloadSchema = z.object({
 });
 
 export type RefreshJWTPayloadType = z.infer<typeof refreshJWTPayloadSchema>;
+
+// User-specific query parameters schema
+export const userQueryParamsSchema = queryParamsSchema.extend({
+  role: globalRoleSchema.optional(),
+});
+
+export type UserQueryParamsType = z.infer<typeof userQueryParamsSchema>;
