@@ -1,0 +1,181 @@
+import { z } from "zod";
+import { globalRoleSchema } from "@/schemas/roles.schemas";
+
+// Base User Schema (matches SPECS.md User model)
+export const userSchema = z.object({
+  _id: z.string().optional(), // MongoDB ObjectId
+  userId: z.string(), // UUID for public identification
+  firstName: z.string().optional(),
+  lastName: z.string().optional(),
+  primaryEmail: z.string().email(),
+  passwordHash: z.string().optional(), // Only for password-based accounts
+  globalRole: globalRoleSchema.default("student"),
+  emails: z.array(z.object({
+    emailAddress: z.string().email(),
+    isVerified: z.boolean().default(false),
+    verificationToken: z.string().optional(),
+    verificationTokenExpiresAt: z.date().optional(),
+    addedAt: z.date(),
+  })),
+  socialIdentities: z.array(z.object({
+    provider: z.enum(["google", "github", "linkedin"]),
+    providerUserId: z.string(),
+    email: z.string().email().optional(),
+    name: z.string().optional(),
+    linkedAt: z.date(),
+  })),
+  lastLoginAt: z.date().optional(),
+  passwordLastChangedAt: z.date().optional(),
+  isAccountLocked: z.boolean().default(false),
+  failedLoginAttempts: z.number().default(0),
+  createdAt: z.date(),
+  updatedAt: z.date(),
+});
+
+export type UserType = z.infer<typeof userSchema>;
+
+// Email object schema (for embedded documents)
+export const emailObjectSchema = z.object({
+  emailAddress: z.string().email(),
+  isVerified: z.boolean().default(false),
+  verificationToken: z.string().optional(),
+  verificationTokenExpiresAt: z.date().optional(),
+  addedAt: z.date(),
+});
+
+export type EmailObjectType = z.infer<typeof emailObjectSchema>;
+
+// Social identity schema (for embedded documents)
+export const socialIdentityObjectSchema = z.object({
+  provider: z.enum(["google", "github", "linkedin"]),
+  providerUserId: z.string(),
+  email: z.string().email().optional(),
+  name: z.string().optional(),
+  linkedAt: z.date(),
+});
+
+export type SocialIdentityObjectType = z.infer<typeof socialIdentityObjectSchema>;
+
+// Registration schema (for user registration)
+export const registerUserSchema = z.object({
+  email: z.string().email(),
+  password: z.string().min(8, "Password must be at least 8 characters"),
+  firstName: z.string().optional(),
+  lastName: z.string().optional(),
+});
+
+export type RegisterUserType = z.infer<typeof registerUserSchema>;
+
+// Create user schema (for repository layer)
+export const createUserSchema = userSchema.omit({
+  _id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type CreateUserType = z.infer<typeof createUserSchema>;
+
+// Update user schema (for profile updates)
+export const updateUserSchema = z.object({
+  firstName: z.string().optional(),
+  lastName: z.string().optional(),
+}).partial();
+
+export type UpdateUserType = z.infer<typeof updateUserSchema>;
+
+// Login credentials schema
+export const loginCredentialsSchema = z.object({
+  email: z.string().email(),
+  password: z.string().min(1, "Password is required"),
+});
+
+export type LoginCredentialsType = z.infer<typeof loginCredentialsSchema>;
+
+// Change password schema
+export const changePasswordSchema = z.object({
+  currentPassword: z.string().min(1, "Current password is required"),
+  newPassword: z.string().min(8, "New password must be at least 8 characters"),
+});
+
+export type ChangePasswordType = z.infer<typeof changePasswordSchema>;
+
+// Add email schema
+export const addEmailSchema = z.object({
+  emailAddress: z.string().email(),
+});
+
+export type AddEmailType = z.infer<typeof addEmailSchema>;
+
+// Set primary email schema
+export const setPrimaryEmailSchema = z.object({
+  emailAddress: z.string().email(),
+});
+
+export type SetPrimaryEmailType = z.infer<typeof setPrimaryEmailSchema>;
+
+// Refresh token schema
+export const refreshTokenSchema = z.object({
+  _id: z.string().optional(), // MongoDB ObjectId
+  tokenHash: z.string(), // Hashed refresh token
+  userId: z.string(), // References User.userId
+  userAgent: z.string().optional(),
+  ipAddress: z.string().optional(),
+  expiresAt: z.date(),
+  isRevoked: z.boolean().default(false),
+  createdAt: z.date(),
+});
+
+export type RefreshTokenType = z.infer<typeof refreshTokenSchema>;
+
+// Create refresh token schema
+export const createRefreshTokenSchema = refreshTokenSchema.omit({
+  _id: true,
+  createdAt: true,
+});
+
+export type CreateRefreshTokenType = z.infer<typeof createRefreshTokenSchema>;
+
+// Admin setting schema
+export const adminSettingSchema = z.object({
+  _id: z.string().optional(), // MongoDB ObjectId
+  key: z.string(), // e.g., "universityEmailPattern", "passwordPolicyMinLength"
+  value: z.unknown(), // Mixed type for flexible configuration
+  description: z.string().optional(),
+  updatedAt: z.date(),
+});
+
+export type AdminSettingType = z.infer<typeof adminSettingSchema>;
+
+// User ID type (for consistency with existing code)
+export const userIdSchema = z.string();
+export type UserIdType = z.infer<typeof userIdSchema>;
+
+// Authenticated user context (for middleware)
+export const authenticatedUserContextSchema = z.object({
+  userId: userIdSchema,
+  globalRole: globalRoleSchema,
+  primaryEmail: z.string().email(),
+});
+
+export type AuthenticatedUserContextType = z.infer<typeof authenticatedUserContextSchema>;
+
+// JWT payload schema
+export const jwtPayloadSchema = z.object({
+  userId: z.string(),
+  email: z.string().email(),
+  role: globalRoleSchema,
+  iat: z.number(),
+  exp: z.number(),
+});
+
+export type JWTPayloadType = z.infer<typeof jwtPayloadSchema>;
+
+// Refresh JWT payload schema
+export const refreshJWTPayloadSchema = z.object({
+  userId: z.string(),
+  type: z.literal("refresh"),
+  iat: z.number(),
+  exp: z.number(),
+});
+
+export type RefreshJWTPayloadType = z.infer<typeof refreshJWTPayloadSchema>;
