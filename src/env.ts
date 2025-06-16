@@ -27,6 +27,13 @@ const envSchema = z.object({
   SMTP_PASSWORD: z.string().optional(),
   // Frontend Configuration
   FRONTEND_URL: z.string().url().default("http://localhost:3001"),
+  // MailHog Configuration
+  MAILHOG_SMTP_PORT: z.coerce.number().default(1025),
+  MAILHOG_WEB_PORT: z.coerce.number().default(8025),
+  // Redis Configuration
+  REDIS_HOST: z.string().default("localhost"),
+  REDIS_PORT: z.coerce.number().default(6379),
+  REDIS_PASSWORD: z.string().optional(),
 });
 
 // Create an object to allow (potentially) mapping environment variables with different names
@@ -48,6 +55,11 @@ const mappedEnv = {
   SMTP_USER: process.env.SMTP_USER,
   SMTP_PASSWORD: process.env.SMTP_PASSWORD,
   FRONTEND_URL: process.env.FRONTEND_URL,
+  MAILHOG_SMTP_PORT: process.env.MAILHOG_SMTP_PORT,
+  MAILHOG_WEB_PORT: process.env.MAILHOG_WEB_PORT,
+  REDIS_HOST: process.env.REDIS_HOST,
+  REDIS_PORT: process.env.REDIS_PORT,
+  REDIS_PASSWORD: process.env.REDIS_PASSWORD,
 };
 
 const _env = envSchema.safeParse(mappedEnv);

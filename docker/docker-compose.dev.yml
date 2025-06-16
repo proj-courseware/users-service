@@ -2,7 +2,7 @@ version: "3.8"
 
 services:
   app:
-    container_name: backend-template-app # Rename as needed
+    container_name: users-service-app
     build:
       context: ../ # relative to this file
       dockerfile: docker/Dockerfile.dev # relative to the build context
@@ -16,10 +16,6 @@ services:
     environment:
       - NODE_ENV=development
       - PORT=${PORT}
-      - POSTGRES_HOST=postgres_db # Use service name instead of localhost
-      - POSTGRES_USER=${POSTGRES_USER}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
-      - POSTGRES_DATABASE=${POSTGRES_DATABASE}
       - MONGODB_HOST=mongo_db # Use service name instead of localhost
       - MONGODB_PORT=${MONGODB_PORT}
       - MONGODB_DATABASE=${MONGODB_DATABASE}
@@ -28,33 +24,17 @@ services:
       - REDIS_HOST=redis_cache # Use service name instead of localhost
       - REDIS_PORT=${REDIS_PORT}
       - REDIS_PASSWORD=${REDIS_PASSWORD}
+      - SMTP_HOST=mailhog # Use service name
+      - SMTP_PORT=1025
     depends_on:
       mongo_db:
         condition: service_healthy
-      postgres_db:
-        condition: service_healthy
       redis_cache:
+        condition: service_healthy
+      mailhog:
         condition: service_healthy
     command: /bin/sh -c "npm run start"
     user: node
-    restart: unless-stopped
-    networks:
-      - app-network
-
-  postgres_db:
-    image: postgres:latest
-    env_file:
-      - .env
-    ports:
-      - "${POSTGRES_PORT}:${POSTGRES_PORT}"
-    user: "${POSTGRES_USER}"
-    volumes:
-      - pgdata:/var/lib/postgresql/data # Where Postgres stores its data by default
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready"]
-      interval: 1s
-      timeout: 5s
-      retries: 5
     restart: unless-stopped
     networks:
       - app-network
@@ -110,11 +90,26 @@ services:
     networks:
       - app-network
 
+  mailhog:
+    image: mailhog/mailhog:latest
+    env_file:
+      - .env
+    ports:
+      - "${MAILHOG_SMTP_PORT}:1025"  # SMTP port
+      - "${MAILHOG_WEB_PORT}:8025"   # Web UI port
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8025"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
+    networks:
+      - app-network
+
 networks:
   app-network:
     driver: bridge
 
 volumes:
-  pgdata:
   mongodb_data:
   redis_data:
