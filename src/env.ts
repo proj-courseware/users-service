@@ -20,7 +20,7 @@ const envSchema = z.object({
   JWT_ACCESS_EXPIRY_MINUTES: z.coerce.number().default(15),
   JWT_REFRESH_EXPIRY_DAYS: z.coerce.number().default(7),
   // Email Configuration
-  SMTP_HOST: z.string().default("localhost"),
+  SMTP_HOST: z.string().default("mailhog"),
   SMTP_PORT: z.coerce.number().default(1025),
   SMTP_SECURE: z.coerce.boolean().default(false),
   SMTP_USER: z.string().optional(),

@@ -1,6 +1,6 @@
 # Docker Usage for Development and Production
 
-This directory contains all the necessary files to build and run your application using Docker for both development and production environments.
+This directory contains all the necessary files to build and run your users authentication service using Docker for both development and production environments.
 
 ---
 
@@ -17,26 +17,37 @@ This directory contains all the necessary files to build and run your applicatio
 NODE_ENV=development
 PORT=3000
 
-# Postgres
-POSTGRES_HOST=localhost
-POSTGRES_PORT=5432
-POSTGRES_DATABASE=postgres-db
-POSTGRES_USER=postgres
-POSTGRES_PASSWORD=postgres
-# 👇 Specifies whether to use secure connection or not (disable since we are connecting through the docker network)
-POSTGRES_SSLMODE=disable
-
-# MongoDB
+# MongoDB Configuration
 MONGODB_HOST=localhost
 MONGODB_PORT=27017
-MONGODB_DATABASE=mern-db
+MONGODB_DATABASE=users-service
 MONGODB_USER=admin
 MONGODB_PASSWORD=admin
 
-# Redis
+# JWT Configuration
+JWT_ACCESS_SECRET=your-super-secret-access-key-change-in-production
+JWT_REFRESH_SECRET=your-super-secret-refresh-key-change-in-production
+JWT_ACCESS_EXPIRY_MINUTES=15
+JWT_REFRESH_EXPIRY_DAYS=7
+
+# Email Configuration (MailHog for development)
+SMTP_HOST=mailhog
+SMTP_PORT=1025
+SMTP_SECURE=false
+SMTP_USER=
+SMTP_PASSWORD=
+
+# MailHog Docker Service Configuration
+MAILHOG_SMTP_PORT=1025
+MAILHOG_WEB_PORT=8025
+
+# Redis Configuration
 REDIS_HOST=localhost
 REDIS_PORT=6379
 REDIS_PASSWORD=redispassword
+
+# Frontend Configuration
+FRONTEND_URL=http://localhost:3001
 ```
 
 Make sure to update the values as needed for your setup.
@@ -51,7 +62,7 @@ From the project root, run:
 docker compose --env-file docker/.env -f docker/docker-compose.dev.yml up --build
 ```
 
-- This will build the development image using `Dockerfile.dev` and start the app along with Postgres, MongoDB, and Redis containers.
+- This will build the development image using `Dockerfile.dev` and start the app along with MongoDB, MailHog, and Redis containers.
 - The app source code is mounted as a volume for live reload.
 - The app will be available at `http://localhost:${PORT}` (default: 3000).
 
