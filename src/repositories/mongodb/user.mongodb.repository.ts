@@ -1,4 +1,5 @@
-import { type Collection, type Db, type WithId, ObjectId } from "mongodb";
+import { Collection, Db, ObjectId } from "mongodb";
+import type { WithId, Filter, Sort } from "mongodb";
 import { v4 as uuidv4 } from "uuid";
 import type { IUserRepository } from "@/repositories/user.repository";
 import type {
@@ -6,34 +7,45 @@ import type {
   CreateUserType,
   EmailObjectType,
   SocialIdentityObjectType,
+  UserQueryParamsType,
 } from "@/schemas/user.schema";
 import { userSchema } from "@/schemas/user.schema";
+import {
+  DEFAULT_LIMIT,
+  DEFAULT_PAGE,
+  type PaginatedResultType,
+} from "@/schemas/shared.schema";
+import { getDatabase } from "@/config/mongodb.setup";
 
 // MongoDB document interface (internal to repository)
-interface MongoUserDocument extends Omit<UserType, "_id" | "userId"> {
+// It's essentially our User schema but expects its primary key (_id) to be an ObjectId.
+// The '_id' field in our User domain model will be derived from _id.toHexString().
+interface MongoUserDocument
+  extends Omit<UserType, "_id" | "createdAt" | "updatedAt"> {
   _id?: ObjectId;
-  userId: string;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 export class MongoDbUserRepository implements IUserRepository {
-  private db: Db | null = null;
   private collection: Collection<MongoUserDocument> | null = null;
 
-  constructor(db?: Db) {
-    this.db = db;
-  }
-
-  async getCollection(): Promise<Collection<MongoUserDocument>> {
+  // Lazy load the collection when needed
+  // This ensures we only connect to the database when we actually need to perform an operation
+  // and not at the time of instantiation.
+  // Although, in the current setup, we connect to the database when the application starts,
+  // this pattern allows for better separation of concerns and makes testing easier.
+  private async getCollection(): Promise<Collection<MongoUserDocument>> {
     if (!this.collection) {
-      if (!this.db) {
-        throw new Error("Database connection not initialized");
-      }
-      this.collection = this.db.collection<MongoUserDocument>("users");
+      const db: Db = await getDatabase();
+      this.collection = db.collection<MongoUserDocument>("users");
       await this.createIndexes(this.collection);
+      console.log("👤 Users collection initialized");
     }
     return this.collection;
   }
 
+  // createIndex is idempotent, so we can safely call it multiple times
   private async createIndexes(
     collection: Collection<MongoUserDocument>,
   ): Promise<void> {
@@ -50,6 +62,7 @@ export class MongoDbUserRepository implements IUserRepository {
         { sparse: true, name: "users_verificationToken" }
       ),
       collection.createIndex({ createdAt: -1 }, { name: "users_createdAt_desc" }),
+      collection.createIndex({ globalRole: 1 }, { name: "users_globalRole" }),
     ]);
   }
 
@@ -58,7 +71,6 @@ export class MongoDbUserRepository implements IUserRepository {
     return userSchema.parse({
       ...restOfDoc,
       _id: _id.toHexString(),
-      userId: doc.userId,
       createdAt: doc.createdAt,
       updatedAt: doc.updatedAt,
     });
@@ -162,7 +174,6 @@ export class MongoDbUserRepository implements IUserRepository {
     }
   }
 
-  // Placeholder implementations for other methods
   async findBySocialIdentity(provider: string, providerUserId: string): Promise<UserType | null> {
     const collection = await this.getCollection();
     const doc = await collection.findOne({
@@ -184,29 +195,84 @@ export class MongoDbUserRepository implements IUserRepository {
     return doc ? this.mapDocumentToEntity(doc) : null;
   }
 
-  // TODO: Implement remaining methods
   async addEmail(userId: string, email: EmailObjectType): Promise<void> {
-    throw new Error("Method not implemented yet");
+    const collection = await this.getCollection();
+    await collection.updateOne(
+      { userId },
+      { 
+        $push: { emails: email },
+        $set: { updatedAt: new Date() }
+      }
+    );
   }
 
   async verifyEmail(userId: string, emailAddress: string): Promise<void> {
-    throw new Error("Method not implemented yet");
+    const collection = await this.getCollection();
+    await collection.updateOne(
+      { 
+        userId,
+        "emails.emailAddress": emailAddress
+      },
+      { 
+        $set: { 
+          "emails.$.isVerified": true,
+          "emails.$.verificationToken": undefined,
+          "emails.$.verificationTokenExpiresAt": undefined,
+          updatedAt: new Date()
+        }
+      }
+    );
   }
 
   async removeEmail(userId: string, emailAddress: string): Promise<void> {
-    throw new Error("Method not implemented yet");
+    const collection = await this.getCollection();
+    await collection.updateOne(
+      { userId },
+      { 
+        $pull: { emails: { emailAddress } },
+        $set: { updatedAt: new Date() }
+      }
+    );
   }
 
   async setPrimaryEmail(userId: string, emailAddress: string): Promise<void> {
-    throw new Error("Method not implemented yet");
+    const collection = await this.getCollection();
+    await collection.updateOne(
+      { userId },
+      { 
+        $set: { 
+          primaryEmail: emailAddress,
+          updatedAt: new Date()
+        }
+      }
+    );
   }
 
   async linkSocialIdentity(userId: string, socialIdentity: SocialIdentityObjectType): Promise<void> {
-    throw new Error("Method not implemented yet");
+    const collection = await this.getCollection();
+    await collection.updateOne(
+      { userId },
+      { 
+        $push: { socialIdentities: socialIdentity },
+        $set: { updatedAt: new Date() }
+      }
+    );
   }
 
   async unlinkSocialIdentity(userId: string, provider: string, providerUserId: string): Promise<void> {
-    throw new Error("Method not implemented yet");
+    const collection = await this.getCollection();
+    await collection.updateOne(
+      { userId },
+      { 
+        $pull: { 
+          socialIdentities: { 
+            provider, 
+            providerUserId 
+          } 
+        },
+        $set: { updatedAt: new Date() }
+      }
+    );
   }
 
   async updatePassword(userId: string, passwordHash: string): Promise<void> {
@@ -264,19 +330,55 @@ export class MongoDbUserRepository implements IUserRepository {
     );
   }
 
-  async findAll(options: {
-    page?: number;
-    limit?: number;
-    sortBy?: string;
-    sortOrder?: "asc" | "desc";
-    search?: string;
-    role?: string;
-  } = {}): Promise<{
-    users: UserType[];
-    total: number;
-    page: number;
-    limit: number;
-  }> {
-    throw new Error("Method not implemented yet");
+  async findAll(queryParams: UserQueryParamsType = {}): Promise<PaginatedResultType<UserType>> {
+    const collection = await this.getCollection();
+
+    const {
+      page = DEFAULT_PAGE,
+      limit = DEFAULT_LIMIT,
+      sortBy = "createdAt",
+      sortOrder = "desc",
+      search,
+      role,
+    } = queryParams;
+
+    // Build the filter
+    const filter: Filter<MongoUserDocument> = {};
+
+    if (search) {
+      filter.$or = [
+        { firstName: { $regex: search, $options: "i" } },
+        { lastName: { $regex: search, $options: "i" } },
+        { primaryEmail: { $regex: search, $options: "i" } },
+        { "emails.emailAddress": { $regex: search, $options: "i" } },
+      ];
+    }
+
+    if (role) {
+      filter.globalRole = role;
+    }
+
+    // Build the sort
+    const sort: Sort = { [sortBy]: sortOrder === "asc" ? 1 : -1 };
+
+    // Calculate pagination
+    const skip = (page - 1) * limit;
+
+    // Execute queries in parallel
+    const [documents, total] = await Promise.all([
+      collection.find(filter).sort(sort).skip(skip).limit(limit).toArray(),
+      collection.countDocuments(filter),
+    ]);
+
+    // Map to domain entities
+    const users = documents.map((doc) => this.mapDocumentToEntity(doc));
+
+    return {
+      data: users,
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+    };
   }
 }
