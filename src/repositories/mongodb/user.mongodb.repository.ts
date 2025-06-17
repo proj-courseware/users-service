@@ -8,6 +8,7 @@ import type {
   EmailObjectType,
   SocialIdentityObjectType,
   UserQueryParamsType,
+  SocialAuthProviderType,
 } from "@/schemas/user.schema";
 import { userSchema } from "@/schemas/user.schema";
 import {
@@ -259,7 +260,7 @@ export class MongoDbUserRepository implements IUserRepository {
     );
   }
 
-  async unlinkSocialIdentity(userId: string, provider: string, providerUserId: string): Promise<void> {
+  async unlinkSocialIdentity(userId: string, provider: SocialAuthProviderType, providerUserId: string): Promise<void> {
     const collection = await this.getCollection();
     await collection.updateOne(
       { userId },

@@ -2,6 +2,9 @@ import { z } from "zod";
 import { globalRoleSchema } from "@/schemas/roles.schemas";
 import { queryParamsSchema } from "@/schemas/shared.schema";
 
+export const socialAuthProviderSchema = z.enum(["google", "github", "linkedin"]);
+export type SocialAuthProviderType = z.infer<typeof socialAuthProviderSchema>;
+
 // Base User Schema (matches SPECS.md User model)
 export const userSchema = z.object({
   _id: z.string().optional(), // MongoDB ObjectId
@@ -19,7 +22,7 @@ export const userSchema = z.object({
     addedAt: z.date(),
   })),
   socialIdentities: z.array(z.object({
-    provider: z.enum(["google", "github", "linkedin"]),
+    provider:  socialAuthProviderSchema,
     providerUserId: z.string(),
     email: z.string().email().optional(),
     name: z.string().optional(),
