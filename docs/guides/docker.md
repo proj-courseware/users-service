@@ -499,3 +499,269 @@ In these cases, `${HOST.IP}` is the IP address of the host machine. You can use 
 
 > [!TIP]
 > You can run these services in the production environment as well. However, it is not recommended to do so! There is so much more to think about when it comes to production databases, including backups, replications, scaling, failover, security, monitoring, logging, and more. My recommendation is to use a managed database service like MongoDB Atlas, AWS RDS, Google Cloud SQL, etc.
+
+## Adding New Services: Developer Guidelines
+
+When adding a new service to the Docker setup, developers (including AI assistants) must follow these mandatory practices to maintain consistency with the established patterns.
+
+### 1. Environment Variable Configuration
+
+**Step 1: Add variables to `.env.example`**
+
+```bash
+# New Service Configuration
+NEW_SERVICE_HOST=localhost
+NEW_SERVICE_PORT=5000
+NEW_SERVICE_PASSWORD=service_password
+```
+
+**Step 2: Add to `src/env.ts` validation**
+
+```typescript
+const envSchema = z.object({
+  // ... existing variables
+  NEW_SERVICE_HOST: z.string().default("localhost"),
+  NEW_SERVICE_PORT: z.coerce.number().default(5000),
+  NEW_SERVICE_PASSWORD: z.string().optional(),
+});
+
+const mappedEnv = {
+  // ... existing mappings
+  NEW_SERVICE_HOST: process.env.NEW_SERVICE_HOST,
+  NEW_SERVICE_PORT: process.env.NEW_SERVICE_PORT,
+  NEW_SERVICE_PASSWORD: process.env.NEW_SERVICE_PASSWORD,
+};
+```
+
+**Step 3: Update production environment file**
+
+```bash
+# docker/.env.production
+NEW_SERVICE_HOST=production-service.domain.com
+NEW_SERVICE_PORT=5000
+NEW_SERVICE_PASSWORD=secure-production-password
+```
+
+### 2. Docker Compose Service Configuration
+
+**Mandatory Pattern:** All services must follow this exact structure:
+
+```yaml
+new_service:
+  image: service-name:latest
+  container_name: users-service-servicename
+  env_file:
+    - .env
+  ports:
+    - "${NEW_SERVICE_PORT}:${NEW_SERVICE_PORT}"
+  environment:
+    - SERVICE_SPECIFIC_VAR=${SERVICE_SPECIFIC_VAR}
+    - INTERNAL_CONFIG=${EXTERNAL_CONFIG_VAR}
+  volumes:
+    - service_data:/data/path
+  healthcheck:
+    test: ["CMD", "service-health-command"]
+    interval: 10s
+    timeout: 5s
+    retries: 3
+  restart: unless-stopped
+  networks:
+    - app-network
+```
+
+### 3. Service Integration Requirements
+
+**Update Main Application Environment Variables:**
+
+```yaml
+# In the main app service
+services:
+  app:
+    environment:
+      - NEW_SERVICE_HOST=new_service # Use Docker service name
+      - NEW_SERVICE_PORT=${NEW_SERVICE_PORT}
+      - NEW_SERVICE_PASSWORD=${NEW_SERVICE_PASSWORD}
+    depends_on:
+      new_service:
+        condition: service_healthy
+```
+
+**Add Volume Declaration:**
+
+```yaml
+volumes:
+  service_data: # Add to volumes section
+```
+
+### 4. Documentation Requirements
+
+**Update `docker/README.md` with:**
+
+1. Add service description and purpose
+2. Include connection string examples
+3. Add environment variable documentation
+4. Include any special setup instructions
+
+**Example addition:**
+
+```markdown
+### New Service Configuration
+
+The new service provides [functionality description].
+
+**Connection from application:**
+
+- Internal (Docker): `service://username:password@new_service:5000/database`
+- External (Host): `service://username:password@localhost:5000/database`
+
+**Environment Variables:**
+
+- `NEW_SERVICE_HOST`: Service hostname
+- `NEW_SERVICE_PORT`: Service port (default: 5000)
+- `NEW_SERVICE_PASSWORD`: Service password
+```
+
+### 5. Common Mistakes to Avoid
+
+**❌ Wrong Patterns:**
+
+```yaml
+# Don't hardcode ports
+ports:
+  - "5000:5000"
+
+# Don't skip environment section
+new_service:
+  image: service:latest
+  ports:
+    - "${PORT}:5000"
+
+# Don't use inconsistent naming
+container_name: my-new-service
+```
+
+**✅ Correct Patterns:**
+
+```yaml
+# Use environment variables for ports
+ports:
+  - "${NEW_SERVICE_PORT}:${NEW_SERVICE_PORT}"
+
+# Always include environment section
+environment:
+  - SERVICE_CONFIG=${SERVICE_CONFIG}
+
+# Use consistent naming convention
+container_name: users-service-newservice
+```
+
+### 6. Testing New Services
+
+**Verify service health:**
+
+```bash
+# Check service status
+docker compose ps
+
+# View service logs
+docker compose logs new_service
+
+# Test health check
+docker compose exec new_service health-check-command
+```
+
+**Test application integration:**
+
+```bash
+# Verify application can connect
+docker compose exec app curl http://new_service:5000/health
+
+# Check environment variables are loaded
+docker compose exec app env | grep NEW_SERVICE
+```
+
+### 7. Security Considerations
+
+**For databases and sensitive services:**
+
+```yaml
+environment:
+  - SERVICE_PASSWORD_FILE=/run/secrets/service_password
+secrets:
+  service_password:
+    external: true
+```
+
+**For development services:**
+
+```yaml
+# Use secure defaults even in development
+environment:
+  - SERVICE_AUTH_ENABLED=true
+  - SERVICE_TLS_ENABLED=false # Only disable for local development
+```
+
+### 8. Production Considerations
+
+**Update production compose file:**
+
+```yaml
+# docker/docker-compose.prod.yml
+services:
+  app:
+    environment:
+      # Comment out or remove the service if using external managed service
+      # - NEW_SERVICE_HOST=${NEW_SERVICE_HOST}
+      # - NEW_SERVICE_PORT=${NEW_SERVICE_PORT}
+```
+
+**Add production warnings:**
+
+```yaml
+# Production note: Consider using managed service instead
+# new_service:
+#   image: service:latest
+#   # ... production configuration would go here
+```
+
+### 9. Checklist for Adding New Services
+
+Before submitting changes, verify:
+
+- [ ] Environment variables added to all three places: `.env.example`, `src/env.ts`, `docker/.env.production`
+- [ ] Service follows naming convention: `users-service-servicename`
+- [ ] Port mapping uses environment variables: `"${PORT}:${PORT}"`
+- [ ] Environment section maps all necessary variables
+- [ ] Health check is configured and tested
+- [ ] Volume is declared if service persists data
+- [ ] Main app service updated with `depends_on` and environment variables
+- [ ] Documentation updated in `docker/README.md`
+- [ ] Production considerations documented
+- [ ] Service can be reached from main application
+- [ ] No hardcoded values or insecure defaults
+
+### 10. Integration Testing
+
+After adding a new service, run this validation:
+
+```bash
+# Start all services
+docker compose up -d
+
+# Verify all services are healthy
+docker compose ps
+
+# Test service connectivity from app
+docker compose exec app ping new_service
+
+# Check environment variables
+docker compose exec app env | grep NEW_SERVICE
+
+# Test application integration
+docker compose exec app curl http://new_service:${NEW_SERVICE_PORT}/health
+
+# Clean up
+docker compose down
+```
+
+Following these guidelines ensures that new services integrate properly with the existing infrastructure and maintain the consistency required for a maintainable authentication service.
