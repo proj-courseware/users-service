@@ -111,12 +111,22 @@ export interface IUserRepository {
   create(user: CreateUserType): Promise<UserType>;
   findByEmail(email: string): Promise<UserType | null>;
   findByUserId(userId: string): Promise<UserType | null>;
-  findBySocialIdentity(provider: string, providerUserId: string): Promise<UserType | null>;
+  findBySocialIdentity(
+    provider: string,
+    providerUserId: string
+  ): Promise<UserType | null>;
   updatePassword(userId: string, passwordHash: string): Promise<void>;
-  updateLoginAttempts(email: string, attempts: number, lockAccount?: boolean): Promise<void>;
+  updateLoginAttempts(
+    email: string,
+    attempts: number,
+    lockAccount?: boolean
+  ): Promise<void>;
   addEmail(userId: string, email: EmailObjectType): Promise<void>;
   verifyEmail(userId: string, email: string): Promise<void>;
-  linkSocialIdentity(userId: string, socialIdentity: SocialIdentityObjectType): Promise<void>;
+  linkSocialIdentity(
+    userId: string,
+    socialIdentity: SocialIdentityObjectType
+  ): Promise<void>;
   // ... other methods
 }
 
@@ -157,7 +167,7 @@ export class AuthenticationService {
   constructor(
     private userRepository: IUserRepository,
     private refreshTokenRepository: IRefreshTokenRepository,
-    private emailService: IEmailService,
+    private emailService: IEmailService
   ) {}
 
   async register(data: RegisterUserType): Promise<UserType> {
@@ -170,7 +180,10 @@ export class AuthenticationService {
     // 6. Return user without sensitive data
   }
 
-  async loginWithPassword(email: string, password: string): Promise<{
+  async loginWithPassword(
+    email: string,
+    password: string
+  ): Promise<{
     user: UserType;
     accessToken?: string;
     refreshToken?: string;
@@ -214,13 +227,13 @@ export class AuthController {
 
   async register(c: Context<AppEnv>) {
     const validatedBody = c.var.validatedBody as RegisterUserType;
-    
+
     try {
       const user = await this.authService.register(validatedBody);
       return c.json(
-        { 
+        {
           message: "User registered successfully. Please verify your email.",
-          user: this.sanitizeUserResponse(user)
+          user: this.sanitizeUserResponse(user),
         },
         201
       );
@@ -235,19 +248,19 @@ export class AuthController {
 
   async loginSession(c: Context<AppEnv>) {
     const { email, password } = c.var.validatedBody as LoginCredentialsType;
-    
+
     try {
       const result = await this.authService.loginWithPassword(email, password);
-      
+
       // Set HTTP-only session cookie
       c.res.headers.set(
-        'Set-Cookie',
+        "Set-Cookie",
         `session=${result.sessionToken}; HttpOnly; Secure; SameSite=Strict; Path=/`
       );
-      
+
       return c.json({
         message: "Login successful",
-        user: this.sanitizeUserResponse(result.user)
+        user: this.sanitizeUserResponse(result.user),
       });
     } catch (error) {
       // Authentication error handling
@@ -256,14 +269,14 @@ export class AuthController {
 
   async loginToken(c: Context<AppEnv>) {
     const { email, password } = c.var.validatedBody as LoginCredentialsType;
-    
+
     try {
       const result = await this.authService.loginWithPassword(email, password);
-      
+
       return c.json({
         accessToken: result.accessToken,
         refreshToken: result.refreshToken,
-        user: this.sanitizeUserResponse(result.user)
+        user: this.sanitizeUserResponse(result.user),
       });
     } catch (error) {
       // Authentication error handling
@@ -283,23 +296,27 @@ export class AuthController {
 ```typescript
 // JWT token validation middleware
 export const jwtAuthMiddleware = async (c: Context, next: Next) => {
-  const authHeader = c.req.header('Authorization');
-  
-  if (!authHeader?.startsWith('Bearer ')) {
-    throw new UnauthorizedHTTPException({ message: "Missing or invalid token" });
+  const authHeader = c.req.header("Authorization");
+
+  if (!authHeader?.startsWith("Bearer ")) {
+    throw new UnauthorizedHTTPException({
+      message: "Missing or invalid token",
+    });
   }
 
   try {
     const token = authHeader.substring(7);
     const payload = await verifyJWT(token);
-    
+
     // Load user from database to ensure current data
     const user = await userRepository.findByUserId(payload.userId);
     if (!user || user.isAccountLocked) {
-      throw new UnauthorizedHTTPException({ message: "User not found or locked" });
+      throw new UnauthorizedHTTPException({
+        message: "User not found or locked",
+      });
     }
-    
-    c.set('user', user);
+
+    c.set("user", user);
     await next();
   } catch (error) {
     throw new UnauthorizedHTTPException({ message: "Invalid token" });
@@ -308,8 +325,8 @@ export const jwtAuthMiddleware = async (c: Context, next: Next) => {
 
 // Session validation middleware
 export const sessionAuthMiddleware = async (c: Context, next: Next) => {
-  const sessionCookie = c.req.header('Cookie')?.match(/session=([^;]+)/)?.[1];
-  
+  const sessionCookie = c.req.header("Cookie")?.match(/session=([^;]+)/)?.[1];
+
   if (!sessionCookie) {
     throw new UnauthorizedHTTPException({ message: "No session found" });
   }
@@ -319,13 +336,15 @@ export const sessionAuthMiddleware = async (c: Context, next: Next) => {
     if (!session || session.expiresAt < new Date()) {
       throw new UnauthorizedHTTPException({ message: "Session expired" });
     }
-    
+
     const user = await userRepository.findByUserId(session.userId);
     if (!user || user.isAccountLocked) {
-      throw new UnauthorizedHTTPException({ message: "User not found or locked" });
+      throw new UnauthorizedHTTPException({
+        message: "User not found or locked",
+      });
     }
-    
-    c.set('user', user);
+
+    c.set("user", user);
     await next();
   } catch (error) {
     throw new UnauthorizedHTTPException({ message: "Invalid session" });
@@ -335,19 +354,20 @@ export const sessionAuthMiddleware = async (c: Context, next: Next) => {
 // Rate limiting middleware
 export const rateLimitMiddleware = (maxAttempts: number, windowMs: number) => {
   return async (c: Context, next: Next) => {
-    const clientIP = c.req.header('x-forwarded-for') || c.req.header('remote-addr');
+    const clientIP =
+      c.req.header("x-forwarded-for") || c.req.header("remote-addr");
     const key = `rate_limit:${clientIP}`;
-    
+
     // Check rate limit logic
     const attempts = await redis.get(key);
     if (attempts && parseInt(attempts) >= maxAttempts) {
-      throw new TooManyRequestsHTTPException({ 
-        message: "Too many requests. Please try again later." 
+      throw new TooManyRequestsHTTPException({
+        message: "Too many requests. Please try again later.",
       });
     }
-    
+
     await next();
-    
+
     // Increment attempts after successful request
     await redis.incr(key);
     await redis.expire(key, Math.ceil(windowMs / 1000));
@@ -407,7 +427,7 @@ export function createAuthRoutes({
   // Social login routes
   router.get("/google", (c) => authController.redirectToGoogle(c));
   router.get("/google/callback", (c) => authController.handleGoogleCallback(c));
-  
+
   router.get("/github", (c) => authController.redirectToGitHub(c));
   router.get("/github/callback", (c) => authController.handleGitHubCallback(c));
 
@@ -426,14 +446,22 @@ export function createUserRoutes({
   router.use("*", jwtAuthMiddleware); // or sessionAuthMiddleware
 
   router.get("/", (c) => userController.getProfile(c));
-  router.put("/", validateBody(updateUserSchema), (c) => userController.updateProfile(c));
-  router.put("/password", validateBody(changePasswordSchema), (c) => userController.changePassword(c));
-  
+  router.put("/", validateBody(updateUserSchema), (c) =>
+    userController.updateProfile(c)
+  );
+  router.put("/password", validateBody(changePasswordSchema), (c) =>
+    userController.changePassword(c)
+  );
+
   // Email management
   router.get("/emails", (c) => userController.getEmails(c));
-  router.post("/emails", validateBody(addEmailSchema), (c) => userController.addEmail(c));
+  router.post("/emails", validateBody(addEmailSchema), (c) =>
+    userController.addEmail(c)
+  );
   router.delete("/emails/:email", (c) => userController.removeEmail(c));
-  router.post("/emails/set-primary", validateBody(setPrimaryEmailSchema), (c) => userController.setPrimaryEmail(c));
+  router.post("/emails/set-primary", validateBody(setPrimaryEmailSchema), (c) =>
+    userController.setPrimaryEmail(c)
+  );
 
   return router;
 }
@@ -464,13 +492,17 @@ export class PasswordService {
     }
   }
 
-  validatePasswordStrength(password: string, policy: PasswordPolicyType): boolean {
+  validatePasswordStrength(
+    password: string,
+    policy: PasswordPolicyType
+  ): boolean {
     // Implement password policy validation
     if (password.length < policy.minLength) return false;
     if (policy.requireUppercase && !/[A-Z]/.test(password)) return false;
     if (policy.requireLowercase && !/[a-z]/.test(password)) return false;
     if (policy.requireNumbers && !/\d/.test(password)) return false;
-    if (policy.requireSpecialChars && !/[!@#$%^&*(),.?":{}|<>]/.test(password)) return false;
+    if (policy.requireSpecialChars && !/[!@#$%^&*(),.?":{}|<>]/.test(password))
+      return false;
     return true;
   }
 }
@@ -492,28 +524,30 @@ export class JWTService {
       email: user.primaryEmail,
       role: user.globalRole,
       iat: Math.floor(Date.now() / 1000),
-      exp: Math.floor(Date.now() / 1000) + (this.accessTokenExpiryMinutes * 60),
+      exp: Math.floor(Date.now() / 1000) + this.accessTokenExpiryMinutes * 60,
     };
 
-    return jwt.sign(payload, this.accessTokenSecret, { algorithm: 'HS256' });
+    return jwt.sign(payload, this.accessTokenSecret, { algorithm: "HS256" });
   }
 
   async generateRefreshToken(user: UserType): Promise<string> {
     const payload = {
       userId: user.userId,
-      type: 'refresh',
+      type: "refresh",
       iat: Math.floor(Date.now() / 1000),
-      exp: Math.floor(Date.now() / 1000) + (this.refreshTokenExpiryDays * 24 * 60 * 60),
+      exp:
+        Math.floor(Date.now() / 1000) +
+        this.refreshTokenExpiryDays * 24 * 60 * 60,
     };
 
-    return jwt.sign(payload, this.refreshTokenSecret, { algorithm: 'HS256' });
+    return jwt.sign(payload, this.refreshTokenSecret, { algorithm: "HS256" });
   }
 
   async verifyAccessToken(token: string): Promise<JWTPayload> {
     try {
       return jwt.verify(token, this.accessTokenSecret) as JWTPayload;
     } catch (error) {
-      throw new InvalidTokenError('Invalid access token');
+      throw new InvalidTokenError("Invalid access token");
     }
   }
 
@@ -521,7 +555,7 @@ export class JWTService {
     try {
       return jwt.verify(token, this.refreshTokenSecret) as JWTPayload;
     } catch (error) {
-      throw new InvalidTokenError('Invalid refresh token');
+      throw new InvalidTokenError("Invalid refresh token");
     }
   }
 }
@@ -532,22 +566,28 @@ export class JWTService {
 ```typescript
 // OAuth service for social login
 export class OAuthService {
-  async handleGoogleCallback(code: string, state: string): Promise<{
+  async handleGoogleCallback(
+    code: string,
+    state: string
+  ): Promise<{
     user: UserType;
     isNewUser: boolean;
     accessToken?: string;
     refreshToken?: string;
   }> {
     // 1. Exchange code for access token with Google
-    const googleTokens = await this.exchangeCodeForTokens('google', code);
-    
+    const googleTokens = await this.exchangeCodeForTokens("google", code);
+
     // 2. Get user info from Google
-    const googleUser = await this.getUserInfo('google', googleTokens.access_token);
-    
+    const googleUser = await this.getUserInfo(
+      "google",
+      googleTokens.access_token
+    );
+
     // 3. Find existing user by email or social identity
     let user = await this.userRepository.findByEmail(googleUser.email);
     let isNewUser = false;
-    
+
     if (!user) {
       // 4. Create new user if not found
       user = await this.userRepository.create({
@@ -555,19 +595,23 @@ export class OAuthService {
         firstName: googleUser.given_name,
         lastName: googleUser.family_name,
         primaryEmail: googleUser.email,
-        globalRole: 'student',
-        emails: [{
-          emailAddress: googleUser.email,
-          isVerified: true, // Auto-verify emails from trusted providers
-          addedAt: new Date(),
-        }],
-        socialIdentities: [{
-          provider: 'google',
-          providerUserId: googleUser.id,
-          email: googleUser.email,
-          name: googleUser.name,
-          linkedAt: new Date(),
-        }],
+        globalRole: "student",
+        emails: [
+          {
+            emailAddress: googleUser.email,
+            isVerified: true, // Auto-verify emails from trusted providers
+            addedAt: new Date(),
+          },
+        ],
+        socialIdentities: [
+          {
+            provider: "google",
+            providerUserId: googleUser.id,
+            email: googleUser.email,
+            name: googleUser.name,
+            linkedAt: new Date(),
+          },
+        ],
         createdAt: new Date(),
         updatedAt: new Date(),
       });
@@ -575,18 +619,18 @@ export class OAuthService {
     } else {
       // 5. Link social identity to existing user
       await this.userRepository.linkSocialIdentity(user.userId, {
-        provider: 'google',
+        provider: "google",
         providerUserId: googleUser.id,
         email: googleUser.email,
         name: googleUser.name,
         linkedAt: new Date(),
       });
     }
-    
+
     // 6. Generate tokens for authenticated user
     const accessToken = await this.jwtService.generateAccessToken(user);
     const refreshToken = await this.jwtService.generateRefreshToken(user);
-    
+
     return { user, isNewUser, accessToken, refreshToken };
   }
 }
@@ -601,7 +645,7 @@ export class EmailVerificationService {
     // 1. Generate verification token
     const verificationToken = this.generateSecureToken();
     const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
-    
+
     // 2. Store token in database
     await this.userRepository.setEmailVerificationToken(
       user.userId,
@@ -609,30 +653,40 @@ export class EmailVerificationService {
       verificationToken,
       expiresAt
     );
-    
+
     // 3. Send email with verification link
     const verificationUrl = `${process.env.FRONTEND_URL}/verify-email?token=${verificationToken}`;
     await this.emailService.sendVerificationEmail(email, verificationUrl);
   }
 
-  async verifyEmail(token: string): Promise<{ success: boolean; message: string }> {
+  async verifyEmail(
+    token: string
+  ): Promise<{ success: boolean; message: string }> {
     // 1. Find user by verification token
     const user = await this.userRepository.findByVerificationToken(token);
-    
+
     if (!user) {
-      return { success: false, message: 'Invalid verification token' };
+      return { success: false, message: "Invalid verification token" };
     }
-    
+
     // 2. Check token expiry
-    const emailToVerify = user.emails.find(e => e.verificationToken === token);
-    if (!emailToVerify || emailToVerify.verificationTokenExpiresAt! < new Date()) {
-      return { success: false, message: 'Verification token expired' };
+    const emailToVerify = user.emails.find(
+      (e) => e.verificationToken === token
+    );
+    if (
+      !emailToVerify ||
+      emailToVerify.verificationTokenExpiresAt! < new Date()
+    ) {
+      return { success: false, message: "Verification token expired" };
     }
-    
+
     // 3. Mark email as verified
-    await this.userRepository.verifyEmail(user.userId, emailToVerify.emailAddress);
-    
-    return { success: true, message: 'Email verified successfully' };
+    await this.userRepository.verifyEmail(
+      user.userId,
+      emailToVerify.emailAddress
+    );
+
+    return { success: true, message: "Email verified successfully" };
   }
 }
 ```
@@ -673,3 +727,417 @@ Files should follow this naming pattern: `entity-name.type.ts`
 - **Token Rotation**: Refresh token rotation on each use
 - **Social Login Security**: Proper OAuth2/OIDC implementation with state validation
 - **Email Verification**: Secure token-based email verification with expiry
+
+## Development Conventions
+
+This document establishes the standardized development patterns and conventions that must be followed when working on this authentication service. These conventions ensure consistency, maintainability, and proper integration between components.
+
+### Docker Service Conventions
+
+#### Service Naming Standards
+
+All Docker services must follow these naming conventions:
+
+```yaml
+# Pattern: {app-name}-{service-type}
+services:
+  app: # Main application service
+    container_name: users-service-app
+
+  mongo_db: # Database services end with _db
+    container_name: users-service-mongodb
+
+  mailhog: # Third-party services use original name
+    container_name: users-service-mailhog
+
+  redis_cache: # Cache services end with _cache
+    container_name: users-service-redis
+```
+
+#### Environment Variable Configuration Pattern
+
+**MANDATORY**: All Docker services must follow this environment variable pattern:
+
+```yaml
+# 1. Use env_file to load variables
+services:
+  service_name:
+    env_file:
+      - .env
+
+    # 2. Use environment section to map and document critical variables
+    environment:
+      - SERVICE_CONFIG_VAR=${SERVICE_CONFIG_VAR}
+      - INTERNAL_PORT=${EXTERNAL_PORT_VAR}
+
+    # 3. Use environment variables for port mapping
+    ports:
+      - "${EXTERNAL_PORT_VAR}:${EXTERNAL_PORT_VAR}"
+```
+
+**Example - MongoDB Service:**
+
+```yaml
+mongo_db:
+  image: mongo:latest
+  env_file:
+    - .env
+  ports:
+    - "${MONGODB_PORT}:${MONGODB_PORT}"
+  environment:
+    - MONGO_INITDB_ROOT_USERNAME=${MONGODB_USER}
+    - MONGO_INITDB_ROOT_PASSWORD=${MONGODB_PASSWORD}
+    - MONGO_INITDB_DATABASE=${MONGODB_DATABASE}
+```
+
+#### Port Allocation Standards
+
+```bash
+# Development Environment Ports
+APP_PORT=3000                    # Main application
+MONGODB_PORT=27017              # MongoDB database
+REDIS_PORT=6379                 # Redis cache
+MAILHOG_SMTP_PORT=1025          # MailHog SMTP
+MAILHOG_WEB_PORT=8025           # MailHog web interface
+
+# Production Environment Ports
+APP_PORT=3001                   # Different from dev to avoid conflicts
+MONGODB_PORT=27017              # External managed service
+REDIS_PORT=6379                 # External managed service
+```
+
+### Schema and Type Conventions
+
+#### File Organization
+
+```
+src/schemas/
+├── shared.schema.ts            # Shared pagination, query, validation schemas
+├── user.schema.ts              # User entity and related schemas
+├── auth.schema.ts              # Authentication-specific schemas
+└── roles.schema.ts             # Role definitions and permissions
+```
+
+#### Schema Naming Conventions
+
+```typescript
+// Entity schemas (main models)
+export const userSchema = z.object({...});
+export type UserType = z.infer<typeof userSchema>;
+
+// Create schemas (for new entity creation)
+export const createUserSchema = userSchema.omit({
+  _id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+export type CreateUserType = z.infer<typeof createUserSchema>;
+
+// Update schemas (for partial updates)
+export const updateUserSchema = userSchema.partial().omit({
+  _id: true,
+  userId: true,
+  createdAt: true,
+  updatedAt: true,
+});
+export type UpdateUserType = z.infer<typeof updateUserSchema>;
+
+// Query parameter schemas
+export const userQueryParamsSchema = queryParamsSchema.extend({
+  role: globalRoleSchema.optional(),
+});
+export type UserQueryParamsType = z.infer<typeof userQueryParamsSchema>;
+```
+
+#### Shared Schema Usage
+
+**MANDATORY**: All repositories and controllers must use shared schemas from `shared.schema.ts`:
+
+```typescript
+import {
+  queryParamsSchema,
+  paginatedResultSchema,
+  DEFAULT_LIMIT,
+  DEFAULT_PAGE,
+  type PaginatedResultType,
+  type QueryParamsType,
+} from "@/schemas/shared.schema";
+
+// Always extend shared schemas, never redefine
+export const userQueryParamsSchema = queryParamsSchema.extend({
+  role: globalRoleSchema.optional(),
+});
+```
+
+### MongoDB Repository Conventions
+
+#### Collection Instantiation Pattern
+
+**MANDATORY**: All MongoDB repositories must follow this exact pattern from `note.mongodb.repository.ts`:
+
+```typescript
+export class MongoDbUserRepository implements IUserRepository {
+  private collection: Collection<MongoUserDocument> | null = null;
+
+  // Lazy load the collection when needed
+  private async getCollection(): Promise<Collection<MongoUserDocument>> {
+    if (!this.collection) {
+      const db: Db = await getDatabase();
+      this.collection = db.collection<MongoUserDocument>("users");
+      await this.createIndexes(this.collection);
+      console.log("👤 Users collection initialized");
+    }
+    return this.collection;
+  }
+
+  // createIndex is idempotent, so we can safely call it multiple times
+  private async createIndexes(
+    collection: Collection<MongoUserDocument>
+  ): Promise<void> {
+    await Promise.all([
+      collection.createIndex(
+        { userId: 1 },
+        { unique: true, name: "users_userId" }
+      ),
+      collection.createIndex(
+        { primaryEmail: 1 },
+        { unique: true, name: "users_primaryEmail" }
+      ),
+      // ... more indexes
+    ]);
+  }
+}
+```
+
+#### Document-Entity Mapping Pattern
+
+```typescript
+// MongoDB document interface (internal to repository)
+interface MongoUserDocument
+  extends Omit<UserType, "_id" | "createdAt" | "updatedAt"> {
+  _id?: ObjectId;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+private mapDocumentToEntity(doc: WithId<MongoUserDocument>): UserType {
+  const { _id, ...restOfDoc } = doc;
+  return userSchema.parse({
+    ...restOfDoc,
+    _id: _id.toHexString(),
+    createdAt: doc.createdAt,
+    updatedAt: doc.updatedAt,
+  });
+}
+
+private mapEntityToDocument(
+  data: CreateUserType,
+): Omit<MongoUserDocument, "_id"> {
+  const now = new Date();
+  return {
+    ...data,
+    createdAt: now,
+    updatedAt: now,
+  };
+}
+```
+
+#### Collection Naming Standards
+
+```typescript
+// Collection names: lowercase, plural
+db.collection<MongoUserDocument>("users");
+db.collection<MongoRefreshTokenDocument>("refreshTokens");
+db.collection<MongoAdminSettingDocument>("adminSettings");
+```
+
+### Testing Setup Conventions
+
+#### MongoDB Test Configuration
+
+**MANDATORY**: All repository tests must use the vitest configuration from `vitest.config.ts`:
+
+```typescript
+// tests/repositories/user.mongodb.repository.test.ts
+import {
+  describe,
+  it,
+  expect,
+  beforeEach,
+  afterEach,
+  beforeAll,
+  afterAll,
+} from "vitest";
+import { MongoDbUserRepository } from "@/repositories/mongodb/user.mongodb.repository";
+import type { MongoClient, Db } from "mongodb";
+
+describe("MongoDbUserRepository", () => {
+  let repository: MongoDbUserRepository;
+  let testClient: MongoClient;
+  let testDb: Db;
+
+  beforeAll(async () => {
+    // Set up test database connection using memory server
+    const { db, client } = await setupTestDatabase();
+    testDb = db;
+    testClient = client;
+  });
+
+  afterAll(async () => {
+    // Clean up test database connection
+    await cleanupTestDatabase(testClient);
+  });
+
+  beforeEach(() => {
+    // Create a new repository instance for each test
+    repository = new MongoDbUserRepository();
+  });
+
+  afterEach(async () => {
+    // Clean up test data after each test
+    await testDb.collection("users").deleteMany({});
+  });
+});
+```
+
+#### Test Database Isolation
+
+- Tests use MongoDB Memory Server (configured in vitest.config.ts)
+- Each test gets a clean database state
+- No test should depend on external database state
+- Test data is cleaned up after each test
+
+### Environment Variable Conventions
+
+#### Naming Patterns
+
+```bash
+# Service prefixes
+JWT_ACCESS_SECRET=...           # JWT configuration
+JWT_REFRESH_SECRET=...
+
+MONGODB_HOST=...                # MongoDB configuration
+MONGODB_PORT=...
+MONGODB_DATABASE=...
+
+SMTP_HOST=...                   # Email configuration
+SMTP_PORT=...
+SMTP_SECURE=...
+
+MAILHOG_SMTP_PORT=...          # MailHog Docker service configuration
+MAILHOG_WEB_PORT=...
+
+REDIS_HOST=...                 # Redis configuration
+REDIS_PORT=...
+REDIS_PASSWORD=...
+```
+
+#### Environment File Structure
+
+```
+project-root/
+├── .env.example                # Development template
+├── docker/
+│   ├── .env                   # Development environment (ignored by git)
+│   └── .env.production        # Production template
+```
+
+### File and Directory Conventions
+
+#### Import Path Standards
+
+```typescript
+// Always use absolute imports with @ alias
+import { userSchema } from "@/schemas/user.schema";
+import { MongoDbUserRepository } from "@/repositories/mongodb/user.mongodb.repository";
+import { env } from "@/env";
+
+// Never use relative imports for src/ files
+// ❌ import { userSchema } from '../schemas/user.schema';
+// ✅ import { userSchema } from '@/schemas/user.schema';
+```
+
+#### Repository Interface Naming
+
+```typescript
+// Interface naming: I + EntityName + Repository
+export interface IUserRepository {
+  create(user: CreateUserType): Promise<UserType>;
+  findByUserId(userId: string): Promise<UserType | null>;
+  // ...
+}
+
+// Implementation naming: Database + EntityName + Repository
+export class MongoDbUserRepository implements IUserRepository {
+  // ...
+}
+```
+
+### Error Handling Conventions
+
+#### Repository Error Patterns
+
+```typescript
+// Always throw descriptive errors
+async update(userId: string, updates: Partial<UserType>): Promise<UserType> {
+  const result = await collection.findOneAndUpdate(
+    { userId },
+    { $set: { ...updateData, updatedAt: new Date() } },
+    { returnDocument: "after" }
+  );
+
+  if (!result) {
+    throw new Error("User not found");
+  }
+
+  return this.mapDocumentToEntity(result);
+}
+```
+
+#### Service Error Handling
+
+```typescript
+// Services should catch repository errors and provide context
+async updateUser(userId: string, updates: UpdateUserType): Promise<UserType> {
+  try {
+    return await this.userRepository.update(userId, updates);
+  } catch (error) {
+    if (error.message === "User not found") {
+      throw new NotFoundError(`User with ID ${userId} not found`);
+    }
+    throw new InternalServerError("Failed to update user");
+  }
+}
+```
+
+### Security Conventions
+
+#### Environment Variable Security
+
+```typescript
+// Always validate environment variables with Zod
+const envSchema = z.object({
+  JWT_ACCESS_SECRET: z
+    .string()
+    .min(32, "JWT access secret must be at least 32 characters"),
+  JWT_REFRESH_SECRET: z
+    .string()
+    .min(32, "JWT refresh secret must be at least 32 characters"),
+  // ...
+});
+```
+
+#### Password Handling
+
+```typescript
+// Never log or expose password hashes
+async updatePassword(userId: string, passwordHash: string): Promise<void> {
+  // ✅ Log operation without sensitive data
+  logger.info("Updating password for user", { userId });
+
+  // ❌ Never log password hash
+  // logger.info("Updating password", { userId, passwordHash });
+}
+```
+
+These conventions are mandatory for all developers and AI assistants working on this project. Failure to follow these patterns will result in inconsistent code that is difficult to maintain and debug.
