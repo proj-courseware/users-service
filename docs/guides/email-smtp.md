@@ -215,7 +215,7 @@ describe("Email Integration Tests", () => {
     const verificationEmail = emails.find(
       (email) =>
         email.To[0].Mailbox === "test" &&
-        email.Content.Headers.Subject[0].includes("Verify")
+        email.Content.Headers.Subject[0].includes("Verify"),
     );
 
     expect(verificationEmail).toBeDefined();
@@ -230,7 +230,7 @@ describe("Email Integration Tests", () => {
 
     const emails = await getMailHogEmails();
     const resetEmail = emails.find((email) =>
-      email.Content.Headers.Subject[0].includes("Password Reset")
+      email.Content.Headers.Subject[0].includes("Password Reset"),
     );
 
     expect(resetEmail).toBeDefined();

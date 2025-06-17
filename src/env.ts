@@ -8,6 +8,8 @@ dotenv.config();
 const envSchema = z.object({
   NODE_ENV: z.string().default("development"),
   PORT: z.coerce.number().default(3000),
+  // Optional Auth Service URL (Keep this until we are done with refactoring)
+  AUTH_SERVICE_URL: z.string().url().optional(),
   // MongoDB URI Configuration
   MONGODB_HOST: z.string().default("localhost"),
   MONGODB_PORT: z.coerce.number().default(27017),
@@ -15,8 +17,12 @@ const envSchema = z.object({
   MONGODB_PASSWORD: z.string().optional(),
   MONGODB_DATABASE: z.string().default("users-service"),
   // JWT Configuration
-  JWT_ACCESS_SECRET: z.string().min(32, "JWT access secret must be at least 32 characters"),
-  JWT_REFRESH_SECRET: z.string().min(32, "JWT refresh secret must be at least 32 characters"),
+  JWT_ACCESS_SECRET: z
+    .string()
+    .min(32, "JWT access secret must be at least 32 characters"),
+  JWT_REFRESH_SECRET: z
+    .string()
+    .min(32, "JWT refresh secret must be at least 32 characters"),
   JWT_ACCESS_EXPIRY_MINUTES: z.coerce.number().default(15),
   JWT_REFRESH_EXPIRY_DAYS: z.coerce.number().default(7),
   // Email Configuration
@@ -40,6 +46,7 @@ const envSchema = z.object({
 const mappedEnv = {
   NODE_ENV: process.env.NODE_ENV,
   PORT: process.env.PORT,
+  AUTH_SERVICE_URL: process.env.AUTH_SERVICE_URL, // keep until refactoring is done
   MONGODB_HOST: process.env.MONGODB_HOST,
   MONGODB_PORT: process.env.MONGODB_PORT,
   MONGODB_USER: process.env.MONGODB_USER,

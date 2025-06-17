@@ -137,7 +137,9 @@ describe("MongoDbUserRepository", () => {
 
       expect(user.userId).toBeDefined();
       expect(user.userId).not.toBe("");
-      expect(user.userId).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/);
+      expect(user.userId).toMatch(
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/,
+      );
     });
   });
 
@@ -267,12 +269,14 @@ describe("MongoDbUserRepository", () => {
       expect(updatedUser.lastName).toBe("Smith");
       expect(updatedUser.globalRole).toBe("teacher");
       expect(updatedUser.primaryEmail).toBe("john@example.com"); // unchanged
-      expect(updatedUser.updatedAt.getTime()).toBeGreaterThan(user.updatedAt.getTime());
+      expect(updatedUser.updatedAt.getTime()).toBeGreaterThan(
+        user.updatedAt.getTime(),
+      );
     });
 
     it("should throw error for non-existent user", async () => {
       await expect(
-        repository.update("non-existent-id", { firstName: "Test" })
+        repository.update("non-existent-id", { firstName: "Test" }),
       ).rejects.toThrow("User not found");
     });
   });
@@ -302,7 +306,9 @@ describe("MongoDbUserRepository", () => {
       const updatedUser = await repository.findByUserId(user.userId);
       expect(updatedUser!.passwordHash).toBe("new_hash");
       expect(updatedUser!.passwordLastChangedAt).toBeDefined();
-      expect(updatedUser!.passwordLastChangedAt!.getTime()).toBeGreaterThan(user.createdAt.getTime());
+      expect(updatedUser!.passwordLastChangedAt!.getTime()).toBeGreaterThan(
+        user.createdAt.getTime(),
+      );
     });
   });
 
@@ -333,7 +339,10 @@ describe("MongoDbUserRepository", () => {
       };
 
       await repository.create(userData);
-      const foundUser = await repository.findBySocialIdentity("google", "google123");
+      const foundUser = await repository.findBySocialIdentity(
+        "google",
+        "google123",
+      );
 
       expect(foundUser).toBeDefined();
       expect(foundUser!.socialIdentities).toHaveLength(1);
@@ -342,7 +351,10 @@ describe("MongoDbUserRepository", () => {
     });
 
     it("should return null for non-existent social identity", async () => {
-      const foundUser = await repository.findBySocialIdentity("github", "nonexistent");
+      const foundUser = await repository.findBySocialIdentity(
+        "github",
+        "nonexistent",
+      );
       expect(foundUser).toBeNull();
     });
   });
@@ -376,7 +388,9 @@ describe("MongoDbUserRepository", () => {
 
       const updatedUser = await repository.findByUserId(user.userId);
       expect(updatedUser!.emails).toHaveLength(2);
-      expect(updatedUser!.emails[1].emailAddress).toBe("additional@example.com");
+      expect(updatedUser!.emails[1].emailAddress).toBe(
+        "additional@example.com",
+      );
       expect(updatedUser!.emails[1].isVerified).toBe(false);
     });
   });
@@ -392,7 +406,9 @@ describe("MongoDbUserRepository", () => {
             emailAddress: "verify@example.com",
             isVerified: false,
             verificationToken: "token123",
-            verificationTokenExpiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
+            verificationTokenExpiresAt: new Date(
+              Date.now() + 24 * 60 * 60 * 1000,
+            ),
             addedAt: new Date(),
           },
         ],
@@ -421,7 +437,13 @@ describe("MongoDbUserRepository", () => {
           lastName: "Admin",
           primaryEmail: "alice@example.com",
           globalRole: "admin",
-          emails: [{ emailAddress: "alice@example.com", isVerified: true, addedAt: new Date() }],
+          emails: [
+            {
+              emailAddress: "alice@example.com",
+              isVerified: true,
+              addedAt: new Date(),
+            },
+          ],
           socialIdentities: [],
           isAccountLocked: false,
           failedLoginAttempts: 0,
@@ -432,7 +454,13 @@ describe("MongoDbUserRepository", () => {
           lastName: "Teacher",
           primaryEmail: "bob@example.com",
           globalRole: "teacher",
-          emails: [{ emailAddress: "bob@example.com", isVerified: true, addedAt: new Date() }],
+          emails: [
+            {
+              emailAddress: "bob@example.com",
+              isVerified: true,
+              addedAt: new Date(),
+            },
+          ],
           socialIdentities: [],
           isAccountLocked: false,
           failedLoginAttempts: 0,
@@ -443,7 +471,13 @@ describe("MongoDbUserRepository", () => {
           lastName: "Student",
           primaryEmail: "charlie@example.com",
           globalRole: "student",
-          emails: [{ emailAddress: "charlie@example.com", isVerified: true, addedAt: new Date() }],
+          emails: [
+            {
+              emailAddress: "charlie@example.com",
+              isVerified: true,
+              addedAt: new Date(),
+            },
+          ],
           socialIdentities: [],
           isAccountLocked: false,
           failedLoginAttempts: 0,
@@ -483,7 +517,9 @@ describe("MongoDbUserRepository", () => {
     });
 
     it("should search users by email", async () => {
-      const queryParams: UserQueryParamsType = { search: "charlie@example.com" };
+      const queryParams: UserQueryParamsType = {
+        search: "charlie@example.com",
+      };
       const result = await repository.findAll(queryParams);
 
       expect(result.data).toHaveLength(1);
@@ -502,7 +538,10 @@ describe("MongoDbUserRepository", () => {
     });
 
     it("should sort users", async () => {
-      const queryParams: UserQueryParamsType = { sortBy: "firstName", sortOrder: "asc" };
+      const queryParams: UserQueryParamsType = {
+        sortBy: "firstName",
+        sortOrder: "asc",
+      };
       const result = await repository.findAll(queryParams);
 
       expect(result.data[0].firstName).toBe("Alice");
@@ -537,7 +576,9 @@ describe("MongoDbUserRepository", () => {
     });
 
     it("should throw error when deleting non-existent user", async () => {
-      await expect(repository.delete("non-existent-id")).rejects.toThrow("User not found");
+      await expect(repository.delete("non-existent-id")).rejects.toThrow(
+        "User not found",
+      );
     });
   });
 });

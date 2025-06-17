@@ -51,18 +51,33 @@ export class MongoDbUserRepository implements IUserRepository {
     collection: Collection<MongoUserDocument>,
   ): Promise<void> {
     await Promise.all([
-      collection.createIndex({ userId: 1 }, { unique: true, name: "users_userId" }),
-      collection.createIndex({ primaryEmail: 1 }, { unique: true, name: "users_primaryEmail" }),
-      collection.createIndex({ "emails.emailAddress": 1 }, { name: "users_emails_emailAddress" }),
       collection.createIndex(
-        { "socialIdentities.provider": 1, "socialIdentities.providerUserId": 1 },
-        { name: "users_socialIdentities" }
+        { userId: 1 },
+        { unique: true, name: "users_userId" },
+      ),
+      collection.createIndex(
+        { primaryEmail: 1 },
+        { unique: true, name: "users_primaryEmail" },
+      ),
+      collection.createIndex(
+        { "emails.emailAddress": 1 },
+        { name: "users_emails_emailAddress" },
+      ),
+      collection.createIndex(
+        {
+          "socialIdentities.provider": 1,
+          "socialIdentities.providerUserId": 1,
+        },
+        { name: "users_socialIdentities" },
       ),
       collection.createIndex(
         { "emails.verificationToken": 1 },
-        { sparse: true, name: "users_verificationToken" }
+        { sparse: true, name: "users_verificationToken" },
       ),
-      collection.createIndex({ createdAt: -1 }, { name: "users_createdAt_desc" }),
+      collection.createIndex(
+        { createdAt: -1 },
+        { name: "users_createdAt_desc" },
+      ),
       collection.createIndex({ globalRole: 1 }, { name: "users_globalRole" }),
     ]);
   }
@@ -101,7 +116,7 @@ export class MongoDbUserRepository implements IUserRepository {
 
   async create(userData: CreateUserType): Promise<UserType> {
     const collection = await this.getCollection();
-    
+
     // Generate UUID if not provided
     const userWithId: CreateUserType = {
       ...userData,
@@ -110,12 +125,12 @@ export class MongoDbUserRepository implements IUserRepository {
 
     const document = this.mapEntityToDocument(userWithId);
     const result = await collection.insertOne(document);
-    
+
     const insertedDoc = await collection.findOne({ _id: result.insertedId });
     if (!insertedDoc) {
       throw new Error("Failed to retrieve created user");
     }
-    
+
     return this.mapDocumentToEntity(insertedDoc);
   }
 
@@ -128,10 +143,7 @@ export class MongoDbUserRepository implements IUserRepository {
   async findByEmail(email: string): Promise<UserType | null> {
     const collection = await this.getCollection();
     const doc = await collection.findOne({
-      $or: [
-        { primaryEmail: email },
-        { "emails.emailAddress": email }
-      ]
+      $or: [{ primaryEmail: email }, { "emails.emailAddress": email }],
     });
     return doc ? this.mapDocumentToEntity(doc) : null;
   }
@@ -144,19 +156,19 @@ export class MongoDbUserRepository implements IUserRepository {
 
   async update(userId: string, updates: Partial<UserType>): Promise<UserType> {
     const collection = await this.getCollection();
-    
+
     // Remove fields that shouldn't be updated directly
     const { _id, userId: _, createdAt, ...updateData } = updates;
-    
+
     const result = await collection.findOneAndUpdate(
       { userId },
-      { 
-        $set: { 
-          ...updateData, 
-          updatedAt: new Date() 
-        } 
+      {
+        $set: {
+          ...updateData,
+          updatedAt: new Date(),
+        },
       },
-      { returnDocument: "after" }
+      { returnDocument: "after" },
     );
 
     if (!result) {
@@ -169,21 +181,24 @@ export class MongoDbUserRepository implements IUserRepository {
   async delete(userId: string): Promise<void> {
     const collection = await this.getCollection();
     const result = await collection.deleteOne({ userId });
-    
+
     if (result.deletedCount === 0) {
       throw new Error("User not found");
     }
   }
 
-  async findBySocialIdentity(provider: string, providerUserId: string): Promise<UserType | null> {
+  async findBySocialIdentity(
+    provider: string,
+    providerUserId: string,
+  ): Promise<UserType | null> {
     const collection = await this.getCollection();
     const doc = await collection.findOne({
-      "socialIdentities": {
+      socialIdentities: {
         $elemMatch: {
           provider,
-          providerUserId
-        }
-      }
+          providerUserId,
+        },
+      },
     });
     return doc ? this.mapDocumentToEntity(doc) : null;
   }
@@ -191,7 +206,7 @@ export class MongoDbUserRepository implements IUserRepository {
   async findByVerificationToken(token: string): Promise<UserType | null> {
     const collection = await this.getCollection();
     const doc = await collection.findOne({
-      "emails.verificationToken": token
+      "emails.verificationToken": token,
     });
     return doc ? this.mapDocumentToEntity(doc) : null;
   }
@@ -200,28 +215,28 @@ export class MongoDbUserRepository implements IUserRepository {
     const collection = await this.getCollection();
     await collection.updateOne(
       { userId },
-      { 
+      {
         $push: { emails: email },
-        $set: { updatedAt: new Date() }
-      }
+        $set: { updatedAt: new Date() },
+      },
     );
   }
 
   async verifyEmail(userId: string, emailAddress: string): Promise<void> {
     const collection = await this.getCollection();
     await collection.updateOne(
-      { 
+      {
         userId,
-        "emails.emailAddress": emailAddress
+        "emails.emailAddress": emailAddress,
       },
-      { 
-        $set: { 
+      {
+        $set: {
           "emails.$.isVerified": true,
           "emails.$.verificationToken": undefined,
           "emails.$.verificationTokenExpiresAt": undefined,
-          updatedAt: new Date()
-        }
-      }
+          updatedAt: new Date(),
+        },
+      },
     );
   }
 
@@ -229,10 +244,10 @@ export class MongoDbUserRepository implements IUserRepository {
     const collection = await this.getCollection();
     await collection.updateOne(
       { userId },
-      { 
+      {
         $pull: { emails: { emailAddress } },
-        $set: { updatedAt: new Date() }
-      }
+        $set: { updatedAt: new Date() },
+      },
     );
   }
 
@@ -240,39 +255,46 @@ export class MongoDbUserRepository implements IUserRepository {
     const collection = await this.getCollection();
     await collection.updateOne(
       { userId },
-      { 
-        $set: { 
+      {
+        $set: {
           primaryEmail: emailAddress,
-          updatedAt: new Date()
-        }
-      }
-    );
-  }
-
-  async linkSocialIdentity(userId: string, socialIdentity: SocialIdentityObjectType): Promise<void> {
-    const collection = await this.getCollection();
-    await collection.updateOne(
-      { userId },
-      { 
-        $push: { socialIdentities: socialIdentity },
-        $set: { updatedAt: new Date() }
-      }
-    );
-  }
-
-  async unlinkSocialIdentity(userId: string, provider: SocialAuthProviderType, providerUserId: string): Promise<void> {
-    const collection = await this.getCollection();
-    await collection.updateOne(
-      { userId },
-      { 
-        $pull: { 
-          socialIdentities: { 
-            provider, 
-            providerUserId 
-          } 
+          updatedAt: new Date(),
         },
-        $set: { updatedAt: new Date() }
-      }
+      },
+    );
+  }
+
+  async linkSocialIdentity(
+    userId: string,
+    socialIdentity: SocialIdentityObjectType,
+  ): Promise<void> {
+    const collection = await this.getCollection();
+    await collection.updateOne(
+      { userId },
+      {
+        $push: { socialIdentities: socialIdentity },
+        $set: { updatedAt: new Date() },
+      },
+    );
+  }
+
+  async unlinkSocialIdentity(
+    userId: string,
+    provider: SocialAuthProviderType,
+    providerUserId: string,
+  ): Promise<void> {
+    const collection = await this.getCollection();
+    await collection.updateOne(
+      { userId },
+      {
+        $pull: {
+          socialIdentities: {
+            provider,
+            providerUserId,
+          },
+        },
+        $set: { updatedAt: new Date() },
+      },
     );
   }
 
@@ -280,27 +302,31 @@ export class MongoDbUserRepository implements IUserRepository {
     const collection = await this.getCollection();
     await collection.updateOne(
       { userId },
-      { 
-        $set: { 
-          passwordHash, 
+      {
+        $set: {
+          passwordHash,
           passwordLastChangedAt: new Date(),
-          updatedAt: new Date()
-        } 
-      }
+          updatedAt: new Date(),
+        },
+      },
     );
   }
 
-  async updateLoginAttempts(email: string, attempts: number, lockAccount = false): Promise<void> {
+  async updateLoginAttempts(
+    email: string,
+    attempts: number,
+    lockAccount = false,
+  ): Promise<void> {
     const collection = await this.getCollection();
     await collection.updateOne(
       { primaryEmail: email },
-      { 
-        $set: { 
+      {
+        $set: {
           failedLoginAttempts: attempts,
           isAccountLocked: lockAccount,
-          updatedAt: new Date()
-        } 
-      }
+          updatedAt: new Date(),
+        },
+      },
     );
   }
 
@@ -308,13 +334,13 @@ export class MongoDbUserRepository implements IUserRepository {
     const collection = await this.getCollection();
     await collection.updateOne(
       { userId },
-      { 
-        $set: { 
+      {
+        $set: {
           isAccountLocked: false,
           failedLoginAttempts: 0,
-          updatedAt: new Date()
-        } 
-      }
+          updatedAt: new Date(),
+        },
+      },
     );
   }
 
@@ -322,16 +348,18 @@ export class MongoDbUserRepository implements IUserRepository {
     const collection = await this.getCollection();
     await collection.updateOne(
       { userId },
-      { 
-        $set: { 
+      {
+        $set: {
           lastLoginAt: new Date(),
-          updatedAt: new Date()
-        } 
-      }
+          updatedAt: new Date(),
+        },
+      },
     );
   }
 
-  async findAll(queryParams: UserQueryParamsType = {}): Promise<PaginatedResultType<UserType>> {
+  async findAll(
+    queryParams: UserQueryParamsType = {},
+  ): Promise<PaginatedResultType<UserType>> {
     const collection = await this.getCollection();
 
     const {

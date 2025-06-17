@@ -2,7 +2,11 @@ import { z } from "zod";
 import { globalRoleSchema } from "@/schemas/roles.schemas";
 import { queryParamsSchema } from "@/schemas/shared.schema";
 
-export const socialAuthProviderSchema = z.enum(["google", "github", "linkedin"]);
+export const socialAuthProviderSchema = z.enum([
+  "google",
+  "github",
+  "linkedin",
+]);
 export type SocialAuthProviderType = z.infer<typeof socialAuthProviderSchema>;
 
 // Base User Schema (matches SPECS.md User model)
@@ -14,20 +18,24 @@ export const userSchema = z.object({
   primaryEmail: z.string().email(),
   passwordHash: z.string().optional(), // Only for password-based accounts
   globalRole: globalRoleSchema.default("student"),
-  emails: z.array(z.object({
-    emailAddress: z.string().email(),
-    isVerified: z.boolean().default(false),
-    verificationToken: z.string().optional(),
-    verificationTokenExpiresAt: z.date().optional(),
-    addedAt: z.date(),
-  })),
-  socialIdentities: z.array(z.object({
-    provider:  socialAuthProviderSchema,
-    providerUserId: z.string(),
-    email: z.string().email().optional(),
-    name: z.string().optional(),
-    linkedAt: z.date(),
-  })),
+  emails: z.array(
+    z.object({
+      emailAddress: z.string().email(),
+      isVerified: z.boolean().default(false),
+      verificationToken: z.string().optional(),
+      verificationTokenExpiresAt: z.date().optional(),
+      addedAt: z.date(),
+    }),
+  ),
+  socialIdentities: z.array(
+    z.object({
+      provider: socialAuthProviderSchema,
+      providerUserId: z.string(),
+      email: z.string().email().optional(),
+      name: z.string().optional(),
+      linkedAt: z.date(),
+    }),
+  ),
   lastLoginAt: z.date().optional(),
   passwordLastChangedAt: z.date().optional(),
   isAccountLocked: z.boolean().default(false),
@@ -58,7 +66,9 @@ export const socialIdentityObjectSchema = z.object({
   linkedAt: z.date(),
 });
 
-export type SocialIdentityObjectType = z.infer<typeof socialIdentityObjectSchema>;
+export type SocialIdentityObjectType = z.infer<
+  typeof socialIdentityObjectSchema
+>;
 
 // Registration schema (for user registration)
 export const registerUserSchema = z.object({
@@ -80,10 +90,12 @@ export const createUserSchema = userSchema.omit({
 export type CreateUserType = z.infer<typeof createUserSchema>;
 
 // Update user schema (for profile updates)
-export const updateUserSchema = z.object({
-  firstName: z.string().optional(),
-  lastName: z.string().optional(),
-}).partial();
+export const updateUserSchema = z
+  .object({
+    firstName: z.string().optional(),
+    lastName: z.string().optional(),
+  })
+  .partial();
 
 export type UpdateUserType = z.infer<typeof updateUserSchema>;
 
@@ -161,7 +173,9 @@ export const authenticatedUserContextSchema = z.object({
   primaryEmail: z.string().email(),
 });
 
-export type AuthenticatedUserContextType = z.infer<typeof authenticatedUserContextSchema>;
+export type AuthenticatedUserContextType = z.infer<
+  typeof authenticatedUserContextSchema
+>;
 
 // JWT payload schema
 export const jwtPayloadSchema = z.object({
