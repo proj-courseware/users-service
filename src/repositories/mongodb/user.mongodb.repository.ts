@@ -84,12 +84,33 @@ export class MongoDbUserRepository implements IUserRepository {
 
   private mapDocumentToEntity(doc: WithId<MongoUserDocument>): UserType {
     const { _id, ...restOfDoc } = doc;
-    return userSchema.parse({
+    
+    // Convert null values to undefined for optional fields
+    const cleanedDoc = {
       ...restOfDoc,
       _id: _id.toHexString(),
+      firstName: restOfDoc.firstName === null ? undefined : restOfDoc.firstName,
+      lastName: restOfDoc.lastName === null ? undefined : restOfDoc.lastName,
+      passwordHash: restOfDoc.passwordHash === null ? undefined : restOfDoc.passwordHash,
+      lastLoginAt: restOfDoc.lastLoginAt === null ? undefined : restOfDoc.lastLoginAt,
+      passwordLastChangedAt: restOfDoc.passwordLastChangedAt === null ? undefined : restOfDoc.passwordLastChangedAt,
+      // Clean up emails array - convert null values to undefined
+      emails: restOfDoc.emails.map(email => ({
+        ...email,
+        verificationToken: email.verificationToken === null ? undefined : email.verificationToken,
+        verificationTokenExpiresAt: email.verificationTokenExpiresAt === null ? undefined : email.verificationTokenExpiresAt,
+      })),
+      // Clean up social identities array - convert null values to undefined
+      socialIdentities: restOfDoc.socialIdentities.map(identity => ({
+        ...identity,
+        email: identity.email === null ? undefined : identity.email,
+        name: identity.name === null ? undefined : identity.name,
+      })),
       createdAt: doc.createdAt,
       updatedAt: doc.updatedAt,
-    });
+    };
+    
+    return userSchema.parse(cleanedDoc);
   }
 
   private mapEntityToDocument(
