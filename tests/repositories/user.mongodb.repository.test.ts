@@ -13,7 +13,6 @@ import type {
   CreateUserType,
   UserQueryParamsType,
 } from "@/schemas/user.schema";
-import { v4 as uuidv4 } from "uuid";
 
 describe("MongoDbUserRepository", () => {
   let repository: MongoDbUserRepository;
@@ -45,7 +44,6 @@ describe("MongoDbUserRepository", () => {
   describe("create", () => {
     it("should create a new user with minimal data", async () => {
       const userData: CreateUserType = {
-        userId: uuidv4(),
         primaryEmail: "test@example.com",
         globalRole: "student",
         emails: [
@@ -63,19 +61,18 @@ describe("MongoDbUserRepository", () => {
       const user = await repository.create(userData);
 
       expect(user).toBeDefined();
-      expect(user.userId).toBe(userData.userId);
+      expect(user.id).toBeDefined();
       expect(user.primaryEmail).toBe(userData.primaryEmail);
       expect(user.globalRole).toBe("student");
       expect(user.emails).toHaveLength(1);
       expect(user.emails[0].emailAddress).toBe("test@example.com");
       expect(user.createdAt).toBeDefined();
       expect(user.updatedAt).toBeDefined();
-      expect(user._id).toBeDefined();
+      expect(user.id).toBeDefined();
     });
 
     it("should create a user with password hash and all fields", async () => {
       const userData: CreateUserType = {
-        userId: uuidv4(),
         firstName: "John",
         lastName: "Doe",
         primaryEmail: "john.doe@example.com",
@@ -116,9 +113,8 @@ describe("MongoDbUserRepository", () => {
       expect(user.passwordLastChangedAt).toBeDefined();
     });
 
-    it("should generate userId if not provided", async () => {
+    it("should generate id when creating user", async () => {
       const userData: CreateUserType = {
-        userId: "",
         primaryEmail: "auto-id@example.com",
         globalRole: "student",
         emails: [
@@ -135,18 +131,15 @@ describe("MongoDbUserRepository", () => {
 
       const user = await repository.create(userData);
 
-      expect(user.userId).toBeDefined();
-      expect(user.userId).not.toBe("");
-      expect(user.userId).toMatch(
-        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/,
-      );
+      expect(user.id).toBeDefined();
+      expect(user.id).not.toBe("");
+      expect(user.id).toMatch(/^[0-9a-f]{24}$/);
     });
   });
 
-  describe("findByUserId", () => {
-    it("should find user by userId", async () => {
+  describe("findById", () => {
+    it("should find user by id", async () => {
       const userData: CreateUserType = {
-        userId: uuidv4(),
         primaryEmail: "findme@example.com",
         globalRole: "teacher",
         emails: [
@@ -162,16 +155,16 @@ describe("MongoDbUserRepository", () => {
       };
 
       const createdUser = await repository.create(userData);
-      const foundUser = await repository.findByUserId(createdUser.userId);
+      const foundUser = await repository.findById(createdUser.id);
 
       expect(foundUser).toBeDefined();
-      expect(foundUser!.userId).toBe(createdUser.userId);
+      expect(foundUser!.id).toBe(createdUser.id);
       expect(foundUser!.primaryEmail).toBe("findme@example.com");
       expect(foundUser!.globalRole).toBe("teacher");
     });
 
-    it("should return null for non-existent userId", async () => {
-      const foundUser = await repository.findByUserId("non-existent-id");
+    it("should return null for non-existent id", async () => {
+      const foundUser = await repository.findById("507f1f77bcf86cd799439011");
       expect(foundUser).toBeNull();
     });
   });
@@ -179,7 +172,6 @@ describe("MongoDbUserRepository", () => {
   describe("findByEmail", () => {
     it("should find user by primary email", async () => {
       const userData: CreateUserType = {
-        userId: uuidv4(),
         primaryEmail: "primary@example.com",
         globalRole: "admin",
         emails: [
@@ -204,7 +196,6 @@ describe("MongoDbUserRepository", () => {
 
     it("should find user by email in emails array", async () => {
       const userData: CreateUserType = {
-        userId: uuidv4(),
         primaryEmail: "primary@example.com",
         globalRole: "student",
         emails: [
@@ -241,7 +232,6 @@ describe("MongoDbUserRepository", () => {
   describe("update", () => {
     it("should update user fields", async () => {
       const userData: CreateUserType = {
-        userId: uuidv4(),
         firstName: "John",
         lastName: "Doe",
         primaryEmail: "john@example.com",
@@ -259,7 +249,7 @@ describe("MongoDbUserRepository", () => {
       };
 
       const user = await repository.create(userData);
-      const updatedUser = await repository.update(user.userId, {
+      const updatedUser = await repository.update(user.id, {
         firstName: "Jane",
         lastName: "Smith",
         globalRole: "teacher",
@@ -284,7 +274,6 @@ describe("MongoDbUserRepository", () => {
   describe("updatePassword", () => {
     it("should update user password hash", async () => {
       const userData: CreateUserType = {
-        userId: uuidv4(),
         primaryEmail: "password-update@example.com",
         passwordHash: "old_hash",
         globalRole: "student",
@@ -301,9 +290,13 @@ describe("MongoDbUserRepository", () => {
       };
 
       const user = await repository.create(userData);
-      await repository.updatePassword(user.userId, "new_hash");
 
-      const updatedUser = await repository.findByUserId(user.userId);
+      // Wait a bit to ensure different timestamps
+      await new Promise((resolve) => setTimeout(resolve, 10));
+
+      await repository.updatePassword(user.id, "new_hash");
+
+      const updatedUser = await repository.findById(user.id);
       expect(updatedUser!.passwordHash).toBe("new_hash");
       expect(updatedUser!.passwordLastChangedAt).toBeDefined();
       expect(updatedUser!.passwordLastChangedAt!.getTime()).toBeGreaterThan(
@@ -315,7 +308,6 @@ describe("MongoDbUserRepository", () => {
   describe("findBySocialIdentity", () => {
     it("should find user by social identity", async () => {
       const userData: CreateUserType = {
-        userId: uuidv4(),
         primaryEmail: "social@example.com",
         globalRole: "student",
         emails: [
@@ -362,7 +354,6 @@ describe("MongoDbUserRepository", () => {
   describe("addEmail", () => {
     it("should add email to user", async () => {
       const userData: CreateUserType = {
-        userId: uuidv4(),
         primaryEmail: "original@example.com",
         globalRole: "student",
         emails: [
@@ -384,9 +375,9 @@ describe("MongoDbUserRepository", () => {
         addedAt: new Date(),
       };
 
-      await repository.addEmail(user.userId, newEmail);
+      await repository.addEmail(user.id, newEmail);
 
-      const updatedUser = await repository.findByUserId(user.userId);
+      const updatedUser = await repository.findById(user.id);
       expect(updatedUser!.emails).toHaveLength(2);
       expect(updatedUser!.emails[1].emailAddress).toBe(
         "additional@example.com",
@@ -398,7 +389,6 @@ describe("MongoDbUserRepository", () => {
   describe("verifyEmail", () => {
     it("should verify email address", async () => {
       const userData: CreateUserType = {
-        userId: uuidv4(),
         primaryEmail: "verify@example.com",
         globalRole: "student",
         emails: [
@@ -418,9 +408,9 @@ describe("MongoDbUserRepository", () => {
       };
 
       const user = await repository.create(userData);
-      await repository.verifyEmail(user.userId, "verify@example.com");
+      await repository.verifyEmail(user.id, "verify@example.com");
 
-      const updatedUser = await repository.findByUserId(user.userId);
+      const updatedUser = await repository.findById(user.id);
       expect(updatedUser!.emails[0].isVerified).toBe(true);
       expect(updatedUser!.emails[0].verificationToken).toBeUndefined();
       expect(updatedUser!.emails[0].verificationTokenExpiresAt).toBeUndefined();
@@ -432,7 +422,6 @@ describe("MongoDbUserRepository", () => {
       // Create test users
       const users: CreateUserType[] = [
         {
-          userId: uuidv4(),
           firstName: "Alice",
           lastName: "Admin",
           primaryEmail: "alice@example.com",
@@ -449,7 +438,6 @@ describe("MongoDbUserRepository", () => {
           failedLoginAttempts: 0,
         },
         {
-          userId: uuidv4(),
           firstName: "Bob",
           lastName: "Teacher",
           primaryEmail: "bob@example.com",
@@ -466,7 +454,6 @@ describe("MongoDbUserRepository", () => {
           failedLoginAttempts: 0,
         },
         {
-          userId: uuidv4(),
           firstName: "Charlie",
           lastName: "Student",
           primaryEmail: "charlie@example.com",
@@ -553,7 +540,6 @@ describe("MongoDbUserRepository", () => {
   describe("delete", () => {
     it("should delete user", async () => {
       const userData: CreateUserType = {
-        userId: uuidv4(),
         primaryEmail: "delete-me@example.com",
         globalRole: "student",
         emails: [
@@ -569,9 +555,9 @@ describe("MongoDbUserRepository", () => {
       };
 
       const user = await repository.create(userData);
-      await repository.delete(user.userId);
+      await repository.delete(user.id);
 
-      const deletedUser = await repository.findByUserId(user.userId);
+      const deletedUser = await repository.findById(user.id);
       expect(deletedUser).toBeNull();
     });
 
