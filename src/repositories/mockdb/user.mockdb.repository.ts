@@ -82,8 +82,7 @@ export class MockDbUserRepository implements IUserRepository {
   async create(data: CreateUserType): Promise<UserType> {
     const now = new Date();
     const newUser: UserType = {
-      _id: uuidv4(),
-      userId: data.userId || `user_${uuidv4()}`,
+      id: uuidv4(),
       ...data,
       globalRole: data.globalRole || "student",
       emails: data.emails || [
@@ -103,8 +102,8 @@ export class MockDbUserRepository implements IUserRepository {
     return newUser;
   }
 
-  async findByUserId(userId: string): Promise<UserType | null> {
-    const user = this.users.find((u) => u.userId === userId);
+  async findById(id: string): Promise<UserType | null> {
+    const user = this.users.find((u) => u.id === id);
     return user || null;
   }
 
@@ -117,17 +116,12 @@ export class MockDbUserRepository implements IUserRepository {
     return user || null;
   }
 
-  async findById(id: string): Promise<UserType | null> {
-    const user = this.users.find((u) => u._id === id);
-    return user || null;
-  }
-
-  async update(userId: string, updates: Partial<UserType>): Promise<UserType> {
-    const userIndex = this.users.findIndex((u) => u.userId === userId);
+  async update(id: string, updates: Partial<UserType>): Promise<UserType> {
+    const userIndex = this.users.findIndex((u) => u.id === id);
     if (userIndex === -1) {
       throw new Error("User not found");
     }
-    
+
     const existingUser = this.users[userIndex];
     const updatedUser = {
       ...existingUser,
@@ -138,9 +132,9 @@ export class MockDbUserRepository implements IUserRepository {
     return updatedUser;
   }
 
-  async delete(userId: string): Promise<void> {
+  async delete(id: string): Promise<void> {
     const initialLength = this.users.length;
-    this.users = this.users.filter((u) => u.userId !== userId);
+    this.users = this.users.filter((u) => u.id !== id);
     if (this.users.length === initialLength) {
       throw new Error("User not found");
     }
@@ -167,14 +161,16 @@ export class MockDbUserRepository implements IUserRepository {
     return user || null;
   }
 
-  async addEmail(userId: string, email: EmailObjectType): Promise<void> {
-    const user = await this.findByUserId(userId);
+  async addEmail(id: string, email: EmailObjectType): Promise<void> {
+    const user = await this.findById(id);
     if (!user) {
       throw new Error("User not found");
     }
 
     // Check if email already exists for this user
-    const emailExists = user.emails.some((e) => e.emailAddress === email.emailAddress);
+    const emailExists = user.emails.some(
+      (e) => e.emailAddress === email.emailAddress,
+    );
     if (emailExists) {
       throw new Error("Email already exists for this user");
     }
@@ -183,8 +179,8 @@ export class MockDbUserRepository implements IUserRepository {
     user.updatedAt = new Date();
   }
 
-  async verifyEmail(userId: string, emailAddress: string): Promise<void> {
-    const user = await this.findByUserId(userId);
+  async verifyEmail(id: string, emailAddress: string): Promise<void> {
+    const user = await this.findById(id);
     if (!user) {
       throw new Error("User not found");
     }
@@ -202,8 +198,8 @@ export class MockDbUserRepository implements IUserRepository {
     user.updatedAt = new Date();
   }
 
-  async removeEmail(userId: string, emailAddress: string): Promise<void> {
-    const user = await this.findByUserId(userId);
+  async removeEmail(id: string, emailAddress: string): Promise<void> {
+    const user = await this.findById(id);
     if (!user) {
       throw new Error("User not found");
     }
@@ -224,8 +220,8 @@ export class MockDbUserRepository implements IUserRepository {
     user.updatedAt = new Date();
   }
 
-  async setPrimaryEmail(userId: string, emailAddress: string): Promise<void> {
-    const user = await this.findByUserId(userId);
+  async setPrimaryEmail(id: string, emailAddress: string): Promise<void> {
+    const user = await this.findById(id);
     if (!user) {
       throw new Error("User not found");
     }
@@ -243,10 +239,10 @@ export class MockDbUserRepository implements IUserRepository {
   }
 
   async linkSocialIdentity(
-    userId: string,
+    id: string,
     socialIdentity: SocialIdentityObjectType,
   ): Promise<void> {
-    const user = await this.findByUserId(userId);
+    const user = await this.findById(id);
     if (!user) {
       throw new Error("User not found");
     }
@@ -266,11 +262,11 @@ export class MockDbUserRepository implements IUserRepository {
   }
 
   async unlinkSocialIdentity(
-    userId: string,
+    id: string,
     provider: string,
     providerUserId: string,
   ): Promise<void> {
-    const user = await this.findByUserId(userId);
+    const user = await this.findById(id);
     if (!user) {
       throw new Error("User not found");
     }
@@ -288,8 +284,8 @@ export class MockDbUserRepository implements IUserRepository {
     user.updatedAt = new Date();
   }
 
-  async updatePassword(userId: string, passwordHash: string): Promise<void> {
-    const user = await this.findByUserId(userId);
+  async updatePassword(id: string, passwordHash: string): Promise<void> {
+    const user = await this.findById(id);
     if (!user) {
       throw new Error("User not found");
     }
@@ -316,8 +312,8 @@ export class MockDbUserRepository implements IUserRepository {
     user.updatedAt = new Date();
   }
 
-  async unlockAccount(userId: string): Promise<void> {
-    const user = await this.findByUserId(userId);
+  async unlockAccount(id: string): Promise<void> {
+    const user = await this.findById(id);
     if (!user) {
       throw new Error("User not found");
     }
@@ -327,8 +323,8 @@ export class MockDbUserRepository implements IUserRepository {
     user.updatedAt = new Date();
   }
 
-  async updateLastLogin(userId: string): Promise<void> {
-    const user = await this.findByUserId(userId);
+  async updateLastLogin(id: string): Promise<void> {
+    const user = await this.findById(id);
     if (!user) {
       throw new Error("User not found");
     }
