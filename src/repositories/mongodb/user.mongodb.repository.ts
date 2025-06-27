@@ -1,6 +1,5 @@
 import { Collection, Db, ObjectId } from "mongodb";
 import type { WithId, Filter, Sort } from "mongodb";
-import { v4 as uuidv4 } from "uuid";
 import type { IUserRepository } from "@/repositories/user.repository";
 import type {
   UserType,
@@ -18,11 +17,10 @@ import {
 } from "@/schemas/shared.schema";
 import { getDatabase } from "@/config/mongodb.setup";
 
-// MongoDB document interface (internal to repository)
 // It's essentially our User schema but expects its primary key (_id) to be an ObjectId.
-// The '_id' field in our User domain model will be derived from _id.toHexString().
+// The 'id' field in our User domain model will be derived from _id.toHexString().
 interface MongoUserDocument
-  extends Omit<UserType, "_id" | "createdAt" | "updatedAt"> {
+  extends Omit<UserType, "id" | "createdAt" | "updatedAt"> {
   _id?: ObjectId;
   createdAt: Date;
   updatedAt: Date;
@@ -52,10 +50,6 @@ export class MongoDbUserRepository implements IUserRepository {
   ): Promise<void> {
     await Promise.all([
       collection.createIndex(
-        { userId: 1 },
-        { unique: true, name: "users_userId" },
-      ),
-      collection.createIndex(
         { primaryEmail: 1 },
         { unique: true, name: "users_primaryEmail" },
       ),
@@ -84,24 +78,35 @@ export class MongoDbUserRepository implements IUserRepository {
 
   private mapDocumentToEntity(doc: WithId<MongoUserDocument>): UserType {
     const { _id, ...restOfDoc } = doc;
-    
+
     // Convert null values to undefined for optional fields
     const cleanedDoc = {
       ...restOfDoc,
-      _id: _id.toHexString(),
+      id: _id.toHexString(),
       firstName: restOfDoc.firstName === null ? undefined : restOfDoc.firstName,
       lastName: restOfDoc.lastName === null ? undefined : restOfDoc.lastName,
-      passwordHash: restOfDoc.passwordHash === null ? undefined : restOfDoc.passwordHash,
-      lastLoginAt: restOfDoc.lastLoginAt === null ? undefined : restOfDoc.lastLoginAt,
-      passwordLastChangedAt: restOfDoc.passwordLastChangedAt === null ? undefined : restOfDoc.passwordLastChangedAt,
+      passwordHash:
+        restOfDoc.passwordHash === null ? undefined : restOfDoc.passwordHash,
+      lastLoginAt:
+        restOfDoc.lastLoginAt === null ? undefined : restOfDoc.lastLoginAt,
+      passwordLastChangedAt:
+        restOfDoc.passwordLastChangedAt === null
+          ? undefined
+          : restOfDoc.passwordLastChangedAt,
       // Clean up emails array - convert null values to undefined
-      emails: restOfDoc.emails.map(email => ({
+      emails: restOfDoc.emails.map((email) => ({
         ...email,
-        verificationToken: email.verificationToken === null ? undefined : email.verificationToken,
-        verificationTokenExpiresAt: email.verificationTokenExpiresAt === null ? undefined : email.verificationTokenExpiresAt,
+        verificationToken:
+          email.verificationToken === null
+            ? undefined
+            : email.verificationToken,
+        verificationTokenExpiresAt:
+          email.verificationTokenExpiresAt === null
+            ? undefined
+            : email.verificationTokenExpiresAt,
       })),
       // Clean up social identities array - convert null values to undefined
-      socialIdentities: restOfDoc.socialIdentities.map(identity => ({
+      socialIdentities: restOfDoc.socialIdentities.map((identity) => ({
         ...identity,
         email: identity.email === null ? undefined : identity.email,
         name: identity.name === null ? undefined : identity.name,
@@ -109,7 +114,7 @@ export class MongoDbUserRepository implements IUserRepository {
       createdAt: doc.createdAt,
       updatedAt: doc.updatedAt,
     };
-    
+
     return userSchema.parse(cleanedDoc);
   }
 
@@ -118,18 +123,23 @@ export class MongoDbUserRepository implements IUserRepository {
   ): Omit<MongoUserDocument, "_id"> {
     const now = new Date();
     return {
-      userId: data.userId,
       firstName: data.firstName,
       lastName: data.lastName,
       primaryEmail: data.primaryEmail,
       passwordHash: data.passwordHash,
-      globalRole: data.globalRole,
-      emails: data.emails,
-      socialIdentities: data.socialIdentities,
+      globalRole: data.globalRole || "student",
+      emails: data.emails || [
+        {
+          emailAddress: data.primaryEmail,
+          isVerified: false,
+          addedAt: now,
+        },
+      ],
+      socialIdentities: data.socialIdentities || [],
       lastLoginAt: data.lastLoginAt,
       passwordLastChangedAt: data.passwordLastChangedAt,
-      isAccountLocked: data.isAccountLocked,
-      failedLoginAttempts: data.failedLoginAttempts,
+      isAccountLocked: data.isAccountLocked || false,
+      failedLoginAttempts: data.failedLoginAttempts || 0,
       createdAt: now,
       updatedAt: now,
     };
@@ -137,28 +147,37 @@ export class MongoDbUserRepository implements IUserRepository {
 
   async create(userData: CreateUserType): Promise<UserType> {
     const collection = await this.getCollection();
+    const documentToInsert = this.mapEntityToDocument(userData);
 
-    // Generate UUID if not provided
-    const userWithId: CreateUserType = {
-      ...userData,
-      userId: userData.userId || uuidv4(),
-    };
+    const result = await collection.insertOne(documentToInsert);
 
-    const document = this.mapEntityToDocument(userWithId);
-    const result = await collection.insertOne(document);
-
-    const insertedDoc = await collection.findOne({ _id: result.insertedId });
-    if (!insertedDoc) {
-      throw new Error("Failed to retrieve created user");
+    if (!result.insertedId) {
+      throw new Error(
+        "User creation failed, no ObjectId generated by database.",
+      );
     }
 
-    return this.mapDocumentToEntity(insertedDoc);
+    // Return the created user with the generated ID
+    return userSchema.parse({
+      ...documentToInsert,
+      id: result.insertedId.toHexString(),
+    });
   }
 
-  async findByUserId(userId: string): Promise<UserType | null> {
+  async findById(id: string): Promise<UserType | null> {
+    // Validate ObjectId format
+    if (!ObjectId.isValid(id)) {
+      return null;
+    }
+
     const collection = await this.getCollection();
-    const doc = await collection.findOne({ userId });
-    return doc ? this.mapDocumentToEntity(doc) : null;
+    const document = await collection.findOne({ _id: new ObjectId(id) });
+
+    if (!document) {
+      return null;
+    }
+
+    return this.mapDocumentToEntity(document);
   }
 
   async findByEmail(email: string): Promise<UserType | null> {
@@ -169,20 +188,19 @@ export class MongoDbUserRepository implements IUserRepository {
     return doc ? this.mapDocumentToEntity(doc) : null;
   }
 
-  async findById(id: string): Promise<UserType | null> {
-    const collection = await this.getCollection();
-    const doc = await collection.findOne({ _id: new ObjectId(id) });
-    return doc ? this.mapDocumentToEntity(doc) : null;
-  }
+  async update(id: string, updates: Partial<UserType>): Promise<UserType> {
+    if (!ObjectId.isValid(id)) {
+      throw new Error("User not found");
+    }
 
-  async update(userId: string, updates: Partial<UserType>): Promise<UserType> {
     const collection = await this.getCollection();
 
     // Remove fields that shouldn't be updated directly
-    const { _id, userId: _, createdAt, ...updateData } = updates;
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { id: userId, createdAt, ...updateData } = updates;
 
     const result = await collection.findOneAndUpdate(
-      { userId },
+      { _id: new ObjectId(id) },
       {
         $set: {
           ...updateData,
@@ -199,9 +217,13 @@ export class MongoDbUserRepository implements IUserRepository {
     return this.mapDocumentToEntity(result);
   }
 
-  async delete(userId: string): Promise<void> {
+  async delete(id: string): Promise<void> {
+    if (!ObjectId.isValid(id)) {
+      throw new Error("User not found");
+    }
+
     const collection = await this.getCollection();
-    const result = await collection.deleteOne({ userId });
+    const result = await collection.deleteOne({ _id: new ObjectId(id) });
 
     if (result.deletedCount === 0) {
       throw new Error("User not found");
@@ -232,10 +254,14 @@ export class MongoDbUserRepository implements IUserRepository {
     return doc ? this.mapDocumentToEntity(doc) : null;
   }
 
-  async addEmail(userId: string, email: EmailObjectType): Promise<void> {
+  async addEmail(id: string, email: EmailObjectType): Promise<void> {
+    if (!ObjectId.isValid(id)) {
+      throw new Error("User not found");
+    }
+
     const collection = await this.getCollection();
     await collection.updateOne(
-      { userId },
+      { _id: new ObjectId(id) },
       {
         $push: { emails: email },
         $set: { updatedAt: new Date() },
@@ -243,11 +269,15 @@ export class MongoDbUserRepository implements IUserRepository {
     );
   }
 
-  async verifyEmail(userId: string, emailAddress: string): Promise<void> {
+  async verifyEmail(id: string, emailAddress: string): Promise<void> {
+    if (!ObjectId.isValid(id)) {
+      throw new Error("User not found");
+    }
+
     const collection = await this.getCollection();
     await collection.updateOne(
       {
-        userId,
+        _id: new ObjectId(id),
         "emails.emailAddress": emailAddress,
       },
       {
@@ -261,10 +291,14 @@ export class MongoDbUserRepository implements IUserRepository {
     );
   }
 
-  async removeEmail(userId: string, emailAddress: string): Promise<void> {
+  async removeEmail(id: string, emailAddress: string): Promise<void> {
+    if (!ObjectId.isValid(id)) {
+      throw new Error("User not found");
+    }
+
     const collection = await this.getCollection();
     await collection.updateOne(
-      { userId },
+      { _id: new ObjectId(id) },
       {
         $pull: { emails: { emailAddress } },
         $set: { updatedAt: new Date() },
@@ -272,10 +306,14 @@ export class MongoDbUserRepository implements IUserRepository {
     );
   }
 
-  async setPrimaryEmail(userId: string, emailAddress: string): Promise<void> {
+  async setPrimaryEmail(id: string, emailAddress: string): Promise<void> {
+    if (!ObjectId.isValid(id)) {
+      throw new Error("User not found");
+    }
+
     const collection = await this.getCollection();
     await collection.updateOne(
-      { userId },
+      { _id: new ObjectId(id) },
       {
         $set: {
           primaryEmail: emailAddress,
@@ -286,12 +324,16 @@ export class MongoDbUserRepository implements IUserRepository {
   }
 
   async linkSocialIdentity(
-    userId: string,
+    id: string,
     socialIdentity: SocialIdentityObjectType,
   ): Promise<void> {
+    if (!ObjectId.isValid(id)) {
+      throw new Error("User not found");
+    }
+
     const collection = await this.getCollection();
     await collection.updateOne(
-      { userId },
+      { _id: new ObjectId(id) },
       {
         $push: { socialIdentities: socialIdentity },
         $set: { updatedAt: new Date() },
@@ -300,13 +342,17 @@ export class MongoDbUserRepository implements IUserRepository {
   }
 
   async unlinkSocialIdentity(
-    userId: string,
+    id: string,
     provider: SocialAuthProviderType,
     providerUserId: string,
   ): Promise<void> {
+    if (!ObjectId.isValid(id)) {
+      throw new Error("User not found");
+    }
+
     const collection = await this.getCollection();
     await collection.updateOne(
-      { userId },
+      { _id: new ObjectId(id) },
       {
         $pull: {
           socialIdentities: {
@@ -319,10 +365,14 @@ export class MongoDbUserRepository implements IUserRepository {
     );
   }
 
-  async updatePassword(userId: string, passwordHash: string): Promise<void> {
+  async updatePassword(id: string, passwordHash: string): Promise<void> {
+    if (!ObjectId.isValid(id)) {
+      throw new Error("User not found");
+    }
+
     const collection = await this.getCollection();
     await collection.updateOne(
-      { userId },
+      { _id: new ObjectId(id) },
       {
         $set: {
           passwordHash,
@@ -351,10 +401,14 @@ export class MongoDbUserRepository implements IUserRepository {
     );
   }
 
-  async unlockAccount(userId: string): Promise<void> {
+  async unlockAccount(id: string): Promise<void> {
+    if (!ObjectId.isValid(id)) {
+      throw new Error("User not found");
+    }
+
     const collection = await this.getCollection();
     await collection.updateOne(
-      { userId },
+      { _id: new ObjectId(id) },
       {
         $set: {
           isAccountLocked: false,
@@ -365,10 +419,14 @@ export class MongoDbUserRepository implements IUserRepository {
     );
   }
 
-  async updateLastLogin(userId: string): Promise<void> {
+  async updateLastLogin(id: string): Promise<void> {
+    if (!ObjectId.isValid(id)) {
+      throw new Error("User not found");
+    }
+
     const collection = await this.getCollection();
     await collection.updateOne(
-      { userId },
+      { _id: new ObjectId(id) },
       {
         $set: {
           lastLoginAt: new Date(),
