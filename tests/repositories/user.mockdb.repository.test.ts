@@ -1,6 +1,10 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { MockDbUserRepository } from "@/repositories/mockdb/user.mockdb.repository";
-import type { CreateUserType, EmailObjectType, SocialIdentityObjectType } from "@/schemas/user.schema";
+import type {
+  CreateUserType,
+  EmailObjectType,
+  SocialIdentityObjectType,
+} from "@/schemas/user.schema";
 
 describe("MockDbUserRepository", () => {
   let repo: MockDbUserRepository;
@@ -18,9 +22,9 @@ describe("MockDbUserRepository", () => {
         lastName: "Doe",
       };
       const user = await repo.create(data);
-      
-      expect(user._id).toBeDefined();
-      expect(user.userId).toBeDefined();
+
+      expect(user.id).toBeDefined();
+      expect(user.id).toBeDefined();
       expect(user.primaryEmail).toBe("test@example.com");
       expect(user.firstName).toBe("John");
       expect(user.lastName).toBe("Doe");
@@ -33,51 +37,54 @@ describe("MockDbUserRepository", () => {
       expect(user.socialIdentities).toHaveLength(0);
     });
 
-    it("generates userId if not provided", async () => {
+    it("generates id when creating user", async () => {
       const data: CreateUserType = {
         primaryEmail: "test@example.com",
       };
       const user = await repo.create(data);
-      
-      expect(user.userId).toBeDefined();
-      expect(user.userId).toMatch(/^user_/);
+
+      expect(user.id).toBeDefined();
+      expect(user.id).toMatch(/^[0-9a-f-]{36}$/);
     });
 
-    it("uses provided userId", async () => {
+    it("assigns unique id when creating user", async () => {
       const data: CreateUserType = {
-        userId: "custom-user-id",
         primaryEmail: "test@example.com",
       };
-      const user = await repo.create(data);
-      
-      expect(user.userId).toBe("custom-user-id");
+      const user1 = await repo.create(data);
+      const user2 = await repo.create({
+        primaryEmail: "test2@example.com",
+      });
+
+      expect(user1.id).toBeDefined();
+      expect(user2.id).toBeDefined();
+      expect(user1.id).not.toBe(user2.id);
     });
   });
 
-  describe("findByUserId", () => {
-    it("returns user by userId", async () => {
+  describe("findById", () => {
+    it("returns user by id", async () => {
       const user = await repo.create({
-        userId: "test-user-123",
         primaryEmail: "test@example.com",
       });
-      
-      const found = await repo.findByUserId("test-user-123");
+
+      const found = await repo.findById(user.id);
       expect(found).not.toBeNull();
-      expect(found!.userId).toBe("test-user-123");
+      expect(found!.id).toBe(user.id);
     });
 
     it("returns null if not found", async () => {
-      const found = await repo.findByUserId("non-existent");
+      const found = await repo.findById("non-existent");
       expect(found).toBeNull();
     });
   });
 
   describe("findByEmail", () => {
     it("returns user by primary email", async () => {
-      const user = await repo.create({
+      await repo.create({
         primaryEmail: "primary@example.com",
       });
-      
+
       const found = await repo.findByEmail("primary@example.com");
       expect(found).not.toBeNull();
       expect(found!.primaryEmail).toBe("primary@example.com");
@@ -99,10 +106,10 @@ describe("MockDbUserRepository", () => {
           },
         ],
       });
-      
+
       const found = await repo.findByEmail("secondary@example.com");
       expect(found).not.toBeNull();
-      expect(found!.userId).toBe(user.userId);
+      expect(found!.id).toBe(user.id);
     });
 
     it("returns null for non-existent email", async () => {
@@ -112,14 +119,14 @@ describe("MockDbUserRepository", () => {
   });
 
   describe("findById", () => {
-    it("returns user by _id", async () => {
+    it("returns user by id", async () => {
       const user = await repo.create({
         primaryEmail: "test@example.com",
       });
-      
-      const found = await repo.findById(user._id!);
+
+      const found = await repo.findById(user.id!);
       expect(found).not.toBeNull();
-      expect(found!._id).toBe(user._id);
+      expect(found!.id).toBe(user.id);
     });
 
     it("returns null if not found", async () => {
@@ -134,15 +141,15 @@ describe("MockDbUserRepository", () => {
         primaryEmail: "test@example.com",
         firstName: "John",
       });
-      
+
       // Wait for a bit to ensure updatedAt changes
       await new Promise((resolve) => setTimeout(resolve, 100));
-      
-      const updated = await repo.update(user.userId, {
+
+      const updated = await repo.update(user.id, {
         firstName: "Jane",
         lastName: "Smith",
       });
-      
+
       expect(updated.firstName).toBe("Jane");
       expect(updated.lastName).toBe("Smith");
       expect(updated.updatedAt).not.toEqual(user.updatedAt);
@@ -150,7 +157,7 @@ describe("MockDbUserRepository", () => {
 
     it("throws error for non-existent user", async () => {
       await expect(
-        repo.update("non-existent", { firstName: "Test" })
+        repo.update("non-existent", { firstName: "Test" }),
       ).rejects.toThrow("User not found");
     });
   });
@@ -160,15 +167,17 @@ describe("MockDbUserRepository", () => {
       const user = await repo.create({
         primaryEmail: "test@example.com",
       });
-      
-      await repo.delete(user.userId);
-      
-      const found = await repo.findByUserId(user.userId);
+
+      await repo.delete(user.id);
+
+      const found = await repo.findById(user.id);
       expect(found).toBeNull();
     });
 
     it("throws error when deleting non-existent user", async () => {
-      await expect(repo.delete("non-existent")).rejects.toThrow("User not found");
+      await expect(repo.delete("non-existent")).rejects.toThrow(
+        "User not found",
+      );
     });
   });
 
@@ -179,15 +188,15 @@ describe("MockDbUserRepository", () => {
         providerUserId: "google123",
         linkedAt: new Date(),
       };
-      
+
       const user = await repo.create({
         primaryEmail: "test@example.com",
         socialIdentities: [socialIdentity],
       });
-      
+
       const found = await repo.findBySocialIdentity("google", "google123");
       expect(found).not.toBeNull();
-      expect(found!.userId).toBe(user.userId);
+      expect(found!.id).toBe(user.id);
     });
 
     it("returns null for non-existent social identity", async () => {
@@ -206,14 +215,16 @@ describe("MockDbUserRepository", () => {
             isVerified: false,
             addedAt: new Date(),
             verificationToken: "token123",
-            verificationTokenExpiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
+            verificationTokenExpiresAt: new Date(
+              Date.now() + 24 * 60 * 60 * 1000,
+            ),
           },
         ],
       });
-      
+
       const found = await repo.findByVerificationToken("token123");
       expect(found).not.toBeNull();
-      expect(found!.userId).toBe(user.userId);
+      expect(found!.id).toBe(user.id);
     });
 
     it("returns null for non-existent token", async () => {
@@ -227,33 +238,36 @@ describe("MockDbUserRepository", () => {
       const user = await repo.create({
         primaryEmail: "primary@example.com",
       });
-      
+
       const newEmail: EmailObjectType = {
         emailAddress: "secondary@example.com",
         isVerified: false,
         addedAt: new Date(),
       };
-      
-      await repo.addEmail(user.userId, newEmail);
-      
-      const updated = await repo.findByUserId(user.userId);
+
+      await repo.addEmail(user.id, newEmail);
+
+      const updated = await repo.findById(user.id);
       expect(updated!.emails).toHaveLength(2);
-      expect(updated!.emails.some(e => e.emailAddress === "secondary@example.com")).toBe(true);
+      expect(
+        updated!.emails.some((e) => e.emailAddress === "secondary@example.com"),
+      ).toBe(true);
     });
 
     it("throws error for duplicate email", async () => {
       const user = await repo.create({
         primaryEmail: "test@example.com",
       });
-      
+
       const duplicateEmail: EmailObjectType = {
         emailAddress: "test@example.com",
         isVerified: false,
         addedAt: new Date(),
       };
-      
-      await expect(repo.addEmail(user.userId, duplicateEmail))
-        .rejects.toThrow("Email already exists for this user");
+
+      await expect(repo.addEmail(user.id, duplicateEmail)).rejects.toThrow(
+        "Email already exists for this user",
+      );
     });
   });
 
@@ -270,11 +284,13 @@ describe("MockDbUserRepository", () => {
           },
         ],
       });
-      
-      await repo.verifyEmail(user.userId, "test@example.com");
-      
-      const updated = await repo.findByUserId(user.userId);
-      const email = updated!.emails.find(e => e.emailAddress === "test@example.com");
+
+      await repo.verifyEmail(user.id, "test@example.com");
+
+      const updated = await repo.findById(user.id);
+      const email = updated!.emails.find(
+        (e) => e.emailAddress === "test@example.com",
+      );
       expect(email!.isVerified).toBe(true);
       expect(email!.verificationToken).toBeUndefined();
     });
@@ -285,16 +301,16 @@ describe("MockDbUserRepository", () => {
       const user = await repo.create({
         primaryEmail: "test@example.com",
       });
-      
+
       const socialIdentity: SocialIdentityObjectType = {
         provider: "github",
         providerUserId: "github123",
         linkedAt: new Date(),
       };
-      
-      await repo.linkSocialIdentity(user.userId, socialIdentity);
-      
-      const updated = await repo.findByUserId(user.userId);
+
+      await repo.linkSocialIdentity(user.id, socialIdentity);
+
+      const updated = await repo.findById(user.id);
       expect(updated!.socialIdentities).toHaveLength(1);
       expect(updated!.socialIdentities[0].provider).toBe("github");
     });
