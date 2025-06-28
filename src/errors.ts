@@ -73,6 +73,15 @@ export class UnauthorizedError extends BaseError {
     message: string = "Unauthorized",
     options?: Omit<BaseErrorOptions, "errorCode">,
   ) {
+    super(message, { ...options, errorCode: 401 });
+  }
+}
+
+export class ForbiddenError extends BaseError {
+  constructor(
+    message: string = "Forbidden",
+    options?: Omit<BaseErrorOptions, "errorCode">,
+  ) {
     super(message, { ...options, errorCode: 403 });
   }
 }

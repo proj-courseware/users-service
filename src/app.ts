@@ -5,6 +5,7 @@ import { createNoteRoutes } from "@/routes/note.router";
 import { createEventsRoutes } from "@/routes/events.router";
 import { createAuthRoutes } from "@/routes/auth.router";
 import { createUserRoutes } from "@/routes/user.router";
+import { adminRouter } from "@/routes/admin.router";
 import { NoteController } from "@/controllers/note.controller";
 import { AuthController } from "@/controllers/auth.controller";
 import { UserController } from "@/controllers/user.controller";
@@ -43,6 +44,9 @@ app.route("/auth", createAuthRoutes({ authController }));
 // User routes (authenticated endpoints)
 const userController = new UserController();
 app.route("/me", createUserRoutes({ userController }));
+
+// Admin routes (admin-only endpoints)
+app.route("/admin", adminRouter);
 
 // Events SSE endpoint
 app.route("/events", createEventsRoutes());

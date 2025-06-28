@@ -581,6 +581,112 @@ export class JWTService {
 }
 ```
 
+### Progressive Account Lockout Patterns
+
+The authentication service implements a sophisticated progressive lockout system that provides enhanced security against brute force attacks while maintaining good user experience.
+
+**Progressive Lockout Configuration**:
+
+```typescript
+interface AuthServiceConfig {
+  maxFailedAttempts: number;           // Threshold for lockout (default: 5)
+  lockoutDurationMinutes: number;      // Base lockout duration (default: 30)
+  progressiveLockout: boolean;         // Enable progressive mode (default: true)
+  maxProgressiveLockoutHours: number;  // Maximum lockout duration (default: 24)
+}
+```
+
+**Enhanced User Schema with Lockout Timestamps**:
+
+```typescript
+export const userSchema = z.object({
+  // ... existing fields
+  isAccountLocked: z.boolean().default(false),
+  failedLoginAttempts: z.number().default(0),
+  accountLockedAt: z.date().optional(),      // When lockout started
+  accountLockedUntil: z.date().optional(),   // When lockout expires
+});
+```
+
+**Progressive Lockout Duration Calculation**:
+
+```typescript
+class AuthenticationService {
+  private calculateProgressiveLockoutDuration(
+    attempts: number,
+    config: AuthServiceConfig,
+  ): number {
+    const baseAttempts = config.maxFailedAttempts;
+    const excessAttempts = Math.max(0, attempts - baseAttempts);
+    
+    // Exponential backoff: 2^(excess_attempts) × base_duration
+    const multiplier = Math.pow(2, excessAttempts);
+    const baseDurationMs = config.lockoutDurationMinutes * 60 * 1000;
+    const calculatedDuration = multiplier * baseDurationMs;
+    
+    // Cap at maximum lockout duration
+    const maxDurationMs = config.maxProgressiveLockoutHours * 60 * 60 * 1000;
+    return Math.min(calculatedDuration, maxDurationMs);
+  }
+}
+```
+
+**Time-Aware Lockout Checking**:
+
+```typescript
+// Repository method for checking current lockout status
+async isAccountCurrentlyLocked(email: string): Promise<boolean> {
+  const user = await this.findByEmail(email);
+  
+  if (!user || !user.isAccountLocked) {
+    return false;
+  }
+
+  // If there's no lock expiry time, it's permanently locked
+  if (!user.accountLockedUntil) {
+    return true;
+  }
+
+  // Check if the lock has expired
+  const now = new Date();
+  return now < user.accountLockedUntil;
+}
+```
+
+**Auto-Unlock on Successful Authentication**:
+
+```typescript
+async loginWithPassword(credentials: LoginCredentialsType): Promise<AuthResult> {
+  // ... find user
+  
+  // Check time-aware lockout status
+  const isCurrentlyLocked = await this.userRepository.isAccountCurrentlyLocked(email);
+  if (isCurrentlyLocked) {
+    throw new AccountLockedError("Account locked with unlock time info");
+  }
+
+  // Auto-unlock if lockout has expired
+  if (user.isAccountLocked && !isCurrentlyLocked) {
+    await this.userRepository.updateLoginAttempts(email, 0, false);
+  }
+  
+  // ... continue authentication
+}
+```
+
+**Progressive Lockout Example Sequence** (5 attempt threshold, 30-min base):
+1. **Attempts 1-4**: No lockout, increment counter
+2. **Attempt 5**: 30-minute lockout (2^0 × 30 = 30 min)
+3. **Attempt 6**: 60-minute lockout (2^1 × 30 = 60 min)
+4. **Attempt 7**: 120-minute lockout (2^2 × 30 = 120 min)
+5. **Subsequent**: Caps at 24-hour maximum
+
+**Security Benefits**:
+- **Adaptive Protection**: Increasingly severe penalties for persistent attacks
+- **Automatic Recovery**: Time-based expiry prevents permanent lockouts
+- **User-Friendly**: Clear unlock times in error messages
+- **Attack Mitigation**: Exponential backoff makes brute force attacks impractical
+
 ### Social Login Integration Patterns
 
 ```typescript
