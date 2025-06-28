@@ -10,6 +10,8 @@ import { AdminController } from "@/controllers/admin.controller";
 import type { IUserRepository } from "@/repositories/user.repository";
 import type { IAuthenticationService } from "@/services/authentication.service";
 import type { IPasswordService, PasswordPolicyType } from "@/services/password.service";
+import type { IAdminSettingRepository } from "@/repositories/admin-setting.repository";
+import type { AdminSettingType } from "@/schemas/user.schema";
 import type { Context } from "hono";
 import type { AppEnv } from "@/schemas/app-env.schema";
 import type { 
@@ -144,6 +146,20 @@ const createMockPasswordService = (): jest.Mocked<IPasswordService> => ({
   verifyPassword: vi.fn(),
   validatePasswordStrength: vi.fn(),
   generateSecurePassword: vi.fn(),
+  getCurrentPasswordPolicy: vi.fn(),
+  validatePasswordPolicy: vi.fn(),
+});
+
+const createMockAdminSettingRepository = (): jest.Mocked<IAdminSettingRepository> => ({
+  create: vi.fn(),
+  findByKey: vi.fn(),
+  findAll: vi.fn(),
+  updateByKey: vi.fn(),
+  deleteByKey: vi.fn(),
+  existsByKey: vi.fn(),
+  getValue: vi.fn(),
+  setValue: vi.fn(),
+  getMultiple: vi.fn(),
 });
 
 const createMockContext = (userContext: AuthenticatedUserContextType, validatedBody?: any, validatedParams?: any, validatedQuery?: any): Partial<Context<AppEnv>> => ({
@@ -172,16 +188,19 @@ describe("AdminController", () => {
   let mockUserRepository: jest.Mocked<IUserRepository>;
   let mockAuthService: jest.Mocked<IAuthenticationService>;
   let mockPasswordService: jest.Mocked<IPasswordService>;
+  let mockAdminSettingRepository: jest.Mocked<IAdminSettingRepository>;
 
   beforeEach(() => {
     mockUserRepository = createMockUserRepository();
     mockAuthService = createMockAuthService();
     mockPasswordService = createMockPasswordService();
+    mockAdminSettingRepository = createMockAdminSettingRepository();
 
     adminController = new AdminController({
       userRepository: mockUserRepository,
       authenticationService: mockAuthService,
       passwordService: mockPasswordService,
+      adminSettingRepository: mockAdminSettingRepository,
     });
 
     // Reset all mocks
@@ -847,6 +866,287 @@ describe("AdminController", () => {
       it("should deny access to non-admin users", async () => {
         const c = createMockContext(userContext);
         await expect(adminController.getPasswordPolicyInfo(c as Context<AppEnv>))
+          .rejects.toThrow(ForbiddenError);
+      });
+    });
+  });
+
+  describe("admin settings management", () => {
+    const testSetting: AdminSettingType = {
+      id: "setting-123",
+      key: "test.setting",
+      value: "test value",
+      description: "Test setting description",
+      updatedAt: new Date(),
+    };
+
+    const testSettings: AdminSettingType[] = [
+      testSetting,
+      {
+        id: "setting-456",
+        key: "another.setting",
+        value: { nested: "object", number: 42 },
+        description: "Another test setting",
+        updatedAt: new Date(),
+      },
+    ];
+
+    beforeEach(() => {
+      mockAdminSettingRepository.findAll = vi.fn();
+      mockAdminSettingRepository.findByKey = vi.fn();
+      mockAdminSettingRepository.setValue = vi.fn();
+      mockAdminSettingRepository.deleteByKey = vi.fn();
+      mockAdminSettingRepository.getMultiple = vi.fn();
+    });
+
+    describe("getAllSettings", () => {
+      it("should return all admin settings for admin user", async () => {
+        mockAdminSettingRepository.findAll.mockResolvedValue(testSettings);
+
+        const c = createMockContext(adminContext);
+        await adminController.getAllSettings(c as Context<AppEnv>);
+
+        expect(mockAdminSettingRepository.findAll).toHaveBeenCalledOnce();
+        expect(c.json).toHaveBeenCalledWith({
+          success: true,
+          data: testSettings,
+          count: testSettings.length,
+        });
+      });
+
+      it("should deny access to non-admin users", async () => {
+        const c = createMockContext(userContext);
+        await expect(adminController.getAllSettings(c as Context<AppEnv>))
+          .rejects.toThrow(ForbiddenError);
+      });
+    });
+
+    describe("getSettingByKey", () => {
+      it("should return setting by key for admin user", async () => {
+        mockAdminSettingRepository.findByKey.mockResolvedValue(testSetting);
+
+        const c = createMockContext(adminContext, undefined, { key: "test.setting" });
+        await adminController.getSettingByKey(c as Context<AppEnv>);
+
+        expect(mockAdminSettingRepository.findByKey).toHaveBeenCalledWith("test.setting");
+        expect(c.json).toHaveBeenCalledWith({
+          success: true,
+          data: testSetting,
+        });
+      });
+
+      it("should throw NotFoundError for non-existent setting", async () => {
+        mockAdminSettingRepository.findByKey.mockResolvedValue(null);
+
+        const c = createMockContext(adminContext, undefined, { key: "nonexistent" });
+        await expect(adminController.getSettingByKey(c as Context<AppEnv>))
+          .rejects.toThrow(NotFoundError);
+      });
+
+      it("should deny access to non-admin users", async () => {
+        const c = createMockContext(userContext, undefined, { key: "test.setting" });
+        await expect(adminController.getSettingByKey(c as Context<AppEnv>))
+          .rejects.toThrow(ForbiddenError);
+      });
+    });
+
+    describe("setSettingByKey", () => {
+      it("should create or update setting for admin user", async () => {
+        const updatedSetting = { ...testSetting, value: "updated value" };
+        mockAdminSettingRepository.setValue.mockResolvedValue(updatedSetting);
+
+        const c = createMockContext(
+          adminContext,
+          { value: "updated value", description: "Updated description" },
+          { key: "test.setting" }
+        );
+        await adminController.setSettingByKey(c as Context<AppEnv>);
+
+        expect(mockAdminSettingRepository.setValue).toHaveBeenCalledWith(
+          "test.setting",
+          "updated value",
+          "Updated description"
+        );
+        expect(c.json).toHaveBeenCalledWith({
+          success: true,
+          message: "Setting updated successfully",
+          data: updatedSetting,
+        });
+      });
+
+      it("should handle complex values", async () => {
+        const complexValue = { 
+          config: { enabled: true, threshold: 100 },
+          items: ["a", "b", "c"]
+        };
+        const complexSetting = { ...testSetting, value: complexValue };
+        mockAdminSettingRepository.setValue.mockResolvedValue(complexSetting);
+
+        const c = createMockContext(
+          adminContext,
+          { value: complexValue },
+          { key: "complex.setting" }
+        );
+        await adminController.setSettingByKey(c as Context<AppEnv>);
+
+        expect(mockAdminSettingRepository.setValue).toHaveBeenCalledWith(
+          "complex.setting",
+          complexValue,
+          undefined
+        );
+      });
+
+      it("should deny access to non-admin users", async () => {
+        const c = createMockContext(
+          userContext,
+          { value: "test value" },
+          { key: "test.setting" }
+        );
+        await expect(adminController.setSettingByKey(c as Context<AppEnv>))
+          .rejects.toThrow(ForbiddenError);
+      });
+    });
+
+    describe("deleteSettingByKey", () => {
+      it("should delete setting for admin user", async () => {
+        mockAdminSettingRepository.deleteByKey.mockResolvedValue(true);
+
+        const c = createMockContext(adminContext, undefined, { key: "test.setting" });
+        await adminController.deleteSettingByKey(c as Context<AppEnv>);
+
+        expect(mockAdminSettingRepository.deleteByKey).toHaveBeenCalledWith("test.setting");
+        expect(c.json).toHaveBeenCalledWith({
+          success: true,
+          message: "Setting deleted successfully",
+        });
+      });
+
+      it("should throw NotFoundError for non-existent setting", async () => {
+        mockAdminSettingRepository.deleteByKey.mockResolvedValue(false);
+
+        const c = createMockContext(adminContext, undefined, { key: "nonexistent" });
+        await expect(adminController.deleteSettingByKey(c as Context<AppEnv>))
+          .rejects.toThrow(NotFoundError);
+      });
+
+      it("should deny access to non-admin users", async () => {
+        const c = createMockContext(userContext, undefined, { key: "test.setting" });
+        await expect(adminController.deleteSettingByKey(c as Context<AppEnv>))
+          .rejects.toThrow(ForbiddenError);
+      });
+    });
+
+    describe("getMultipleSettings", () => {
+      it("should return multiple settings by keys for admin user", async () => {
+        const settingsMap = new Map([
+          ["setting1", "value1"],
+          ["setting2", { complex: "value" }],
+        ]);
+        mockAdminSettingRepository.getMultiple.mockResolvedValue(settingsMap);
+
+        const c = createMockContext(adminContext, { keys: ["setting1", "setting2"] });
+        await adminController.getMultipleSettings(c as Context<AppEnv>);
+
+        expect(mockAdminSettingRepository.getMultiple).toHaveBeenCalledWith(["setting1", "setting2"]);
+        expect(c.json).toHaveBeenCalledWith({
+          success: true,
+          data: {
+            setting1: "value1",
+            setting2: { complex: "value" },
+          },
+        });
+      });
+
+      it("should deny access to non-admin users", async () => {
+        const c = createMockContext(userContext, { keys: ["setting1"] });
+        await expect(adminController.getMultipleSettings(c as Context<AppEnv>))
+          .rejects.toThrow(ForbiddenError);
+      });
+    });
+
+    describe("getHealthStatus", () => {
+      it("should return comprehensive health status for admin user", async () => {
+        // Mock successful database check
+        mockUserRepository.findMany.mockResolvedValue([regularUser]);
+        mockAdminSettingRepository.findAll.mockResolvedValue(testSettings);
+
+        const c = createMockContext(adminContext);
+        await adminController.getHealthStatus(c as Context<AppEnv>);
+
+        expect(mockUserRepository.findMany).toHaveBeenCalledWith({}, 1);
+        expect(mockAdminSettingRepository.findAll).toHaveBeenCalledOnce();
+        
+        expect(c.json).toHaveBeenCalledWith({
+          success: true,
+          health: expect.objectContaining({
+            status: expect.any(String),
+            timestamp: expect.any(Date),
+            uptime: expect.any(Number),
+            environment: expect.any(String),
+            checks: expect.objectContaining({
+              database: expect.objectContaining({
+                status: expect.any(String),
+                responseTime: expect.any(Number),
+              }),
+              memory: expect.objectContaining({
+                status: expect.any(String),
+                used: expect.any(Number),
+                free: expect.any(Number),
+              }),
+              settings: expect.objectContaining({
+                status: expect.any(String),
+                count: expect.any(Number),
+              }),
+            }),
+          }),
+        });
+      });
+
+      it("should handle database errors gracefully", async () => {
+        mockUserRepository.findMany.mockRejectedValue(new Error("Database connection failed"));
+        mockAdminSettingRepository.findAll.mockResolvedValue(testSettings);
+
+        const c = createMockContext(adminContext);
+        await adminController.getHealthStatus(c as Context<AppEnv>);
+
+        expect(c.json).toHaveBeenCalledWith({
+          success: true,
+          health: expect.objectContaining({
+            status: "degraded",
+            checks: expect.objectContaining({
+              database: expect.objectContaining({
+                status: "unhealthy",
+                responseTime: 0,
+              }),
+            }),
+          }),
+        });
+      });
+
+      it("should handle settings repository errors gracefully", async () => {
+        mockUserRepository.findMany.mockResolvedValue([regularUser]);
+        mockAdminSettingRepository.findAll.mockRejectedValue(new Error("Settings error"));
+
+        const c = createMockContext(adminContext);
+        await adminController.getHealthStatus(c as Context<AppEnv>);
+
+        expect(c.json).toHaveBeenCalledWith({
+          success: true,
+          health: expect.objectContaining({
+            status: "degraded",
+            checks: expect.objectContaining({
+              settings: expect.objectContaining({
+                status: "unhealthy",
+                count: 0,
+              }),
+            }),
+          }),
+        });
+      });
+
+      it("should deny access to non-admin users", async () => {
+        const c = createMockContext(userContext);
+        await expect(adminController.getHealthStatus(c as Context<AppEnv>))
           .rejects.toThrow(ForbiddenError);
       });
     });

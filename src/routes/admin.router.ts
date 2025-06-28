@@ -10,6 +10,7 @@ import {
 } from "@/schemas/user.schema";
 import { globalRoleSchema } from "@/schemas/roles.schemas";
 import { passwordPolicySchema } from "@/services/password.service";
+import { adminSettingSchema } from "@/schemas/user.schema";
 import { z } from "zod";
 
 // Create admin router
@@ -139,6 +140,74 @@ adminRouter.post(
 adminRouter.get(
   "/stats",
   adminController.getSystemStats,
+);
+
+// System health check
+adminRouter.get(
+  "/health",
+  adminController.getHealthStatus,
+);
+
+// Admin settings management routes
+adminRouter.get(
+  "/settings",
+  adminController.getAllSettings,
+);
+
+adminRouter.get(
+  "/settings/:key",
+  validate({
+    schema: z.object({
+      key: z.string().min(1, "Setting key is required"),
+    }),
+    source: "params",
+    varKey: "validatedParams",
+  }),
+  adminController.getSettingByKey,
+);
+
+adminRouter.put(
+  "/settings/:key",
+  validate({
+    schema: z.object({
+      key: z.string().min(1, "Setting key is required"),
+    }),
+    source: "params",
+    varKey: "validatedParams",
+  }),
+  validate({
+    schema: z.object({
+      value: z.unknown(),
+      description: z.string().optional(),
+    }),
+    source: "body",
+    varKey: "validatedBody",
+  }),
+  adminController.setSettingByKey,
+);
+
+adminRouter.delete(
+  "/settings/:key",
+  validate({
+    schema: z.object({
+      key: z.string().min(1, "Setting key is required"),
+    }),
+    source: "params",
+    varKey: "validatedParams",
+  }),
+  adminController.deleteSettingByKey,
+);
+
+adminRouter.post(
+  "/settings/batch",
+  validate({
+    schema: z.object({
+      keys: z.array(z.string().min(1)).min(1, "At least one key is required"),
+    }),
+    source: "body",
+    varKey: "validatedBody",
+  }),
+  adminController.getMultipleSettings,
 );
 
 // Password policy management routes

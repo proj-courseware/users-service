@@ -11,11 +11,15 @@ import type { GlobalRole } from "@/schemas/roles.schemas";
 import type { IUserRepository } from "@/repositories/user.repository";
 import type { IAuthenticationService } from "@/services/authentication.service";
 import type { IPasswordService, PasswordPolicyType } from "@/services/password.service";
+import type { IAdminSettingRepository } from "@/repositories/admin-setting.repository";
+import type { AdminSettingType } from "@/schemas/user.schema";
 import { MongoDbUserRepository } from "@/repositories/mongodb/user.mongodb.repository";
 import { MockDbUserRepository } from "@/repositories/mockdb/user.mockdb.repository";
 import { AuthenticationService } from "@/services/authentication.service";
 import { PasswordService } from "@/services/password.service";
 import { JWTService } from "@/services/jwt.service";
+import { MongoDbAdminSettingRepository } from "@/repositories/mongodb/admin-setting.mongodb.repository";
+import { MockDbAdminSettingRepository } from "@/repositories/mockdb/admin-setting.mockdb.repository";
 import { 
   NotFoundError, 
   BadRequestError, 
@@ -28,23 +32,30 @@ export interface AdminControllerDeps {
   userRepository?: IUserRepository;
   authenticationService?: IAuthenticationService;
   passwordService?: IPasswordService;
+  adminSettingRepository?: IAdminSettingRepository;
 }
 
 export class AdminController {
   private userRepository: IUserRepository;
   private authenticationService: IAuthenticationService;
   private passwordService: IPasswordService;
+  private adminSettingRepository: IAdminSettingRepository;
 
   constructor(deps?: AdminControllerDeps) {
-    if (deps?.userRepository && deps?.authenticationService && deps?.passwordService) {
+    if (deps?.userRepository && deps?.authenticationService && deps?.passwordService && deps?.adminSettingRepository) {
       this.userRepository = deps.userRepository;
       this.authenticationService = deps.authenticationService;
       this.passwordService = deps.passwordService;
+      this.adminSettingRepository = deps.adminSettingRepository;
     } else {
       // Create default services with proper dependency injection
       this.userRepository = env.NODE_ENV === "test" 
         ? new MockDbUserRepository() 
         : new MongoDbUserRepository();
+      
+      this.adminSettingRepository = env.NODE_ENV === "test" 
+        ? new MockDbAdminSettingRepository() 
+        : new MongoDbAdminSettingRepository();
       
       this.passwordService = new PasswordService();
       const jwtService = new JWTService();
@@ -513,6 +524,180 @@ export class AdminController {
       success: true,
       message: `Bulk ${operation} completed`,
       results,
+    });
+  };
+
+  /**
+   * Get all admin settings
+   * GET /admin/settings
+   */
+  getAllSettings = async (c: Context<AppEnv>): Promise<Response> => {
+    const userContext = c.var.user as AuthenticatedUserContextType;
+    this.checkAdminRole(userContext);
+
+    const settings = await this.adminSettingRepository.findAll();
+
+    return c.json({
+      success: true,
+      data: settings,
+      count: settings.length,
+    });
+  };
+
+  /**
+   * Get admin setting by key
+   * GET /admin/settings/:key
+   */
+  getSettingByKey = async (c: Context<AppEnv>): Promise<Response> => {
+    const userContext = c.var.user as AuthenticatedUserContextType;
+    this.checkAdminRole(userContext);
+
+    const { key } = c.var.validatedParams as { key: string };
+    const setting = await this.adminSettingRepository.findByKey(key);
+
+    if (!setting) {
+      throw new NotFoundError(`Setting with key '${key}' not found`);
+    }
+
+    return c.json({
+      success: true,
+      data: setting,
+    });
+  };
+
+  /**
+   * Create or update admin setting
+   * PUT /admin/settings/:key
+   */
+  setSettingByKey = async (c: Context<AppEnv>): Promise<Response> => {
+    const userContext = c.var.user as AuthenticatedUserContextType;
+    this.checkAdminRole(userContext);
+
+    const { key } = c.var.validatedParams as { key: string };
+    const body = c.var.validatedBody as { value: unknown; description?: string };
+
+    const setting = await this.adminSettingRepository.setValue(key, body.value, body.description);
+
+    return c.json({
+      success: true,
+      message: "Setting updated successfully",
+      data: setting,
+    });
+  };
+
+  /**
+   * Delete admin setting
+   * DELETE /admin/settings/:key
+   */
+  deleteSettingByKey = async (c: Context<AppEnv>): Promise<Response> => {
+    const userContext = c.var.user as AuthenticatedUserContextType;
+    this.checkAdminRole(userContext);
+
+    const { key } = c.var.validatedParams as { key: string };
+    const deleted = await this.adminSettingRepository.deleteByKey(key);
+
+    if (!deleted) {
+      throw new NotFoundError(`Setting with key '${key}' not found`);
+    }
+
+    return c.json({
+      success: true,
+      message: "Setting deleted successfully",
+    });
+  };
+
+  /**
+   * Get multiple admin settings by keys
+   * POST /admin/settings/batch
+   */
+  getMultipleSettings = async (c: Context<AppEnv>): Promise<Response> => {
+    const userContext = c.var.user as AuthenticatedUserContextType;
+    this.checkAdminRole(userContext);
+
+    const body = c.var.validatedBody as { keys: string[] };
+    const settingsMap = await this.adminSettingRepository.getMultiple(body.keys);
+
+    return c.json({
+      success: true,
+      data: Object.fromEntries(settingsMap),
+    });
+  };
+
+  /**
+   * Get system health status
+   * GET /admin/health
+   */
+  getHealthStatus = async (c: Context<AppEnv>): Promise<Response> => {
+    const userContext = c.var.user as AuthenticatedUserContextType;
+    this.checkAdminRole(userContext);
+
+    const healthChecks = {
+      status: "healthy",
+      timestamp: new Date(),
+      version: process.env.npm_package_version || "unknown",
+      uptime: process.uptime(),
+      environment: env.NODE_ENV,
+      checks: {
+        database: { status: "unknown", responseTime: 0 },
+        memory: { status: "unknown", used: 0, free: 0 },
+        settings: { status: "unknown", count: 0 },
+      },
+    };
+
+    try {
+      // Database health check
+      const dbStart = Date.now();
+      await this.userRepository.findMany({}, 1);
+      const dbTime = Date.now() - dbStart;
+      healthChecks.checks.database = {
+        status: dbTime < 1000 ? "healthy" : "slow",
+        responseTime: dbTime,
+      };
+    } catch (error) {
+      healthChecks.checks.database = {
+        status: "unhealthy",
+        responseTime: 0,
+      };
+      healthChecks.status = "degraded";
+    }
+
+    try {
+      // Settings repository health check
+      const settings = await this.adminSettingRepository.findAll();
+      healthChecks.checks.settings = {
+        status: "healthy",
+        count: settings.length,
+      };
+    } catch (error) {
+      healthChecks.checks.settings = {
+        status: "unhealthy",
+        count: 0,
+      };
+      healthChecks.status = "degraded";
+    }
+
+    // Memory health check
+    const memUsage = process.memoryUsage();
+    const totalMem = memUsage.heapTotal;
+    const usedMem = memUsage.heapUsed;
+    const freeMem = totalMem - usedMem;
+    const memUsagePercent = (usedMem / totalMem) * 100;
+
+    healthChecks.checks.memory = {
+      status: memUsagePercent > 90 ? "critical" : memUsagePercent > 75 ? "warning" : "healthy",
+      used: usedMem,
+      free: freeMem,
+    };
+
+    if (healthChecks.checks.memory.status === "critical") {
+      healthChecks.status = "critical";
+    } else if (healthChecks.checks.memory.status === "warning" && healthChecks.status === "healthy") {
+      healthChecks.status = "warning";
+    }
+
+    return c.json({
+      success: true,
+      health: healthChecks,
     });
   };
 
