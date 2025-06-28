@@ -161,6 +161,13 @@ export class MockDbUserRepository implements IUserRepository {
     return user || null;
   }
 
+  async findByEmailVerificationToken(token: string): Promise<UserType | null> {
+    const user = this.users.find((u) =>
+      u.emails.some((email) => email.verificationToken === token),
+    );
+    return user || null;
+  }
+
   async addEmail(id: string, email: EmailObjectType): Promise<void> {
     const user = await this.findById(id);
     if (!user) {
@@ -236,6 +243,55 @@ export class MockDbUserRepository implements IUserRepository {
     // Set new primary email
     user.primaryEmail = emailAddress;
     user.updatedAt = new Date();
+  }
+
+  async updateEmailVerificationToken(
+    id: string,
+    emailAddress: string,
+    token: string,
+    expiresAt: Date,
+  ): Promise<void> {
+    const user = await this.findById(id);
+    if (!user) {
+      throw new Error("User not found");
+    }
+
+    const emailIndex = user.emails.findIndex(
+      (e) => e.emailAddress === emailAddress,
+    );
+    if (emailIndex === -1) {
+      throw new Error("Email not found for this user");
+    }
+
+    user.emails[emailIndex].verificationToken = token;
+    user.emails[emailIndex].verificationTokenExpiresAt = expiresAt;
+    user.updatedAt = new Date();
+  }
+
+  async clearExpiredVerificationTokens(id: string): Promise<void> {
+    const user = await this.findById(id);
+    if (!user) {
+      throw new Error("User not found");
+    }
+
+    const now = new Date();
+    let hasChanges = false;
+
+    user.emails.forEach((email) => {
+      if (
+        email.verificationToken &&
+        email.verificationTokenExpiresAt &&
+        email.verificationTokenExpiresAt < now
+      ) {
+        email.verificationToken = undefined;
+        email.verificationTokenExpiresAt = undefined;
+        hasChanges = true;
+      }
+    });
+
+    if (hasChanges) {
+      user.updatedAt = new Date();
+    }
   }
 
   async linkSocialIdentity(
@@ -337,6 +393,62 @@ export class MockDbUserRepository implements IUserRepository {
     queryParams: UserQueryParamsType = {},
   ): Promise<PaginatedResultType<UserType>> {
     return this.applyQueryParams(this.users, queryParams);
+  }
+
+  async findMany(
+    queryParams: Partial<UserQueryParamsType> = {},
+    limit = 100,
+  ): Promise<UserType[]> {
+    let filteredUsers = this.users;
+
+    // Filter by role
+    if (queryParams.role) {
+      filteredUsers = filteredUsers.filter(
+        (user) => user.globalRole === queryParams.role,
+      );
+    }
+
+    // Search by name or email
+    const searchTerm = queryParams.search?.toLowerCase().trim();
+    if (searchTerm) {
+      filteredUsers = filteredUsers.filter(
+        (user) =>
+          user.firstName?.toLowerCase().includes(searchTerm) ||
+          user.lastName?.toLowerCase().includes(searchTerm) ||
+          user.primaryEmail.toLowerCase().includes(searchTerm) ||
+          user.emails.some((email) =>
+            email.emailAddress.toLowerCase().includes(searchTerm),
+          ),
+      );
+    }
+
+    // Sorting
+    const sortBy = queryParams.sortBy || "createdAt";
+    const sortOrder = queryParams.sortOrder || "desc";
+
+    filteredUsers.sort((a, b) => {
+      let aValue: any = (a as any)[sortBy];
+      let bValue: any = (b as any)[sortBy];
+
+      // Handle date sorting
+      if (aValue instanceof Date && bValue instanceof Date) {
+        return sortOrder === "asc" 
+          ? aValue.getTime() - bValue.getTime()
+          : bValue.getTime() - aValue.getTime();
+      }
+
+      // Handle string sorting
+      if (typeof aValue === "string" && typeof bValue === "string") {
+        return sortOrder === "asc"
+          ? aValue.localeCompare(bValue)
+          : bValue.localeCompare(aValue);
+      }
+
+      return 0;
+    });
+
+    // Apply limit
+    return filteredUsers.slice(0, limit);
   }
 
   // Helper method for testing: clear all users

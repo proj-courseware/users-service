@@ -254,6 +254,14 @@ export class MongoDbUserRepository implements IUserRepository {
     return doc ? this.mapDocumentToEntity(doc) : null;
   }
 
+  async findByEmailVerificationToken(token: string): Promise<UserType | null> {
+    const collection = await this.getCollection();
+    const doc = await collection.findOne({
+      "emails.verificationToken": token,
+    });
+    return doc ? this.mapDocumentToEntity(doc) : null;
+  }
+
   async addEmail(id: string, email: EmailObjectType): Promise<void> {
     if (!ObjectId.isValid(id)) {
       throw new Error("User not found");
@@ -319,6 +327,59 @@ export class MongoDbUserRepository implements IUserRepository {
           primaryEmail: emailAddress,
           updatedAt: new Date(),
         },
+      },
+    );
+  }
+
+  async updateEmailVerificationToken(
+    id: string,
+    emailAddress: string,
+    token: string,
+    expiresAt: Date,
+  ): Promise<void> {
+    if (!ObjectId.isValid(id)) {
+      throw new Error("User not found");
+    }
+
+    const collection = await this.getCollection();
+    await collection.updateOne(
+      {
+        _id: new ObjectId(id),
+        "emails.emailAddress": emailAddress,
+      },
+      {
+        $set: {
+          "emails.$.verificationToken": token,
+          "emails.$.verificationTokenExpiresAt": expiresAt,
+          updatedAt: new Date(),
+        },
+      },
+    );
+  }
+
+  async clearExpiredVerificationTokens(id: string): Promise<void> {
+    if (!ObjectId.isValid(id)) {
+      throw new Error("User not found");
+    }
+
+    const collection = await this.getCollection();
+    const now = new Date();
+    
+    await collection.updateOne(
+      { _id: new ObjectId(id) },
+      {
+        $set: {
+          "emails.$[elem].verificationToken": undefined,
+          "emails.$[elem].verificationTokenExpiresAt": undefined,
+          updatedAt: new Date(),
+        },
+      },
+      {
+        arrayFilters: [
+          {
+            "elem.verificationTokenExpiresAt": { $lt: now },
+          },
+        ],
       },
     );
   }
@@ -488,5 +549,48 @@ export class MongoDbUserRepository implements IUserRepository {
       limit,
       totalPages: Math.ceil(total / limit),
     };
+  }
+
+  async findMany(
+    queryParams: Partial<UserQueryParamsType> = {},
+    limit = 100,
+  ): Promise<UserType[]> {
+    const collection = await this.getCollection();
+
+    const {
+      sortBy = "createdAt",
+      sortOrder = "desc",
+      search,
+      role,
+    } = queryParams;
+
+    // Build the filter
+    const filter: Filter<MongoUserDocument> = {};
+
+    if (search) {
+      filter.$or = [
+        { firstName: { $regex: search, $options: "i" } },
+        { lastName: { $regex: search, $options: "i" } },
+        { primaryEmail: { $regex: search, $options: "i" } },
+        { "emails.emailAddress": { $regex: search, $options: "i" } },
+      ];
+    }
+
+    if (role) {
+      filter.globalRole = role;
+    }
+
+    // Build the sort
+    const sort: Sort = { [sortBy]: sortOrder === "asc" ? 1 : -1 };
+
+    // Execute query
+    const documents = await collection
+      .find(filter)
+      .sort(sort)
+      .limit(limit)
+      .toArray();
+
+    // Map to domain entities
+    return documents.map((doc) => this.mapDocumentToEntity(doc));
   }
 }

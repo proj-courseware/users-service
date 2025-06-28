@@ -21,12 +21,20 @@ export interface IUserRepository {
     providerUserId: string,
   ): Promise<UserType | null>;
   findByVerificationToken(token: string): Promise<UserType | null>;
+  findByEmailVerificationToken(token: string): Promise<UserType | null>;
 
   // Email management
   addEmail(id: string, email: EmailObjectType): Promise<void>;
   verifyEmail(id: string, emailAddress: string): Promise<void>;
   removeEmail(id: string, emailAddress: string): Promise<void>;
   setPrimaryEmail(id: string, emailAddress: string): Promise<void>;
+  updateEmailVerificationToken(
+    id: string,
+    emailAddress: string,
+    token: string,
+    expiresAt: Date,
+  ): Promise<void>;
+  clearExpiredVerificationTokens(id: string): Promise<void>;
 
   // Social identity management
   linkSocialIdentity(
@@ -53,4 +61,8 @@ export interface IUserRepository {
   findAll(
     queryParams?: UserQueryParamsType,
   ): Promise<PaginatedResultType<UserType>>;
+  findMany(
+    queryParams?: Partial<UserQueryParamsType>,
+    limit?: number,
+  ): Promise<UserType[]>;
 }
