@@ -10,7 +10,7 @@ import type {
 import type { GlobalRole } from "@/schemas/roles.schemas";
 import type { IUserRepository } from "@/repositories/user.repository";
 import type { IAuthenticationService } from "@/services/authentication.service";
-import type { IPasswordService } from "@/services/password.service";
+import type { IPasswordService, PasswordPolicyType } from "@/services/password.service";
 import { MongoDbUserRepository } from "@/repositories/mongodb/user.mongodb.repository";
 import { MockDbUserRepository } from "@/repositories/mockdb/user.mockdb.repository";
 import { AuthenticationService } from "@/services/authentication.service";
@@ -170,7 +170,7 @@ export class AdminController {
     const response: {
       success: boolean;
       message: string;
-      user: ReturnType<typeof this.sanitizeUserData>;
+      user: ReturnType<AdminController["sanitizeUserData"]>;
       generatedPassword?: string;
     } = {
       success: true,
@@ -513,6 +513,119 @@ export class AdminController {
       success: true,
       message: `Bulk ${operation} completed`,
       results,
+    });
+  };
+
+  /**
+   * Get current password policy
+   * GET /admin/password-policy
+   */
+  getPasswordPolicy = async (c: Context<AppEnv>): Promise<Response> => {
+    const userContext = c.var.user as AuthenticatedUserContextType;
+    this.checkAdminRole(userContext);
+
+    const currentPolicy = this.passwordService.getCurrentPasswordPolicy();
+
+    return c.json({
+      success: true,
+      data: {
+        policy: currentPolicy,
+        source: "environment",
+        description: "Current password policy configuration loaded from environment variables"
+      },
+    });
+  };
+
+  /**
+   * Validate a password policy configuration
+   * POST /admin/password-policy/validate
+   */
+  validatePasswordPolicy = async (c: Context<AppEnv>): Promise<Response> => {
+    const userContext = c.var.user as AuthenticatedUserContextType;
+    this.checkAdminRole(userContext);
+
+    const body = await c.req.json() as PasswordPolicyType;
+    
+    // Validate the policy structure
+    const validation = this.passwordService.validatePasswordPolicy(body);
+
+    return c.json({
+      success: true,
+      data: {
+        isValid: validation.isValid,
+        errors: validation.errors,
+        policy: body,
+      },
+    });
+  };
+
+  /**
+   * Test password against current or custom policy
+   * POST /admin/password-policy/test
+   */
+  testPasswordPolicy = async (c: Context<AppEnv>): Promise<Response> => {
+    const userContext = c.var.user as AuthenticatedUserContextType;
+    this.checkAdminRole(userContext);
+
+    const body = await c.req.json() as { 
+      password: string; 
+      policy?: PasswordPolicyType 
+    };
+
+    if (!body.password) {
+      throw new BadRequestError("Password is required for testing");
+    }
+
+    const testResult = this.passwordService.validatePasswordStrength(
+      body.password,
+      body.policy
+    );
+
+    const usedPolicy = body.policy || this.passwordService.getCurrentPasswordPolicy();
+
+    return c.json({
+      success: true,
+      data: {
+        passwordTest: testResult,
+        usedPolicy,
+        passwordLength: body.password.length,
+      },
+    });
+  };
+
+  /**
+   * Get password policy information and examples
+   * GET /admin/password-policy/info
+   */
+  getPasswordPolicyInfo = async (c: Context<AppEnv>): Promise<Response> => {
+    const userContext = c.var.user as AuthenticatedUserContextType;
+    this.checkAdminRole(userContext);
+
+    const currentPolicy = this.passwordService.getCurrentPasswordPolicy();
+    
+    // Generate example passwords that meet the current policy
+    const examplePasswords = [];
+    for (let i = 0; i < 3; i++) {
+      const password = this.passwordService.generateSecurePassword(currentPolicy.minLength + 2);
+      examplePasswords.push(password);
+    }
+
+    return c.json({
+      success: true,
+      data: {
+        currentPolicy,
+        policyValidation: this.passwordService.validatePasswordPolicy(currentPolicy),
+        examplePasswords,
+        environmentVariables: {
+          PASSWORD_MIN_LENGTH: "Minimum password length (4-128)",
+          PASSWORD_MAX_LENGTH: "Maximum password length (8-256)", 
+          PASSWORD_REQUIRE_UPPERCASE: "Require uppercase letters (true/false)",
+          PASSWORD_REQUIRE_LOWERCASE: "Require lowercase letters (true/false)",
+          PASSWORD_REQUIRE_NUMBERS: "Require numbers (true/false)",
+          PASSWORD_REQUIRE_SPECIAL_CHARS: "Require special characters (true/false)",
+        },
+        specialCharacters: "!@#$%^&*(),.?\":{}|<>",
+      },
     });
   };
 

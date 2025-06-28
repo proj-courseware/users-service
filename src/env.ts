@@ -54,6 +54,13 @@ const envSchema = z.object({
   CSRF_COOKIE_NAME: z.string().default("csrf-token"),
   CSRF_HEADER_NAME: z.string().default("x-csrf-token"),
   ENABLE_CSRF_PROTECTION: z.coerce.boolean().default(true),
+  // Password Policy Configuration
+  PASSWORD_MIN_LENGTH: z.coerce.number().min(4).max(128).default(8),
+  PASSWORD_MAX_LENGTH: z.coerce.number().min(8).max(256).default(128),
+  PASSWORD_REQUIRE_UPPERCASE: z.coerce.boolean().default(true),
+  PASSWORD_REQUIRE_LOWERCASE: z.coerce.boolean().default(true),
+  PASSWORD_REQUIRE_NUMBERS: z.coerce.boolean().default(true),
+  PASSWORD_REQUIRE_SPECIAL_CHARS: z.coerce.boolean().default(true),
 });
 
 // Create an object to allow (potentially) mapping environment variables with different names
@@ -93,6 +100,12 @@ const mappedEnv = {
   CSRF_COOKIE_NAME: process.env.CSRF_COOKIE_NAME,
   CSRF_HEADER_NAME: process.env.CSRF_HEADER_NAME,
   ENABLE_CSRF_PROTECTION: process.env.ENABLE_CSRF_PROTECTION,
+  PASSWORD_MIN_LENGTH: process.env.PASSWORD_MIN_LENGTH,
+  PASSWORD_MAX_LENGTH: process.env.PASSWORD_MAX_LENGTH,
+  PASSWORD_REQUIRE_UPPERCASE: process.env.PASSWORD_REQUIRE_UPPERCASE,
+  PASSWORD_REQUIRE_LOWERCASE: process.env.PASSWORD_REQUIRE_LOWERCASE,
+  PASSWORD_REQUIRE_NUMBERS: process.env.PASSWORD_REQUIRE_NUMBERS,
+  PASSWORD_REQUIRE_SPECIAL_CHARS: process.env.PASSWORD_REQUIRE_SPECIAL_CHARS,
 };
 
 const _env = envSchema.safeParse(mappedEnv);

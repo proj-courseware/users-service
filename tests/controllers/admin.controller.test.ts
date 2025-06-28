@@ -9,7 +9,7 @@ import {
 import { AdminController } from "@/controllers/admin.controller";
 import type { IUserRepository } from "@/repositories/user.repository";
 import type { IAuthenticationService } from "@/services/authentication.service";
-import type { IPasswordService } from "@/services/password.service";
+import type { IPasswordService, PasswordPolicyType } from "@/services/password.service";
 import type { Context } from "hono";
 import type { AppEnv } from "@/schemas/app-env.schema";
 import type { 
@@ -619,6 +619,236 @@ describe("AdminController", () => {
       const c = createMockContext(userContext);
       await expect(adminController.getAllUsers(c as Context<AppEnv>))
         .rejects.toThrow(ForbiddenError);
+    });
+  });
+
+  describe("password policy management", () => {
+    const testPolicy: PasswordPolicyType = {
+      minLength: 12,
+      maxLength: 64,
+      requireUppercase: true,
+      requireLowercase: true,
+      requireNumbers: true,
+      requireSpecialChars: true,
+    };
+
+    beforeEach(() => {
+      mockPasswordService.getCurrentPasswordPolicy = vi.fn();
+      mockPasswordService.validatePasswordPolicy = vi.fn();
+      mockPasswordService.validatePasswordStrength = vi.fn();
+      mockPasswordService.generateSecurePassword = vi.fn();
+    });
+
+    describe("getPasswordPolicy", () => {
+      it("should return current password policy for admin", async () => {
+        mockPasswordService.getCurrentPasswordPolicy.mockReturnValue(testPolicy);
+
+        const c = createMockContext(adminContext);
+        await adminController.getPasswordPolicy(c as Context<AppEnv>);
+
+        expect(mockPasswordService.getCurrentPasswordPolicy).toHaveBeenCalledOnce();
+        expect(c.json).toHaveBeenCalledWith({
+          success: true,
+          data: {
+            policy: testPolicy,
+            source: "environment",
+            description: "Current password policy configuration loaded from environment variables"
+          },
+        });
+      });
+
+      it("should deny access to non-admin users", async () => {
+        const c = createMockContext(userContext);
+        await expect(adminController.getPasswordPolicy(c as Context<AppEnv>))
+          .rejects.toThrow(ForbiddenError);
+      });
+    });
+
+    describe("validatePasswordPolicy", () => {
+      it("should validate a correct policy for admin", async () => {
+        mockPasswordService.validatePasswordPolicy.mockReturnValue({
+          isValid: true,
+          errors: [],
+        });
+
+        const c = createMockContext(adminContext);
+        (c.req!.json as any).mockResolvedValue(testPolicy);
+
+        await adminController.validatePasswordPolicy(c as Context<AppEnv>);
+
+        expect(mockPasswordService.validatePasswordPolicy).toHaveBeenCalledWith(testPolicy);
+        expect(c.json).toHaveBeenCalledWith({
+          success: true,
+          data: {
+            isValid: true,
+            errors: [],
+            policy: testPolicy,
+          },
+        });
+      });
+
+      it("should return validation errors for invalid policy", async () => {
+        const invalidPolicy: PasswordPolicyType = {
+          minLength: 20,
+          maxLength: 10, // Invalid: min > max
+          requireUppercase: true,
+          requireLowercase: true,
+          requireNumbers: true,
+          requireSpecialChars: true,
+        };
+
+        mockPasswordService.validatePasswordPolicy.mockReturnValue({
+          isValid: false,
+          errors: ["Minimum length cannot be greater than maximum length"],
+        });
+
+        const c = createMockContext(adminContext);
+        (c.req!.json as any).mockResolvedValue(invalidPolicy);
+
+        await adminController.validatePasswordPolicy(c as Context<AppEnv>);
+
+        expect(c.json).toHaveBeenCalledWith({
+          success: true,
+          data: {
+            isValid: false,
+            errors: ["Minimum length cannot be greater than maximum length"],
+            policy: invalidPolicy,
+          },
+        });
+      });
+
+      it("should deny access to non-admin users", async () => {
+        const c = createMockContext(userContext);
+        (c.req!.json as any).mockResolvedValue(testPolicy);
+        
+        await expect(adminController.validatePasswordPolicy(c as Context<AppEnv>))
+          .rejects.toThrow(ForbiddenError);
+      });
+    });
+
+    describe("testPasswordPolicy", () => {
+      it("should test password against current policy for admin", async () => {
+        const testPassword = "MySecurePass123!";
+        
+        mockPasswordService.validatePasswordStrength.mockReturnValue({
+          isValid: true,
+          errors: [],
+        });
+        mockPasswordService.getCurrentPasswordPolicy.mockReturnValue(testPolicy);
+
+        const c = createMockContext(adminContext);
+        (c.req!.json as any).mockResolvedValue({ password: testPassword });
+
+        await adminController.testPasswordPolicy(c as Context<AppEnv>);
+
+        expect(mockPasswordService.validatePasswordStrength).toHaveBeenCalledWith(testPassword, undefined);
+        expect(mockPasswordService.getCurrentPasswordPolicy).toHaveBeenCalledOnce();
+        expect(c.json).toHaveBeenCalledWith({
+          success: true,
+          data: {
+            passwordTest: {
+              isValid: true,
+              errors: [],
+            },
+            usedPolicy: testPolicy,
+            passwordLength: testPassword.length,
+          },
+        });
+      });
+
+      it("should test password against custom policy", async () => {
+        const testPassword = "weak";
+        const customPolicy: PasswordPolicyType = {
+          minLength: 6,
+          maxLength: 64,
+          requireUppercase: false,
+          requireLowercase: true,
+          requireNumbers: false,
+          requireSpecialChars: false,
+        };
+
+        mockPasswordService.validatePasswordStrength.mockReturnValue({
+          isValid: false,
+          errors: ["Password must be at least 6 characters long"],
+        });
+
+        const c = createMockContext(adminContext);
+        (c.req!.json as any).mockResolvedValue({ 
+          password: testPassword, 
+          policy: customPolicy 
+        });
+
+        await adminController.testPasswordPolicy(c as Context<AppEnv>);
+
+        expect(mockPasswordService.validatePasswordStrength).toHaveBeenCalledWith(testPassword, customPolicy);
+        expect(c.json).toHaveBeenCalledWith({
+          success: true,
+          data: {
+            passwordTest: {
+              isValid: false,
+              errors: ["Password must be at least 6 characters long"],
+            },
+            usedPolicy: customPolicy,
+            passwordLength: testPassword.length,
+          },
+        });
+      });
+
+      it("should throw error when password is missing", async () => {
+        const c = createMockContext(adminContext);
+        (c.req!.json as any).mockResolvedValue({}); // No password
+
+        await expect(adminController.testPasswordPolicy(c as Context<AppEnv>))
+          .rejects.toThrow(BadRequestError);
+      });
+
+      it("should deny access to non-admin users", async () => {
+        const c = createMockContext(userContext);
+        (c.req!.json as any).mockResolvedValue({ password: "test123" });
+        
+        await expect(adminController.testPasswordPolicy(c as Context<AppEnv>))
+          .rejects.toThrow(ForbiddenError);
+      });
+    });
+
+    describe("getPasswordPolicyInfo", () => {
+      it("should return comprehensive policy information for admin", async () => {
+        const examplePasswords = ["SecurePass1!", "MyStrongPwd2@", "ComplexPass3#"];
+        
+        mockPasswordService.getCurrentPasswordPolicy.mockReturnValue(testPolicy);
+        mockPasswordService.validatePasswordPolicy.mockReturnValue({
+          isValid: true,
+          errors: [],
+        });
+        mockPasswordService.generateSecurePassword
+          .mockReturnValueOnce(examplePasswords[0])
+          .mockReturnValueOnce(examplePasswords[1])
+          .mockReturnValueOnce(examplePasswords[2]);
+
+        const c = createMockContext(adminContext);
+        await adminController.getPasswordPolicyInfo(c as Context<AppEnv>);
+
+        expect(mockPasswordService.getCurrentPasswordPolicy).toHaveBeenCalledOnce();
+        expect(mockPasswordService.validatePasswordPolicy).toHaveBeenCalledWith(testPolicy);
+        expect(mockPasswordService.generateSecurePassword).toHaveBeenCalledTimes(3);
+        
+        expect(c.json).toHaveBeenCalledWith({
+          success: true,
+          data: expect.objectContaining({
+            currentPolicy: testPolicy,
+            policyValidation: { isValid: true, errors: [] },
+            examplePasswords: examplePasswords,
+            environmentVariables: expect.any(Object),
+            specialCharacters: expect.any(String),
+          }),
+        });
+      });
+
+      it("should deny access to non-admin users", async () => {
+        const c = createMockContext(userContext);
+        await expect(adminController.getPasswordPolicyInfo(c as Context<AppEnv>))
+          .rejects.toThrow(ForbiddenError);
+      });
     });
   });
 });
