@@ -3,6 +3,8 @@ import type { AuthController } from "@/controllers/auth.controller";
 import type { AppEnv } from "@/schemas/app-env.schema";
 import { validate as defaultValidate } from "@/middlewares/validation.middleware";
 import { authRateLimitMiddleware } from "@/middlewares/rate-limit.middleware";
+import { csrfMiddleware } from "@/middlewares/csrf.middleware";
+import { sessionMiddleware } from "@/middlewares/session.middleware";
 import {
   registerUserSchema,
   loginCredentialsSchema,
@@ -11,15 +13,29 @@ import {
 export interface CreateAuthRoutesDeps {
   authController: AuthController;
   validate?: typeof defaultValidate;
+  enableSessionAuth?: boolean;
+  enableCSRFProtection?: boolean;
 }
 
 export const createAuthRoutes = (dependencies: CreateAuthRoutesDeps) => {
   const {
     authController,
     validate = defaultValidate,
+    enableSessionAuth = false,
+    enableCSRFProtection = false,
   } = dependencies;
 
   const authRoutes = new Hono<AppEnv>();
+
+  // Apply session middleware if enabled
+  if (enableSessionAuth) {
+    authRoutes.use("*", sessionMiddleware);
+  }
+
+  // Apply CSRF protection if enabled
+  if (enableCSRFProtection) {
+    authRoutes.use("*", csrfMiddleware);
+  }
 
   // Public authentication endpoints (no auth middleware)
 

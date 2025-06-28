@@ -46,6 +46,14 @@ const envSchema = z.object({
   RATE_LIMIT_AUTH_WINDOW_MINUTES: z.coerce.number().default(15),
   RATE_LIMIT_AUTH_MAX_REQUESTS: z.coerce.number().default(5),
   RATE_LIMIT_STRICT_MODE: z.coerce.boolean().default(true),
+  // Session and CSRF Configuration
+  SESSION_SECRET: z.string().min(32, "Session secret must be at least 32 characters"),
+  SESSION_MAX_AGE_HOURS: z.coerce.number().default(24),
+  CSRF_SECRET: z.string().min(32, "CSRF secret must be at least 32 characters"),
+  CSRF_TOKEN_LENGTH: z.coerce.number().default(32),
+  CSRF_COOKIE_NAME: z.string().default("csrf-token"),
+  CSRF_HEADER_NAME: z.string().default("x-csrf-token"),
+  ENABLE_CSRF_PROTECTION: z.coerce.boolean().default(true),
 });
 
 // Create an object to allow (potentially) mapping environment variables with different names
@@ -78,6 +86,13 @@ const mappedEnv = {
   RATE_LIMIT_AUTH_WINDOW_MINUTES: process.env.RATE_LIMIT_AUTH_WINDOW_MINUTES,
   RATE_LIMIT_AUTH_MAX_REQUESTS: process.env.RATE_LIMIT_AUTH_MAX_REQUESTS,
   RATE_LIMIT_STRICT_MODE: process.env.RATE_LIMIT_STRICT_MODE,
+  SESSION_SECRET: process.env.SESSION_SECRET,
+  SESSION_MAX_AGE_HOURS: process.env.SESSION_MAX_AGE_HOURS,
+  CSRF_SECRET: process.env.CSRF_SECRET,
+  CSRF_TOKEN_LENGTH: process.env.CSRF_TOKEN_LENGTH,
+  CSRF_COOKIE_NAME: process.env.CSRF_COOKIE_NAME,
+  CSRF_HEADER_NAME: process.env.CSRF_HEADER_NAME,
+  ENABLE_CSRF_PROTECTION: process.env.ENABLE_CSRF_PROTECTION,
 };
 
 const _env = envSchema.safeParse(mappedEnv);
