@@ -1,18 +1,25 @@
-import { describe, it, expect, beforeEach, vi, type MockedFunction } from "vitest";
-import { 
-  AuthenticationService, 
+import {
+  describe,
+  it,
+  expect,
+  beforeEach,
+  vi,
+  type MockedFunction,
+} from "vitest";
+import {
+  AuthenticationService,
   type IAuthenticationService,
   type AuthServiceConfig,
-  DEFAULT_AUTH_CONFIG
+  DEFAULT_AUTH_CONFIG,
 } from "@/services/authentication.service";
-import { 
+import {
   UnauthenticatedError,
   InvalidCredentialsError,
   UserAlreadyExistsError,
   AccountLockedError,
   EmailNotVerifiedError,
   NotFoundError,
-  BadRequestError
+  BadRequestError,
 } from "@/errors";
 import type { IUserRepository } from "@/repositories/user.repository";
 import type { IPasswordService } from "@/services/password.service";
@@ -187,17 +194,25 @@ describe("AuthenticationService", () => {
       expect(result.user).toBeDefined();
       expect(result.requiresEmailVerification).toBe(true);
       expect(result.message).toContain("verify");
-      
-      expect(mockUserRepository.findByEmail).toHaveBeenCalledWith(registerData.email);
-      expect(mockPasswordService.validatePasswordStrength).toHaveBeenCalledWith(registerData.password);
-      expect(mockPasswordService.hashPassword).toHaveBeenCalledWith(registerData.password);
+
+      expect(mockUserRepository.findByEmail).toHaveBeenCalledWith(
+        registerData.email,
+      );
+      expect(mockPasswordService.validatePasswordStrength).toHaveBeenCalledWith(
+        registerData.password,
+      );
+      expect(mockPasswordService.hashPassword).toHaveBeenCalledWith(
+        registerData.password,
+      );
       expect(mockUserRepository.create).toHaveBeenCalled();
     });
 
     it("should register user without email verification when disabled", async () => {
       mockUserRepository.findByEmail.mockResolvedValue(null);
-      
-      const result = await authService.register(registerData, { requireEmailVerification: false });
+
+      const result = await authService.register(registerData, {
+        requireEmailVerification: false,
+      });
 
       expect(result.requiresEmailVerification).toBe(false);
       expect(result.message).not.toContain("verify");
@@ -206,8 +221,9 @@ describe("AuthenticationService", () => {
     it("should throw error if user already exists", async () => {
       mockUserRepository.findByEmail.mockResolvedValue(testUser);
 
-      await expect(authService.register(registerData))
-        .rejects.toThrow(UserAlreadyExistsError);
+      await expect(authService.register(registerData)).rejects.toThrow(
+        UserAlreadyExistsError,
+      );
     });
 
     it("should throw error for weak password", async () => {
@@ -217,22 +233,25 @@ describe("AuthenticationService", () => {
         errors: ["Password too weak"],
       });
 
-      await expect(authService.register(registerData))
-        .rejects.toThrow(BadRequestError);
+      await expect(authService.register(registerData)).rejects.toThrow(
+        BadRequestError,
+      );
     });
 
     it("should throw error for missing email", async () => {
       const invalidData = { ...registerData, email: "" };
 
-      await expect(authService.register(invalidData))
-        .rejects.toThrow(BadRequestError);
+      await expect(authService.register(invalidData)).rejects.toThrow(
+        BadRequestError,
+      );
     });
 
     it("should throw error for missing password", async () => {
       const invalidData = { ...registerData, password: "" };
 
-      await expect(authService.register(invalidData))
-        .rejects.toThrow(BadRequestError);
+      await expect(authService.register(invalidData)).rejects.toThrow(
+        BadRequestError,
+      );
     });
 
     it("should sanitize user data in response", async () => {
@@ -262,20 +281,26 @@ describe("AuthenticationService", () => {
       expect(result.user).toBeDefined();
       expect(result.accessToken).toBe("access-token");
       expect(result.refreshToken).toBe("refresh-token");
-      
-      expect(mockUserRepository.findByEmail).toHaveBeenCalledWith(loginCredentials.email);
+
+      expect(mockUserRepository.findByEmail).toHaveBeenCalledWith(
+        loginCredentials.email,
+      );
       expect(mockPasswordService.verifyPassword).toHaveBeenCalledWith(
         loginCredentials.password,
-        testUser.passwordHash
+        testUser.passwordHash,
       );
-      expect(mockUserRepository.updateLastLogin).toHaveBeenCalledWith(testUser.id);
+      expect(mockUserRepository.updateLastLogin).toHaveBeenCalledWith(
+        testUser.id,
+      );
       expect(mockJWTService.generateTokenPair).toHaveBeenCalledWith(testUser);
     });
 
     it("should login without tokens when token mode is disabled", async () => {
       mockUserRepository.findByEmail.mockResolvedValue(testUser);
 
-      const result = await authService.loginWithPassword(loginCredentials, { tokenMode: false });
+      const result = await authService.loginWithPassword(loginCredentials, {
+        tokenMode: false,
+      });
 
       expect(result.user).toBeDefined();
       expect(result.accessToken).toBeUndefined();
@@ -286,22 +311,25 @@ describe("AuthenticationService", () => {
     it("should throw error for non-existent user", async () => {
       mockUserRepository.findByEmail.mockResolvedValue(null);
 
-      await expect(authService.loginWithPassword(loginCredentials))
-        .rejects.toThrow(InvalidCredentialsError);
+      await expect(
+        authService.loginWithPassword(loginCredentials),
+      ).rejects.toThrow(InvalidCredentialsError);
     });
 
     it("should throw error for locked account", async () => {
       mockUserRepository.findByEmail.mockResolvedValue(lockedUser);
 
-      await expect(authService.loginWithPassword(loginCredentials))
-        .rejects.toThrow(AccountLockedError);
+      await expect(
+        authService.loginWithPassword(loginCredentials),
+      ).rejects.toThrow(AccountLockedError);
     });
 
     it("should throw error for unverified email when verification is required", async () => {
       mockUserRepository.findByEmail.mockResolvedValue(unverifiedUser);
 
-      await expect(authService.loginWithPassword(loginCredentials))
-        .rejects.toThrow(EmailNotVerifiedError);
+      await expect(
+        authService.loginWithPassword(loginCredentials),
+      ).rejects.toThrow(EmailNotVerifiedError);
     });
 
     it("should allow login with unverified email when verification is disabled", async () => {
@@ -309,7 +337,7 @@ describe("AuthenticationService", () => {
 
       const result = await authService.loginWithPassword(
         { ...loginCredentials, email: unverifiedUser.primaryEmail },
-        { requireEmailVerification: false }
+        { requireEmailVerification: false },
       );
 
       expect(result.user).toBeDefined();
@@ -319,9 +347,10 @@ describe("AuthenticationService", () => {
       mockUserRepository.findByEmail.mockResolvedValue(testUser);
       mockPasswordService.verifyPassword.mockResolvedValue(false);
 
-      await expect(authService.loginWithPassword(loginCredentials))
-        .rejects.toThrow(InvalidCredentialsError);
-      
+      await expect(
+        authService.loginWithPassword(loginCredentials),
+      ).rejects.toThrow(InvalidCredentialsError);
+
       expect(mockUserRepository.updateLoginAttempts).toHaveBeenCalled();
     });
 
@@ -329,8 +358,9 @@ describe("AuthenticationService", () => {
       const socialUser = { ...testUser, passwordHash: undefined };
       mockUserRepository.findByEmail.mockResolvedValue(socialUser);
 
-      await expect(authService.loginWithPassword(loginCredentials))
-        .rejects.toThrow(InvalidCredentialsError);
+      await expect(
+        authService.loginWithPassword(loginCredentials),
+      ).rejects.toThrow(InvalidCredentialsError);
     });
 
     it("should reset failed attempts on successful login", async () => {
@@ -342,7 +372,7 @@ describe("AuthenticationService", () => {
       expect(mockUserRepository.updateLoginAttempts).toHaveBeenCalledWith(
         loginCredentials.email,
         0,
-        false
+        false,
       );
     });
 
@@ -370,33 +400,42 @@ describe("AuthenticationService", () => {
 
       expect(result.accessToken).toBe("new-access-token");
       expect(result.refreshToken).toBe("new-refresh-token");
-      
-      expect(mockJWTService.verifyRefreshToken).toHaveBeenCalledWith(refreshToken);
-      expect(mockUserRepository.findById).toHaveBeenCalledWith(mockRefreshPayload.userId);
+
+      expect(mockJWTService.verifyRefreshToken).toHaveBeenCalledWith(
+        refreshToken,
+      );
+      expect(mockUserRepository.findById).toHaveBeenCalledWith(
+        mockRefreshPayload.userId,
+      );
       expect(mockJWTService.generateTokenPair).toHaveBeenCalledWith(testUser);
     });
 
     it("should throw error for invalid refresh token", async () => {
-      mockJWTService.verifyRefreshToken.mockRejectedValue(new UnauthenticatedError("Invalid token"));
+      mockJWTService.verifyRefreshToken.mockRejectedValue(
+        new UnauthenticatedError("Invalid token"),
+      );
 
-      await expect(authService.refreshTokens(refreshToken))
-        .rejects.toThrow(UnauthenticatedError);
+      await expect(authService.refreshTokens(refreshToken)).rejects.toThrow(
+        UnauthenticatedError,
+      );
     });
 
     it("should throw error if user no longer exists", async () => {
       mockJWTService.verifyRefreshToken.mockResolvedValue(mockRefreshPayload);
       mockUserRepository.findById.mockResolvedValue(null);
 
-      await expect(authService.refreshTokens(refreshToken))
-        .rejects.toThrow(UnauthenticatedError);
+      await expect(authService.refreshTokens(refreshToken)).rejects.toThrow(
+        UnauthenticatedError,
+      );
     });
 
     it("should throw error if user account is locked", async () => {
       mockJWTService.verifyRefreshToken.mockResolvedValue(mockRefreshPayload);
       mockUserRepository.findById.mockResolvedValue(lockedUser);
 
-      await expect(authService.refreshTokens(refreshToken))
-        .rejects.toThrow(AccountLockedError);
+      await expect(authService.refreshTokens(refreshToken)).rejects.toThrow(
+        AccountLockedError,
+      );
     });
   });
 
@@ -409,14 +448,19 @@ describe("AuthenticationService", () => {
       const result = await authService.verifyAccessToken(accessToken);
 
       expect(result).toEqual(mockJWTPayload);
-      expect(mockJWTService.verifyAccessToken).toHaveBeenCalledWith(accessToken);
+      expect(mockJWTService.verifyAccessToken).toHaveBeenCalledWith(
+        accessToken,
+      );
     });
 
     it("should throw error for invalid access token", async () => {
-      mockJWTService.verifyAccessToken.mockRejectedValue(new UnauthenticatedError("Invalid token"));
+      mockJWTService.verifyAccessToken.mockRejectedValue(
+        new UnauthenticatedError("Invalid token"),
+      );
 
-      await expect(authService.verifyAccessToken(accessToken))
-        .rejects.toThrow(UnauthenticatedError);
+      await expect(authService.verifyAccessToken(accessToken)).rejects.toThrow(
+        UnauthenticatedError,
+      );
     });
   });
 
@@ -431,25 +475,31 @@ describe("AuthenticationService", () => {
 
       expect(result.id).toBe(testUser.id);
       expect((result as any).passwordHash).toBeUndefined();
-      
-      expect(mockJWTService.verifyAccessToken).toHaveBeenCalledWith(accessToken);
-      expect(mockUserRepository.findById).toHaveBeenCalledWith(mockJWTPayload.userId);
+
+      expect(mockJWTService.verifyAccessToken).toHaveBeenCalledWith(
+        accessToken,
+      );
+      expect(mockUserRepository.findById).toHaveBeenCalledWith(
+        mockJWTPayload.userId,
+      );
     });
 
     it("should throw error if user no longer exists", async () => {
       mockJWTService.verifyAccessToken.mockResolvedValue(mockJWTPayload);
       mockUserRepository.findById.mockResolvedValue(null);
 
-      await expect(authService.getUserFromToken(accessToken))
-        .rejects.toThrow(UnauthenticatedError);
+      await expect(authService.getUserFromToken(accessToken)).rejects.toThrow(
+        UnauthenticatedError,
+      );
     });
 
     it("should throw error if user account is locked", async () => {
       mockJWTService.verifyAccessToken.mockResolvedValue(mockJWTPayload);
       mockUserRepository.findById.mockResolvedValue(lockedUser);
 
-      await expect(authService.getUserFromToken(accessToken))
-        .rejects.toThrow(AccountLockedError);
+      await expect(authService.getUserFromToken(accessToken)).rejects.toThrow(
+        AccountLockedError,
+      );
     });
   });
 
@@ -460,14 +510,17 @@ describe("AuthenticationService", () => {
       await authService.unlockAccount(lockedUser.id);
 
       expect(mockUserRepository.findById).toHaveBeenCalledWith(lockedUser.id);
-      expect(mockUserRepository.unlockAccount).toHaveBeenCalledWith(lockedUser.id);
+      expect(mockUserRepository.unlockAccount).toHaveBeenCalledWith(
+        lockedUser.id,
+      );
     });
 
     it("should throw error if user not found", async () => {
       mockUserRepository.findById.mockResolvedValue(null);
 
-      await expect(authService.unlockAccount("non-existent-id"))
-        .rejects.toThrow(NotFoundError);
+      await expect(
+        authService.unlockAccount("non-existent-id"),
+      ).rejects.toThrow(NotFoundError);
     });
   });
 
@@ -493,37 +546,44 @@ describe("AuthenticationService", () => {
       expect(mockUserRepository.findById).toHaveBeenCalledWith(userId);
       expect(mockPasswordService.verifyPassword).toHaveBeenCalledWith(
         currentPassword,
-        testUser.passwordHash
+        testUser.passwordHash,
       );
-      expect(mockPasswordService.validatePasswordStrength).toHaveBeenCalledWith(newPassword);
-      expect(mockPasswordService.hashPassword).toHaveBeenCalledWith(newPassword);
+      expect(mockPasswordService.validatePasswordStrength).toHaveBeenCalledWith(
+        newPassword,
+      );
+      expect(mockPasswordService.hashPassword).toHaveBeenCalledWith(
+        newPassword,
+      );
       expect(mockUserRepository.updatePassword).toHaveBeenCalledWith(
         userId,
-        "new-hashed-password"
+        "new-hashed-password",
       );
     });
 
     it("should throw error if user not found", async () => {
       mockUserRepository.findById.mockResolvedValue(null);
 
-      await expect(authService.changePassword(userId, currentPassword, newPassword))
-        .rejects.toThrow(NotFoundError);
+      await expect(
+        authService.changePassword(userId, currentPassword, newPassword),
+      ).rejects.toThrow(NotFoundError);
     });
 
     it("should throw error for social login account", async () => {
       const socialUser = { ...testUser, passwordHash: undefined };
       mockUserRepository.findById.mockResolvedValue(socialUser);
 
-      await expect(authService.changePassword(userId, currentPassword, newPassword))
-        .rejects.toThrow(BadRequestError);
+      await expect(
+        authService.changePassword(userId, currentPassword, newPassword),
+      ).rejects.toThrow(BadRequestError);
     });
 
     it("should throw error for incorrect current password", async () => {
       mockUserRepository.findById.mockResolvedValue(testUser);
       mockPasswordService.verifyPassword.mockResolvedValue(false);
 
-      await expect(authService.changePassword(userId, currentPassword, newPassword))
-        .rejects.toThrow(InvalidCredentialsError);
+      await expect(
+        authService.changePassword(userId, currentPassword, newPassword),
+      ).rejects.toThrow(InvalidCredentialsError);
     });
 
     it("should throw error for weak new password", async () => {
@@ -534,8 +594,9 @@ describe("AuthenticationService", () => {
         errors: ["Password too weak"],
       });
 
-      await expect(authService.changePassword(userId, currentPassword, newPassword))
-        .rejects.toThrow(BadRequestError);
+      await expect(
+        authService.changePassword(userId, currentPassword, newPassword),
+      ).rejects.toThrow(BadRequestError);
     });
   });
 
@@ -546,7 +607,7 @@ describe("AuthenticationService", () => {
       expect(mockUserRepository.updateLoginAttempts).toHaveBeenCalledWith(
         testUser.primaryEmail,
         0,
-        false
+        false,
       );
     });
   });
@@ -563,7 +624,7 @@ describe("AuthenticationService", () => {
         mockUserRepository,
         mockPasswordService,
         mockJWTService,
-        customConfig
+        customConfig,
       );
 
       mockUserRepository.findByEmail.mockResolvedValue(null);
@@ -575,7 +636,7 @@ describe("AuthenticationService", () => {
       mockUserRepository.create.mockResolvedValue(testUser);
 
       const result = await customAuthService.register(registerData);
-      
+
       expect(result.requiresEmailVerification).toBe(false);
     });
 
@@ -588,13 +649,15 @@ describe("AuthenticationService", () => {
         mockUserRepository,
         mockPasswordService,
         mockJWTService,
-        customConfig
+        customConfig,
       );
 
       // Access private config through any to test merging
       const config = (customAuthService as any).config;
       expect(config.maxFailedAttempts).toBe(10);
-      expect(config.requireEmailVerification).toBe(DEFAULT_AUTH_CONFIG.requireEmailVerification);
+      expect(config.requireEmailVerification).toBe(
+        DEFAULT_AUTH_CONFIG.requireEmailVerification,
+      );
     });
   });
 
@@ -616,13 +679,14 @@ describe("AuthenticationService", () => {
       mockUserRepository.findByEmail.mockResolvedValue(userWithAttempts);
       mockPasswordService.verifyPassword.mockResolvedValue(false);
 
-      await expect(authService.loginWithPassword(loginCredentials))
-        .rejects.toThrow(InvalidCredentialsError);
+      await expect(
+        authService.loginWithPassword(loginCredentials),
+      ).rejects.toThrow(InvalidCredentialsError);
 
       expect(mockUserRepository.updateLoginAttempts).toHaveBeenCalledWith(
         loginCredentials.email,
         5, // Should reach max
-        true // Should lock account
+        true, // Should lock account
       );
     });
 
@@ -631,13 +695,14 @@ describe("AuthenticationService", () => {
       mockUserRepository.findByEmail.mockResolvedValue(userWithAttempts);
       mockPasswordService.verifyPassword.mockResolvedValue(false);
 
-      await expect(authService.loginWithPassword(loginCredentials))
-        .rejects.toThrow(InvalidCredentialsError);
+      await expect(
+        authService.loginWithPassword(loginCredentials),
+      ).rejects.toThrow(InvalidCredentialsError);
 
       expect(mockUserRepository.updateLoginAttempts).toHaveBeenCalledWith(
         loginCredentials.email,
         3, // Should increment
-        false // Should not lock account
+        false, // Should not lock account
       );
     });
   });

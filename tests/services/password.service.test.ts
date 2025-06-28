@@ -1,9 +1,9 @@
 import { describe, it, expect, beforeEach } from "vitest";
-import { 
-  PasswordService, 
-  DEFAULT_PASSWORD_POLICY, 
-  type PasswordPolicyType, 
-  type IPasswordService 
+import {
+  PasswordService,
+  DEFAULT_PASSWORD_POLICY,
+  type PasswordPolicyType,
+  type IPasswordService,
 } from "@/services/password.service";
 
 describe("PasswordService", () => {
@@ -37,7 +37,9 @@ describe("PasswordService", () => {
 
     it("should handle very long passwords", async () => {
       const longPassword = "a".repeat(1000);
-      await expect(passwordService.hashPassword(longPassword)).resolves.toBeDefined();
+      await expect(
+        passwordService.hashPassword(longPassword),
+      ).resolves.toBeDefined();
     });
   });
 
@@ -45,7 +47,7 @@ describe("PasswordService", () => {
     it("should verify correct password against hash", async () => {
       const password = "testPassword123!";
       const hash = await passwordService.hashPassword(password);
-      
+
       const isValid = await passwordService.verifyPassword(password, hash);
       expect(isValid).toBe(true);
     });
@@ -54,7 +56,7 @@ describe("PasswordService", () => {
       const password = "testPassword123!";
       const wrongPassword = "wrongPassword123!";
       const hash = await passwordService.hashPassword(password);
-      
+
       const isValid = await passwordService.verifyPassword(wrongPassword, hash);
       expect(isValid).toBe(false);
     });
@@ -63,17 +65,23 @@ describe("PasswordService", () => {
       const password = "TestPassword123!";
       const wrongCasePassword = "testpassword123!";
       const hash = await passwordService.hashPassword(password);
-      
-      const isValid = await passwordService.verifyPassword(wrongCasePassword, hash);
+
+      const isValid = await passwordService.verifyPassword(
+        wrongCasePassword,
+        hash,
+      );
       expect(isValid).toBe(false);
     });
 
     it("should handle empty password verification", async () => {
       const hash = await passwordService.hashPassword("");
-      
+
       const isValidEmpty = await passwordService.verifyPassword("", hash);
-      const isValidNonEmpty = await passwordService.verifyPassword("test", hash);
-      
+      const isValidNonEmpty = await passwordService.verifyPassword(
+        "test",
+        hash,
+      );
+
       expect(isValidEmpty).toBe(true);
       expect(isValidNonEmpty).toBe(false);
     });
@@ -81,14 +89,17 @@ describe("PasswordService", () => {
     it("should return false for invalid hash format", async () => {
       const password = "testPassword123!";
       const invalidHash = "not-a-valid-hash";
-      
-      const isValid = await passwordService.verifyPassword(password, invalidHash);
+
+      const isValid = await passwordService.verifyPassword(
+        password,
+        invalidHash,
+      );
       expect(isValid).toBe(false);
     });
 
     it("should return false for empty hash", async () => {
       const password = "testPassword123!";
-      
+
       const isValid = await passwordService.verifyPassword(password, "");
       expect(isValid).toBe(false);
     });
@@ -109,7 +120,9 @@ describe("PasswordService", () => {
         const result = passwordService.validatePasswordStrength(password);
 
         expect(result.isValid).toBe(false);
-        expect(result.errors).toContain("Password must be at least 8 characters long");
+        expect(result.errors).toContain(
+          "Password must be at least 8 characters long",
+        );
       });
 
       it("should reject password without uppercase", () => {
@@ -117,7 +130,9 @@ describe("PasswordService", () => {
         const result = passwordService.validatePasswordStrength(password);
 
         expect(result.isValid).toBe(false);
-        expect(result.errors).toContain("Password must contain at least one uppercase letter");
+        expect(result.errors).toContain(
+          "Password must contain at least one uppercase letter",
+        );
       });
 
       it("should reject password without lowercase", () => {
@@ -125,7 +140,9 @@ describe("PasswordService", () => {
         const result = passwordService.validatePasswordStrength(password);
 
         expect(result.isValid).toBe(false);
-        expect(result.errors).toContain("Password must contain at least one lowercase letter");
+        expect(result.errors).toContain(
+          "Password must contain at least one lowercase letter",
+        );
       });
 
       it("should reject password without numbers", () => {
@@ -133,7 +150,9 @@ describe("PasswordService", () => {
         const result = passwordService.validatePasswordStrength(password);
 
         expect(result.isValid).toBe(false);
-        expect(result.errors).toContain("Password must contain at least one number");
+        expect(result.errors).toContain(
+          "Password must contain at least one number",
+        );
       });
 
       it("should reject password without special characters", () => {
@@ -141,7 +160,9 @@ describe("PasswordService", () => {
         const result = passwordService.validatePasswordStrength(password);
 
         expect(result.isValid).toBe(false);
-        expect(result.errors).toContain("Password must contain at least one special character (!@#$%^&*(),.?\":{}|<>)");
+        expect(result.errors).toContain(
+          'Password must contain at least one special character (!@#$%^&*(),.?":{}|<>)',
+        );
       });
 
       it("should reject password too long", () => {
@@ -149,7 +170,9 @@ describe("PasswordService", () => {
         const result = passwordService.validatePasswordStrength(password);
 
         expect(result.isValid).toBe(false);
-        expect(result.errors).toContain("Password must be no more than 128 characters long");
+        expect(result.errors).toContain(
+          "Password must be no more than 128 characters long",
+        );
       });
 
       it("should collect multiple validation errors", () => {
@@ -158,10 +181,18 @@ describe("PasswordService", () => {
 
         expect(result.isValid).toBe(false);
         expect(result.errors.length).toBeGreaterThan(1);
-        expect(result.errors).toContain("Password must be at least 8 characters long");
-        expect(result.errors).toContain("Password must contain at least one uppercase letter");
-        expect(result.errors).toContain("Password must contain at least one number");
-        expect(result.errors).toContain("Password must contain at least one special character (!@#$%^&*(),.?\":{}|<>)");
+        expect(result.errors).toContain(
+          "Password must be at least 8 characters long",
+        );
+        expect(result.errors).toContain(
+          "Password must contain at least one uppercase letter",
+        );
+        expect(result.errors).toContain(
+          "Password must contain at least one number",
+        );
+        expect(result.errors).toContain(
+          'Password must contain at least one special character (!@#$%^&*(),.?":{}|<>)',
+        );
       });
     });
 
@@ -175,9 +206,12 @@ describe("PasswordService", () => {
           requireSpecialChars: false,
           maxLength: 50,
         };
-        
+
         const password = "simplepass";
-        const result = passwordService.validatePasswordStrength(password, customPolicy);
+        const result = passwordService.validatePasswordStrength(
+          password,
+          customPolicy,
+        );
 
         expect(result.isValid).toBe(true);
         expect(result.errors).toHaveLength(0);
@@ -192,12 +226,17 @@ describe("PasswordService", () => {
           requireSpecialChars: false,
           maxLength: 50,
         };
-        
+
         const password = "short";
-        const result = passwordService.validatePasswordStrength(password, customPolicy);
+        const result = passwordService.validatePasswordStrength(
+          password,
+          customPolicy,
+        );
 
         expect(result.isValid).toBe(false);
-        expect(result.errors).toContain("Password must be at least 12 characters long");
+        expect(result.errors).toContain(
+          "Password must be at least 12 characters long",
+        );
       });
 
       it("should enforce custom maximum length", () => {
@@ -209,12 +248,17 @@ describe("PasswordService", () => {
           requireSpecialChars: false,
           maxLength: 10,
         };
-        
+
         const password = "thispasswordistoolong";
-        const result = passwordService.validatePasswordStrength(password, customPolicy);
+        const result = passwordService.validatePasswordStrength(
+          password,
+          customPolicy,
+        );
 
         expect(result.isValid).toBe(false);
-        expect(result.errors).toContain("Password must be no more than 10 characters long");
+        expect(result.errors).toContain(
+          "Password must be no more than 10 characters long",
+        );
       });
 
       it("should allow disabling all character requirements", () => {
@@ -226,9 +270,12 @@ describe("PasswordService", () => {
           requireSpecialChars: false,
           maxLength: 128,
         };
-        
+
         const password = "simplepassword";
-        const result = passwordService.validatePasswordStrength(password, customPolicy);
+        const result = passwordService.validatePasswordStrength(
+          password,
+          customPolicy,
+        );
 
         expect(result.isValid).toBe(true);
         expect(result.errors).toHaveLength(0);
@@ -240,7 +287,9 @@ describe("PasswordService", () => {
         const result = passwordService.validatePasswordStrength("");
 
         expect(result.isValid).toBe(false);
-        expect(result.errors).toContain("Password must be at least 8 characters long");
+        expect(result.errors).toContain(
+          "Password must be at least 8 characters long",
+        );
       });
 
       it("should handle password with unicode characters", () => {
@@ -289,13 +338,13 @@ describe("PasswordService", () => {
 
       // Check for uppercase letter
       expect(/[A-Z]/.test(password)).toBe(true);
-      
+
       // Check for lowercase letter
       expect(/[a-z]/.test(password)).toBe(true);
-      
+
       // Check for number
       expect(/\d/.test(password)).toBe(true);
-      
+
       // Check for special character
       expect(/[!@#$%^&*(),.?":{}|<>]/.test(password)).toBe(true);
     });
@@ -313,9 +362,9 @@ describe("PasswordService", () => {
     it("should handle minimum length requirements", () => {
       // Test very short length (should still include required character types)
       const password = passwordService.generateSecurePassword(8);
-      
+
       expect(password.length).toBe(8);
-      
+
       // Should still have at least one from each category
       expect(/[A-Z]/.test(password)).toBe(true);
       expect(/[a-z]/.test(password)).toBe(true);
@@ -325,9 +374,9 @@ describe("PasswordService", () => {
 
     it("should generate long passwords correctly", () => {
       const longPassword = passwordService.generateSecurePassword(100);
-      
+
       expect(longPassword.length).toBe(100);
-      
+
       const validation = passwordService.validatePasswordStrength(longPassword);
       expect(validation.isValid).toBe(true);
     });
@@ -335,7 +384,7 @@ describe("PasswordService", () => {
     it("should only use allowed characters", () => {
       const password = passwordService.generateSecurePassword(50);
       const allowedChars = /^[a-zA-Z0-9!@#$%^&*(),.?":{}|<>]+$/;
-      
+
       expect(allowedChars.test(password)).toBe(true);
     });
   });
@@ -344,7 +393,10 @@ describe("PasswordService", () => {
     it("should hash and verify generated password", async () => {
       const generatedPassword = passwordService.generateSecurePassword();
       const hash = await passwordService.hashPassword(generatedPassword);
-      const isValid = await passwordService.verifyPassword(generatedPassword, hash);
+      const isValid = await passwordService.verifyPassword(
+        generatedPassword,
+        hash,
+      );
 
       expect(isValid).toBe(true);
     });
@@ -353,7 +405,7 @@ describe("PasswordService", () => {
       for (let i = 0; i < 10; i++) {
         const password = passwordService.generateSecurePassword();
         const validation = passwordService.validatePasswordStrength(password);
-        
+
         expect(validation.isValid).toBe(true);
       }
     });
@@ -361,21 +413,27 @@ describe("PasswordService", () => {
     it("should handle complete password lifecycle", async () => {
       // 1. Generate secure password
       const password = passwordService.generateSecurePassword();
-      
+
       // 2. Validate it meets policy
       const validation = passwordService.validatePasswordStrength(password);
       expect(validation.isValid).toBe(true);
-      
+
       // 3. Hash the password
       const hash = await passwordService.hashPassword(password);
-      
+
       // 4. Verify correct password
-      const isValidCorrect = await passwordService.verifyPassword(password, hash);
+      const isValidCorrect = await passwordService.verifyPassword(
+        password,
+        hash,
+      );
       expect(isValidCorrect).toBe(true);
-      
+
       // 5. Verify incorrect password fails
       const wrongPassword = passwordService.generateSecurePassword();
-      const isValidWrong = await passwordService.verifyPassword(wrongPassword, hash);
+      const isValidWrong = await passwordService.verifyPassword(
+        wrongPassword,
+        hash,
+      );
       expect(isValidWrong).toBe(false);
     });
   });
@@ -394,16 +452,16 @@ describe("PasswordService", () => {
     it("should handle timing attacks consistently", async () => {
       const password = "testPassword123!";
       const hash = await passwordService.hashPassword(password);
-      
+
       // Multiple verification attempts should not reveal timing information
       const startTime1 = Date.now();
       await passwordService.verifyPassword("wrongPassword", hash);
       const time1 = Date.now() - startTime1;
-      
+
       const startTime2 = Date.now();
       await passwordService.verifyPassword("anotherWrongPassword", hash);
       const time2 = Date.now() - startTime2;
-      
+
       // Times should be relatively similar (within reasonable variance)
       // This is a basic check - real timing attack prevention is handled by Argon2
       expect(Math.abs(time1 - time2)).toBeLessThan(100); // 100ms variance allowed
@@ -411,12 +469,13 @@ describe("PasswordService", () => {
 
     it("should not throw sensitive information in error messages", async () => {
       const password = "testPassword123!";
-      
+
       try {
         // This should not throw, but if it does, check error message
         await passwordService.verifyPassword(password, "invalid-hash-format");
       } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : String(error);
+        const errorMessage =
+          error instanceof Error ? error.message : String(error);
         expect(errorMessage).not.toContain(password);
       }
     });
@@ -435,7 +494,10 @@ describe("PasswordService", () => {
     it("should be used when no policy is provided", () => {
       const weakPassword = "weak";
       const result1 = passwordService.validatePasswordStrength(weakPassword);
-      const result2 = passwordService.validatePasswordStrength(weakPassword, DEFAULT_PASSWORD_POLICY);
+      const result2 = passwordService.validatePasswordStrength(
+        weakPassword,
+        DEFAULT_PASSWORD_POLICY,
+      );
 
       expect(result1).toEqual(result2);
     });

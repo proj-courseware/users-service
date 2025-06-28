@@ -1,8 +1,20 @@
-import { describe, it, expect, beforeEach, beforeAll, afterAll, vi } from "vitest";
+import {
+  describe,
+  it,
+  expect,
+  beforeEach,
+  beforeAll,
+  afterAll,
+  vi,
+} from "vitest";
 import jwt from "jsonwebtoken";
 import { JWTService, type IJWTService } from "@/services/jwt.service";
 import { UnauthenticatedError } from "@/errors";
-import type { UserType, JWTPayloadType, RefreshJWTPayloadType } from "@/schemas/user.schema";
+import type {
+  UserType,
+  JWTPayloadType,
+  RefreshJWTPayloadType,
+} from "@/schemas/user.schema";
 
 // Test user data
 const testUser: UserType = {
@@ -49,10 +61,12 @@ describe("JWTService", () => {
   beforeAll(() => {
     // Store original env
     originalEnv = { ...process.env };
-    
+
     // Set test environment variables
-    process.env.JWT_ACCESS_SECRET = "test-access-secret-32-chars-minimum-length";
-    process.env.JWT_REFRESH_SECRET = "test-refresh-secret-32-chars-minimum-length";
+    process.env.JWT_ACCESS_SECRET =
+      "test-access-secret-32-chars-minimum-length";
+    process.env.JWT_REFRESH_SECRET =
+      "test-refresh-secret-32-chars-minimum-length";
     process.env.JWT_ACCESS_EXPIRY_MINUTES = "15";
     process.env.JWT_REFRESH_EXPIRY_DAYS = "7";
   });
@@ -91,15 +105,15 @@ describe("JWTService", () => {
       const beforeGeneration = Math.floor(Date.now() / 1000);
       const token = await jwtService.generateAccessToken(testUser);
       const decoded = jwt.decode(token) as JWTPayloadType;
-      
-      const expectedExpiry = beforeGeneration + (15 * 60); // 15 minutes
+
+      const expectedExpiry = beforeGeneration + 15 * 60; // 15 minutes
       expect(decoded.exp).toBeCloseTo(expectedExpiry, 5); // Allow 5 second variance
     });
 
     it("should generate different tokens for the same user", async () => {
       const token1 = await jwtService.generateAccessToken(testUser);
       // Add small delay to ensure different timestamps
-      await new Promise(resolve => setTimeout(resolve, 1100));
+      await new Promise((resolve) => setTimeout(resolve, 1100));
       const token2 = await jwtService.generateAccessToken(testUser);
 
       expect(token1).not.toBe(token2);
@@ -123,10 +137,10 @@ describe("JWTService", () => {
       const token = await jwtService.generateAccessToken(testUser, {
         expiryOverride: customExpirySeconds,
       });
-      
+
       const decoded = jwt.decode(token) as JWTPayloadType;
       const expectedExpiry = decoded.iat + customExpirySeconds;
-      
+
       expect(decoded.exp).toBe(expectedExpiry);
     });
 
@@ -175,8 +189,8 @@ describe("JWTService", () => {
       const beforeGeneration = Math.floor(Date.now() / 1000);
       const token = await jwtService.generateRefreshToken(testUser);
       const decoded = jwt.decode(token) as RefreshJWTPayloadType;
-      
-      const expectedExpiry = beforeGeneration + (7 * 24 * 60 * 60); // 7 days
+
+      const expectedExpiry = beforeGeneration + 7 * 24 * 60 * 60; // 7 days
       expect(decoded.exp).toBeCloseTo(expectedExpiry, 5);
     });
 
@@ -185,10 +199,10 @@ describe("JWTService", () => {
       const token = await jwtService.generateRefreshToken(testUser, {
         expiryOverride: customExpirySeconds,
       });
-      
+
       const decoded = jwt.decode(token) as RefreshJWTPayloadType;
       const expectedExpiry = decoded.iat + customExpirySeconds;
-      
+
       expect(decoded.exp).toBe(expectedExpiry);
     });
   });
@@ -205,19 +219,25 @@ describe("JWTService", () => {
 
     it("should reject invalid access token", async () => {
       const invalidToken = "invalid.token.here";
-      
-      await expect(jwtService.verifyAccessToken(invalidToken))
-        .rejects.toThrow(UnauthenticatedError);
+
+      await expect(jwtService.verifyAccessToken(invalidToken)).rejects.toThrow(
+        UnauthenticatedError,
+      );
     });
 
     it("should reject token with wrong secret", async () => {
       const wrongToken = jwt.sign(
-        { userId: testUser.id, email: testUser.primaryEmail, role: testUser.globalRole },
-        "wrong-secret"
+        {
+          userId: testUser.id,
+          email: testUser.primaryEmail,
+          role: testUser.globalRole,
+        },
+        "wrong-secret",
       );
-      
-      await expect(jwtService.verifyAccessToken(wrongToken))
-        .rejects.toThrow(UnauthenticatedError);
+
+      await expect(jwtService.verifyAccessToken(wrongToken)).rejects.toThrow(
+        UnauthenticatedError,
+      );
     });
 
     it("should reject expired access token", async () => {
@@ -229,31 +249,34 @@ describe("JWTService", () => {
           iat: Math.floor(Date.now() / 1000) - 3600,
           exp: Math.floor(Date.now() / 1000) - 1800, // Expired 30 minutes ago
         },
-        process.env.JWT_ACCESS_SECRET!
+        process.env.JWT_ACCESS_SECRET!,
       );
-      
-      await expect(jwtService.verifyAccessToken(expiredToken))
-        .rejects.toThrow(UnauthenticatedError);
+
+      await expect(jwtService.verifyAccessToken(expiredToken)).rejects.toThrow(
+        UnauthenticatedError,
+      );
     });
 
     it("should reject token with invalid payload structure", async () => {
       const invalidPayloadToken = jwt.sign(
         { invalidPayload: true },
-        process.env.JWT_ACCESS_SECRET!
+        process.env.JWT_ACCESS_SECRET!,
       );
-      
-      await expect(jwtService.verifyAccessToken(invalidPayloadToken))
-        .rejects.toThrow(UnauthenticatedError);
+
+      await expect(
+        jwtService.verifyAccessToken(invalidPayloadToken),
+      ).rejects.toThrow(UnauthenticatedError);
     });
 
     it("should reject token with missing required fields", async () => {
       const incompleteToken = jwt.sign(
         { userId: testUser.id }, // Missing email and role
-        process.env.JWT_ACCESS_SECRET!
+        process.env.JWT_ACCESS_SECRET!,
       );
-      
-      await expect(jwtService.verifyAccessToken(incompleteToken))
-        .rejects.toThrow(UnauthenticatedError);
+
+      await expect(
+        jwtService.verifyAccessToken(incompleteToken),
+      ).rejects.toThrow(UnauthenticatedError);
     });
   });
 
@@ -268,26 +291,29 @@ describe("JWTService", () => {
 
     it("should reject invalid refresh token", async () => {
       const invalidToken = "invalid.refresh.token";
-      
-      await expect(jwtService.verifyRefreshToken(invalidToken))
-        .rejects.toThrow(UnauthenticatedError);
+
+      await expect(jwtService.verifyRefreshToken(invalidToken)).rejects.toThrow(
+        UnauthenticatedError,
+      );
     });
 
     it("should reject access token when expecting refresh token", async () => {
       const accessToken = await jwtService.generateAccessToken(testUser);
-      
-      await expect(jwtService.verifyRefreshToken(accessToken))
-        .rejects.toThrow(UnauthenticatedError);
+
+      await expect(jwtService.verifyRefreshToken(accessToken)).rejects.toThrow(
+        UnauthenticatedError,
+      );
     });
 
     it("should reject refresh token with wrong secret", async () => {
       const wrongToken = jwt.sign(
         { userId: testUser.id, type: "refresh" },
-        "wrong-refresh-secret"
+        "wrong-refresh-secret",
       );
-      
-      await expect(jwtService.verifyRefreshToken(wrongToken))
-        .rejects.toThrow(UnauthenticatedError);
+
+      await expect(jwtService.verifyRefreshToken(wrongToken)).rejects.toThrow(
+        UnauthenticatedError,
+      );
     });
 
     it("should reject expired refresh token", async () => {
@@ -298,11 +324,12 @@ describe("JWTService", () => {
           iat: Math.floor(Date.now() / 1000) - 3600,
           exp: Math.floor(Date.now() / 1000) - 1800,
         },
-        process.env.JWT_REFRESH_SECRET!
+        process.env.JWT_REFRESH_SECRET!,
       );
-      
-      await expect(jwtService.verifyRefreshToken(expiredToken))
-        .rejects.toThrow(UnauthenticatedError);
+
+      await expect(jwtService.verifyRefreshToken(expiredToken)).rejects.toThrow(
+        UnauthenticatedError,
+      );
     });
   });
 
@@ -323,7 +350,7 @@ describe("JWTService", () => {
     it("should decode token even with wrong secret", () => {
       const token = jwt.sign({ test: "data" }, "any-secret");
       const decoded = jwtService.decodeToken(token);
-      
+
       expect(decoded).toBeDefined();
       expect((decoded as any).test).toBe("data");
     });
@@ -331,7 +358,8 @@ describe("JWTService", () => {
 
   describe("generateTokenPair", () => {
     it("should generate both access and refresh tokens", async () => {
-      const { accessToken, refreshToken } = await jwtService.generateTokenPair(testUser);
+      const { accessToken, refreshToken } =
+        await jwtService.generateTokenPair(testUser);
 
       expect(accessToken).toBeDefined();
       expect(refreshToken).toBeDefined();
@@ -339,7 +367,8 @@ describe("JWTService", () => {
     });
 
     it("should generate valid token pair", async () => {
-      const { accessToken, refreshToken } = await jwtService.generateTokenPair(testUser);
+      const { accessToken, refreshToken } =
+        await jwtService.generateTokenPair(testUser);
 
       const accessDecoded = await jwtService.verifyAccessToken(accessToken);
       const refreshDecoded = await jwtService.verifyRefreshToken(refreshToken);
@@ -350,9 +379,12 @@ describe("JWTService", () => {
 
     it("should apply options to both tokens", async () => {
       const customExpiry = 1800; // 30 minutes
-      const { accessToken, refreshToken } = await jwtService.generateTokenPair(testUser, {
-        expiryOverride: customExpiry,
-      });
+      const { accessToken, refreshToken } = await jwtService.generateTokenPair(
+        testUser,
+        {
+          expiryOverride: customExpiry,
+        },
+      );
 
       const accessDecoded = jwt.decode(accessToken) as JWTPayloadType;
       const refreshDecoded = jwt.decode(refreshToken) as RefreshJWTPayloadType;
@@ -367,7 +399,7 @@ describe("JWTService", () => {
       it("should extract user ID from valid token", async () => {
         const token = await jwtService.generateAccessToken(testUser);
         const userId = jwtService.extractUserIdFromToken(token);
-        
+
         expect(userId).toBe(testUser.id);
       });
 
@@ -379,7 +411,7 @@ describe("JWTService", () => {
       it("should extract user ID from refresh token", async () => {
         const token = await jwtService.generateRefreshToken(testUser);
         const userId = jwtService.extractUserIdFromToken(token);
-        
+
         expect(userId).toBe(testUser.id);
       });
     });
@@ -388,7 +420,7 @@ describe("JWTService", () => {
       it("should return false for valid non-expired token", async () => {
         const token = await jwtService.generateAccessToken(testUser);
         const isExpired = jwtService.isTokenExpired(token);
-        
+
         expect(isExpired).toBe(false);
       });
 
@@ -398,9 +430,9 @@ describe("JWTService", () => {
             userId: testUser.id,
             exp: Math.floor(Date.now() / 1000) - 3600, // Expired 1 hour ago
           },
-          process.env.JWT_ACCESS_SECRET!
+          process.env.JWT_ACCESS_SECRET!,
         );
-        
+
         const isExpired = jwtService.isTokenExpired(expiredToken);
         expect(isExpired).toBe(true);
       });
@@ -416,7 +448,7 @@ describe("JWTService", () => {
         const beforeGeneration = new Date();
         const token = await jwtService.generateAccessToken(testUser);
         const expiry = jwtService.getTokenExpiry(token);
-        
+
         expect(expiry).toBeInstanceOf(Date);
         expect(expiry!.getTime()).toBeGreaterThan(beforeGeneration.getTime());
       });
@@ -431,7 +463,7 @@ describe("JWTService", () => {
       it("should return remaining time in seconds", async () => {
         const token = await jwtService.generateAccessToken(testUser);
         const remaining = jwtService.getTokenRemainingTime(token);
-        
+
         expect(remaining).toBeGreaterThan(0);
         expect(remaining).toBeLessThanOrEqual(15 * 60); // Should be <= 15 minutes
       });
@@ -442,9 +474,9 @@ describe("JWTService", () => {
             userId: testUser.id,
             exp: Math.floor(Date.now() / 1000) - 3600,
           },
-          process.env.JWT_ACCESS_SECRET!
+          process.env.JWT_ACCESS_SECRET!,
         );
-        
+
         const remaining = jwtService.getTokenRemainingTime(expiredToken);
         expect(remaining).toBe(0);
       });
@@ -458,15 +490,17 @@ describe("JWTService", () => {
 
   describe("error handling", () => {
     it("should throw UnauthenticatedError for malformed tokens", async () => {
-      await expect(jwtService.verifyAccessToken("not.a.jwt"))
-        .rejects.toThrow(UnauthenticatedError);
+      await expect(jwtService.verifyAccessToken("not.a.jwt")).rejects.toThrow(
+        UnauthenticatedError,
+      );
     });
 
     it("should throw UnauthenticatedError for tokens with invalid signatures", async () => {
       const token = jwt.sign({ userId: testUser.id }, "wrong-secret");
-      
-      await expect(jwtService.verifyAccessToken(token))
-        .rejects.toThrow(UnauthenticatedError);
+
+      await expect(jwtService.verifyAccessToken(token)).rejects.toThrow(
+        UnauthenticatedError,
+      );
     });
 
     it("should include cause in error details", async () => {
@@ -482,30 +516,45 @@ describe("JWTService", () => {
   describe("integration scenarios", () => {
     it("should handle token rotation scenario", async () => {
       // Generate initial token pair
-      const { accessToken: oldAccessToken, refreshToken } = await jwtService.generateTokenPair(testUser);
-      
+      const { accessToken: oldAccessToken, refreshToken } =
+        await jwtService.generateTokenPair(testUser);
+
       // Verify initial tokens work
-      await expect(jwtService.verifyAccessToken(oldAccessToken)).resolves.toBeDefined();
-      await expect(jwtService.verifyRefreshToken(refreshToken)).resolves.toBeDefined();
-      
+      await expect(
+        jwtService.verifyAccessToken(oldAccessToken),
+      ).resolves.toBeDefined();
+      await expect(
+        jwtService.verifyRefreshToken(refreshToken),
+      ).resolves.toBeDefined();
+
       // Simulate token rotation - generate new access token
       const newAccessToken = await jwtService.generateAccessToken(testUser);
-      
+
       // Both old and new access tokens should be valid (until old expires)
-      await expect(jwtService.verifyAccessToken(oldAccessToken)).resolves.toBeDefined();
-      await expect(jwtService.verifyAccessToken(newAccessToken)).resolves.toBeDefined();
-      
+      await expect(
+        jwtService.verifyAccessToken(oldAccessToken),
+      ).resolves.toBeDefined();
+      await expect(
+        jwtService.verifyAccessToken(newAccessToken),
+      ).resolves.toBeDefined();
+
       // Refresh token should still be valid
-      await expect(jwtService.verifyRefreshToken(refreshToken)).resolves.toBeDefined();
+      await expect(
+        jwtService.verifyRefreshToken(refreshToken),
+      ).resolves.toBeDefined();
     });
 
     it("should handle different user roles correctly", async () => {
       const studentTokens = await jwtService.generateTokenPair(testUser);
       const adminTokens = await jwtService.generateTokenPair(adminUser);
-      
-      const studentPayload = await jwtService.verifyAccessToken(studentTokens.accessToken);
-      const adminPayload = await jwtService.verifyAccessToken(adminTokens.accessToken);
-      
+
+      const studentPayload = await jwtService.verifyAccessToken(
+        studentTokens.accessToken,
+      );
+      const adminPayload = await jwtService.verifyAccessToken(
+        adminTokens.accessToken,
+      );
+
       expect(studentPayload.role).toBe("student");
       expect(adminPayload.role).toBe("admin");
       expect(studentPayload.userId).not.toBe(adminPayload.userId);
@@ -514,17 +563,17 @@ describe("JWTService", () => {
     it("should maintain token independence", async () => {
       const tokens1 = await jwtService.generateTokenPair(testUser);
       // Add small delay to ensure different timestamps
-      await new Promise(resolve => setTimeout(resolve, 1100));
+      await new Promise((resolve) => setTimeout(resolve, 1100));
       const tokens2 = await jwtService.generateTokenPair(testUser);
-      
+
       // All tokens should be different
       expect(tokens1.accessToken).not.toBe(tokens2.accessToken);
       expect(tokens1.refreshToken).not.toBe(tokens2.refreshToken);
-      
+
       // But all should be valid for the same user
       const payload1 = await jwtService.verifyAccessToken(tokens1.accessToken);
       const payload2 = await jwtService.verifyAccessToken(tokens2.accessToken);
-      
+
       expect(payload1.userId).toBe(payload2.userId);
       expect(payload1.email).toBe(payload2.email);
     });

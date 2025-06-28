@@ -1,12 +1,12 @@
 import { v4 as uuidv4 } from "uuid";
-import { 
-  UnauthenticatedError, 
-  InvalidCredentialsError, 
-  UserAlreadyExistsError, 
-  AccountLockedError, 
+import {
+  UnauthenticatedError,
+  InvalidCredentialsError,
+  UserAlreadyExistsError,
+  AccountLockedError,
   EmailNotVerifiedError,
   NotFoundError,
-  BadRequestError
+  BadRequestError,
 } from "@/errors";
 import type { IUserRepository } from "@/repositories/user.repository";
 import type { IPasswordService } from "@/services/password.service";
@@ -57,12 +57,22 @@ export const DEFAULT_AUTH_CONFIG: AuthServiceConfig = {
 
 // Authentication service interface
 export interface IAuthenticationService {
-  register(data: RegisterUserType, config?: Partial<AuthServiceConfig>): Promise<RegistrationResult>;
-  loginWithPassword(credentials: LoginCredentialsType, config?: Partial<AuthServiceConfig>): Promise<AuthenticationResult>;
+  register(
+    data: RegisterUserType,
+    config?: Partial<AuthServiceConfig>,
+  ): Promise<RegistrationResult>;
+  loginWithPassword(
+    credentials: LoginCredentialsType,
+    config?: Partial<AuthServiceConfig>,
+  ): Promise<AuthenticationResult>;
   refreshTokens(refreshToken: string): Promise<TokenRefreshResult>;
   verifyAccessToken(accessToken: string): Promise<JWTPayloadType>;
   unlockAccount(userId: string): Promise<void>;
-  changePassword(userId: string, currentPassword: string, newPassword: string): Promise<void>;
+  changePassword(
+    userId: string,
+    currentPassword: string,
+    newPassword: string,
+  ): Promise<void>;
   resetFailedAttempts(email: string): Promise<void>;
   getUserFromToken(accessToken: string): Promise<UserType>;
 }
@@ -104,19 +114,23 @@ export class AuthenticationService implements IAuthenticationService {
     }
 
     // 3. Validate password strength
-    const passwordValidation = this.passwordService.validatePasswordStrength(data.password);
+    const passwordValidation = this.passwordService.validatePasswordStrength(
+      data.password,
+    );
     if (!passwordValidation.isValid) {
-      throw new BadRequestError(`Password validation failed: ${passwordValidation.errors.join(", ")}`);
+      throw new BadRequestError(
+        `Password validation failed: ${passwordValidation.errors.join(", ")}`,
+      );
     }
 
     // 4. Hash password
     const passwordHash = await this.passwordService.hashPassword(data.password);
 
     // 5. Generate email verification token if required
-    const verificationToken = activeConfig.requireEmailVerification 
-      ? this.generateVerificationToken() 
+    const verificationToken = activeConfig.requireEmailVerification
+      ? this.generateVerificationToken()
       : undefined;
-    const verificationExpiry = verificationToken 
+    const verificationExpiry = verificationToken
       ? new Date(Date.now() + 24 * 60 * 60 * 1000) // 24 hours
       : undefined;
 
@@ -177,20 +191,28 @@ export class AuthenticationService implements IAuthenticationService {
 
     // 2. Check account status
     if (user.isAccountLocked) {
-      throw new AccountLockedError(`Account is locked due to too many failed login attempts. Please try again later or contact support.`);
+      throw new AccountLockedError(
+        `Account is locked due to too many failed login attempts. Please try again later or contact support.`,
+      );
     }
 
     // 3. Check email verification if required
     if (activeConfig.requireEmailVerification) {
-      const primaryEmailObj = user.emails.find(e => e.emailAddress === user.primaryEmail);
+      const primaryEmailObj = user.emails.find(
+        (e) => e.emailAddress === user.primaryEmail,
+      );
       if (!primaryEmailObj?.isVerified) {
-        throw new EmailNotVerifiedError("Please verify your email before logging in");
+        throw new EmailNotVerifiedError(
+          "Please verify your email before logging in",
+        );
       }
     }
 
     // 4. Verify password
     if (!user.passwordHash) {
-      throw new InvalidCredentialsError("This account uses social login. Please use the appropriate login method.");
+      throw new InvalidCredentialsError(
+        "This account uses social login. Please use the appropriate login method.",
+      );
     }
 
     const isPasswordValid = await this.passwordService.verifyPassword(
@@ -240,13 +262,17 @@ export class AuthenticationService implements IAuthenticationService {
     try {
       payload = await this.jwtService.verifyRefreshToken(refreshToken);
     } catch (error) {
-      throw new UnauthenticatedError("Invalid or expired refresh token", { cause: error });
+      throw new UnauthenticatedError("Invalid or expired refresh token", {
+        cause: error,
+      });
     }
 
     // 2. Find user to ensure they still exist and are active
     const user = await this.userRepository.findById(payload.userId);
     if (!user) {
-      throw new UnauthenticatedError("User associated with token no longer exists");
+      throw new UnauthenticatedError(
+        "User associated with token no longer exists",
+      );
     }
 
     if (user.isAccountLocked) {
@@ -278,10 +304,12 @@ export class AuthenticationService implements IAuthenticationService {
    */
   async getUserFromToken(accessToken: string): Promise<UserType> {
     const payload = await this.verifyAccessToken(accessToken);
-    
+
     const user = await this.userRepository.findById(payload.userId);
     if (!user) {
-      throw new UnauthenticatedError("User associated with token no longer exists");
+      throw new UnauthenticatedError(
+        "User associated with token no longer exists",
+      );
     }
 
     if (user.isAccountLocked) {
@@ -322,7 +350,9 @@ export class AuthenticationService implements IAuthenticationService {
     }
 
     if (!user.passwordHash) {
-      throw new BadRequestError("This account uses social login and cannot change password");
+      throw new BadRequestError(
+        "This account uses social login and cannot change password",
+      );
     }
 
     // 2. Verify current password
@@ -336,13 +366,17 @@ export class AuthenticationService implements IAuthenticationService {
     }
 
     // 3. Validate new password strength
-    const passwordValidation = this.passwordService.validatePasswordStrength(newPassword);
+    const passwordValidation =
+      this.passwordService.validatePasswordStrength(newPassword);
     if (!passwordValidation.isValid) {
-      throw new BadRequestError(`New password validation failed: ${passwordValidation.errors.join(", ")}`);
+      throw new BadRequestError(
+        `New password validation failed: ${passwordValidation.errors.join(", ")}`,
+      );
     }
 
     // 4. Hash and update new password
-    const newPasswordHash = await this.passwordService.hashPassword(newPassword);
+    const newPasswordHash =
+      await this.passwordService.hashPassword(newPassword);
     await this.userRepository.updatePassword(userId, newPasswordHash);
   }
 
@@ -390,9 +424,9 @@ export class AuthenticationService implements IAuthenticationService {
   private sanitizeUserData(user: UserType): UserType {
     const sanitized = { ...user };
     delete (sanitized as Partial<UserType>).passwordHash;
-    
+
     // Remove verification tokens from emails
-    sanitized.emails = sanitized.emails.map(email => ({
+    sanitized.emails = sanitized.emails.map((email) => ({
       ...email,
       verificationToken: undefined,
       verificationTokenExpiresAt: undefined,
@@ -406,13 +440,13 @@ export class AuthenticationService implements IAuthenticationService {
    * This will be removed once all controllers are updated
    * @deprecated Use verifyAccessToken and getUserFromToken instead
    */
-  async authenticateUserByToken(token: string): Promise<{ 
-    userId: string; 
-    globalRole: string; 
-    primaryEmail: string; 
+  async authenticateUserByToken(token: string): Promise<{
+    userId: string;
+    globalRole: string;
+    primaryEmail: string;
   }> {
     const payload = await this.verifyAccessToken(token);
-    
+
     return {
       userId: payload.userId,
       globalRole: payload.role,

@@ -154,7 +154,7 @@ export class MongoDbUserRepository implements IUserRepository {
 
   private mapDocumentToEntity(doc: WithId<MongoUserDocument>): UserType {
     const { _id, ...restOfDoc } = doc;
-    
+
     // Convert null values to undefined for optional fields (MongoDB converts undefined to null)
     const cleanedDoc = {
       ...restOfDoc,
@@ -168,7 +168,7 @@ export class MongoDbUserRepository implements IUserRepository {
         verificationTokenExpiresAt: email.verificationTokenExpiresAt === null ? undefined : email.verificationTokenExpiresAt,
       })),
     };
-    
+
     return userSchema.parse(cleanedDoc);
   }
 }

@@ -1,10 +1,10 @@
 import jwt from "jsonwebtoken";
 import { env } from "@/env";
 import { UnauthenticatedError } from "@/errors";
-import type { 
-  UserType, 
-  JWTPayloadType, 
-  RefreshJWTPayloadType 
+import type {
+  UserType,
+  JWTPayloadType,
+  RefreshJWTPayloadType,
 } from "@/schemas/user.schema";
 
 // JWT service interface
@@ -14,7 +14,9 @@ export interface IJWTService {
   verifyAccessToken(token: string): Promise<JWTPayloadType>;
   verifyRefreshToken(token: string): Promise<RefreshJWTPayloadType>;
   decodeToken(token: string): jwt.JwtPayload | string | null;
-  generateTokenPair(user: UserType): Promise<{ accessToken: string; refreshToken: string }>;
+  generateTokenPair(
+    user: UserType,
+  ): Promise<{ accessToken: string; refreshToken: string }>;
 }
 
 // Token generation options
@@ -51,9 +53,13 @@ export class JWTService implements IJWTService {
     options?: TokenGenerationOptions,
   ): Promise<string> {
     const now = Math.floor(Date.now() / 1000);
-    const expirySeconds = (options?.expiryOverride as number) || (this.accessTokenExpiryMinutes * 60);
+    const expirySeconds =
+      (options?.expiryOverride as number) || this.accessTokenExpiryMinutes * 60;
 
-    const payload: Omit<JWTPayloadType, 'iat' | 'exp'> & { iat: number; exp: number } = {
+    const payload: Omit<JWTPayloadType, "iat" | "exp"> & {
+      iat: number;
+      exp: number;
+    } = {
       userId: user.id,
       email: user.primaryEmail,
       role: user.globalRole,
@@ -76,10 +82,9 @@ export class JWTService implements IJWTService {
     try {
       return jwt.sign(payload, this.accessTokenSecret, signOptions);
     } catch (error) {
-      throw new UnauthenticatedError(
-        "Failed to generate access token",
-        { cause: error }
-      );
+      throw new UnauthenticatedError("Failed to generate access token", {
+        cause: error,
+      });
     }
   }
 
@@ -94,9 +99,14 @@ export class JWTService implements IJWTService {
     options?: TokenGenerationOptions,
   ): Promise<string> {
     const now = Math.floor(Date.now() / 1000);
-    const expirySeconds = (options?.expiryOverride as number) || (this.refreshTokenExpiryDays * 24 * 60 * 60);
+    const expirySeconds =
+      (options?.expiryOverride as number) ||
+      this.refreshTokenExpiryDays * 24 * 60 * 60;
 
-    const payload: Omit<RefreshJWTPayloadType, 'iat' | 'exp'> & { iat: number; exp: number } = {
+    const payload: Omit<RefreshJWTPayloadType, "iat" | "exp"> & {
+      iat: number;
+      exp: number;
+    } = {
       userId: user.id,
       type: "refresh",
       iat: now,
@@ -118,10 +128,9 @@ export class JWTService implements IJWTService {
     try {
       return jwt.sign(payload, this.refreshTokenSecret, signOptions);
     } catch (error) {
-      throw new UnauthenticatedError(
-        "Failed to generate refresh token",
-        { cause: error }
-      );
+      throw new UnauthenticatedError("Failed to generate refresh token", {
+        cause: error,
+      });
     }
   }
 
@@ -145,20 +154,28 @@ export class JWTService implements IJWTService {
       return decoded;
     } catch (error) {
       if (error instanceof jwt.JsonWebTokenError) {
-        throw new UnauthenticatedError("Invalid access token", { cause: error });
+        throw new UnauthenticatedError("Invalid access token", {
+          cause: error,
+        });
       }
       if (error instanceof jwt.TokenExpiredError) {
-        throw new UnauthenticatedError("Access token expired", { cause: error });
+        throw new UnauthenticatedError("Access token expired", {
+          cause: error,
+        });
       }
       if (error instanceof jwt.NotBeforeError) {
-        throw new UnauthenticatedError("Access token not active yet", { cause: error });
+        throw new UnauthenticatedError("Access token not active yet", {
+          cause: error,
+        });
       }
       // Re-throw if it's already our custom error
       if (error instanceof UnauthenticatedError) {
         throw error;
       }
       // Fallback for unexpected errors
-      throw new UnauthenticatedError("Token verification failed", { cause: error });
+      throw new UnauthenticatedError("Token verification failed", {
+        cause: error,
+      });
     }
   }
 
@@ -176,26 +193,36 @@ export class JWTService implements IJWTService {
 
       // Additional validation to ensure token structure and type
       if (!decoded.userId || decoded.type !== "refresh") {
-        throw new UnauthenticatedError("Invalid refresh token payload structure");
+        throw new UnauthenticatedError(
+          "Invalid refresh token payload structure",
+        );
       }
 
       return decoded;
     } catch (error) {
       if (error instanceof jwt.JsonWebTokenError) {
-        throw new UnauthenticatedError("Invalid refresh token", { cause: error });
+        throw new UnauthenticatedError("Invalid refresh token", {
+          cause: error,
+        });
       }
       if (error instanceof jwt.TokenExpiredError) {
-        throw new UnauthenticatedError("Refresh token expired", { cause: error });
+        throw new UnauthenticatedError("Refresh token expired", {
+          cause: error,
+        });
       }
       if (error instanceof jwt.NotBeforeError) {
-        throw new UnauthenticatedError("Refresh token not active yet", { cause: error });
+        throw new UnauthenticatedError("Refresh token not active yet", {
+          cause: error,
+        });
       }
       // Re-throw if it's already our custom error
       if (error instanceof UnauthenticatedError) {
         throw error;
       }
       // Fallback for unexpected errors
-      throw new UnauthenticatedError("Refresh token verification failed", { cause: error });
+      throw new UnauthenticatedError("Refresh token verification failed", {
+        cause: error,
+      });
     }
   }
 
@@ -231,10 +258,9 @@ export class JWTService implements IJWTService {
 
       return { accessToken, refreshToken };
     } catch (error) {
-      throw new UnauthenticatedError(
-        "Failed to generate token pair",
-        { cause: error }
-      );
+      throw new UnauthenticatedError("Failed to generate token pair", {
+        cause: error,
+      });
     }
   }
 
@@ -247,7 +273,7 @@ export class JWTService implements IJWTService {
   extractUserIdFromToken(token: string): string | null {
     try {
       const decoded = this.decodeToken(token);
-      if (decoded && typeof decoded === 'object' && 'userId' in decoded) {
+      if (decoded && typeof decoded === "object" && "userId" in decoded) {
         return decoded.userId as string;
       }
       return null;
@@ -265,7 +291,7 @@ export class JWTService implements IJWTService {
   isTokenExpired(token: string): boolean {
     try {
       const decoded = this.decodeToken(token);
-      if (decoded && typeof decoded === 'object' && 'exp' in decoded) {
+      if (decoded && typeof decoded === "object" && "exp" in decoded) {
         const now = Math.floor(Date.now() / 1000);
         return (decoded.exp as number) < now;
       }
@@ -284,7 +310,7 @@ export class JWTService implements IJWTService {
   getTokenExpiry(token: string): Date | null {
     try {
       const decoded = this.decodeToken(token);
-      if (decoded && typeof decoded === 'object' && 'exp' in decoded) {
+      if (decoded && typeof decoded === "object" && "exp" in decoded) {
         return new Date((decoded.exp as number) * 1000);
       }
       return null;
@@ -303,7 +329,7 @@ export class JWTService implements IJWTService {
     try {
       const expiry = this.getTokenExpiry(token);
       if (!expiry) return 0;
-      
+
       const now = new Date();
       const remaining = Math.floor((expiry.getTime() - now.getTime()) / 1000);
       return Math.max(0, remaining);

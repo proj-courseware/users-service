@@ -19,7 +19,9 @@ export const passwordValidationResultSchema = z.object({
   errors: z.array(z.string()),
 });
 
-export type PasswordValidationResultType = z.infer<typeof passwordValidationResultSchema>;
+export type PasswordValidationResultType = z.infer<
+  typeof passwordValidationResultSchema
+>;
 
 // Default password policy
 export const DEFAULT_PASSWORD_POLICY: PasswordPolicyType = {
@@ -35,7 +37,10 @@ export const DEFAULT_PASSWORD_POLICY: PasswordPolicyType = {
 export interface IPasswordService {
   hashPassword(password: string): Promise<string>;
   verifyPassword(password: string, hash: string): Promise<boolean>;
-  validatePasswordStrength(password: string, policy?: PasswordPolicyType): PasswordValidationResultType;
+  validatePasswordStrength(
+    password: string,
+    policy?: PasswordPolicyType,
+  ): PasswordValidationResultType;
   generateSecurePassword(length?: number): string;
 }
 
@@ -57,7 +62,9 @@ export class PasswordService implements IPasswordService {
     try {
       return await argon2.hash(password, this.argon2Options);
     } catch (error) {
-      throw new Error(`Failed to hash password: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      throw new Error(
+        `Failed to hash password: ${error instanceof Error ? error.message : "Unknown error"}`,
+      );
     }
   }
 
@@ -72,7 +79,7 @@ export class PasswordService implements IPasswordService {
       return await argon2.verify(hash, password);
     } catch (error) {
       // Log error but don't expose details for security
-      console.error('Password verification error:', error);
+      console.error("Password verification error:", error);
       return false;
     }
   }
@@ -91,32 +98,41 @@ export class PasswordService implements IPasswordService {
 
     // Check minimum length
     if (password.length < policy.minLength) {
-      errors.push(`Password must be at least ${policy.minLength} characters long`);
+      errors.push(
+        `Password must be at least ${policy.minLength} characters long`,
+      );
     }
 
     // Check maximum length
     if (password.length > policy.maxLength) {
-      errors.push(`Password must be no more than ${policy.maxLength} characters long`);
+      errors.push(
+        `Password must be no more than ${policy.maxLength} characters long`,
+      );
     }
 
     // Check uppercase requirement
     if (policy.requireUppercase && !/[A-Z]/.test(password)) {
-      errors.push('Password must contain at least one uppercase letter');
+      errors.push("Password must contain at least one uppercase letter");
     }
 
     // Check lowercase requirement
     if (policy.requireLowercase && !/[a-z]/.test(password)) {
-      errors.push('Password must contain at least one lowercase letter');
+      errors.push("Password must contain at least one lowercase letter");
     }
 
     // Check numbers requirement
     if (policy.requireNumbers && !/\d/.test(password)) {
-      errors.push('Password must contain at least one number');
+      errors.push("Password must contain at least one number");
     }
 
     // Check special characters requirement
-    if (policy.requireSpecialChars && !/[!@#$%^&*(),.?":{}|<>]/.test(password)) {
-      errors.push('Password must contain at least one special character (!@#$%^&*(),.?":{}|<>)');
+    if (
+      policy.requireSpecialChars &&
+      !/[!@#$%^&*(),.?":{}|<>]/.test(password)
+    ) {
+      errors.push(
+        'Password must contain at least one special character (!@#$%^&*(),.?":{}|<>)',
+      );
     }
 
     return {
@@ -131,29 +147,29 @@ export class PasswordService implements IPasswordService {
    * @returns Randomly generated secure password
    */
   generateSecurePassword(length: number = 16): string {
-    const lowercase = 'abcdefghijklmnopqrstuvwxyz';
-    const uppercase = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
-    const numbers = '0123456789';
+    const lowercase = "abcdefghijklmnopqrstuvwxyz";
+    const uppercase = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+    const numbers = "0123456789";
     const specialChars = '!@#$%^&*(),.?":{}|<>';
-    
+
     const allChars = lowercase + uppercase + numbers + specialChars;
-    
+
     // Ensure at least one character from each required category
-    let password = '';
+    let password = "";
     password += lowercase[Math.floor(Math.random() * lowercase.length)];
     password += uppercase[Math.floor(Math.random() * uppercase.length)];
     password += numbers[Math.floor(Math.random() * numbers.length)];
     password += specialChars[Math.floor(Math.random() * specialChars.length)];
-    
+
     // Fill remaining length with random characters
     for (let i = password.length; i < length; i++) {
       password += allChars[Math.floor(Math.random() * allChars.length)];
     }
-    
+
     // Shuffle the password to avoid predictable patterns
     return password
-      .split('')
+      .split("")
       .sort(() => Math.random() - 0.5)
-      .join('');
+      .join("");
   }
 }
