@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import type { AuthController } from "@/controllers/auth.controller";
 import type { AppEnv } from "@/schemas/app-env.schema";
 import { validate as defaultValidate } from "@/middlewares/validation.middleware";
+import { authRateLimitMiddleware } from "@/middlewares/rate-limit.middleware";
 import {
   registerUserSchema,
   loginCredentialsSchema,
@@ -28,6 +29,7 @@ export const createAuthRoutes = (dependencies: CreateAuthRoutesDeps) => {
    */
   authRoutes.post(
     "/register",
+    authRateLimitMiddleware,
     validate({
       schema: registerUserSchema,
       source: "body",
@@ -42,6 +44,7 @@ export const createAuthRoutes = (dependencies: CreateAuthRoutesDeps) => {
    */
   authRoutes.post(
     "/login",
+    authRateLimitMiddleware,
     validate({
       schema: loginCredentialsSchema,
       source: "body",
@@ -57,6 +60,7 @@ export const createAuthRoutes = (dependencies: CreateAuthRoutesDeps) => {
    */
   authRoutes.post(
     "/refresh",
+    authRateLimitMiddleware,
     authController.refreshToken,
   );
 
@@ -67,6 +71,7 @@ export const createAuthRoutes = (dependencies: CreateAuthRoutesDeps) => {
    */
   authRoutes.post(
     "/verify-email",
+    authRateLimitMiddleware,
     authController.verifyEmail,
   );
 
@@ -77,6 +82,7 @@ export const createAuthRoutes = (dependencies: CreateAuthRoutesDeps) => {
    */
   authRoutes.post(
     "/resend-verification",
+    authRateLimitMiddleware,
     authController.resendVerification,
   );
 

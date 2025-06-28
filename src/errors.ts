@@ -104,6 +104,15 @@ export class ServiceUnavailableError extends BaseError {
   }
 }
 
+export class TooManyRequestsError extends BaseError {
+  constructor(
+    message: string = "Too Many Requests",
+    options?: Omit<BaseErrorOptions, "errorCode">,
+  ) {
+    super(message, { ...options, errorCode: 429 });
+  }
+}
+
 // Authentication-specific error classes
 export class UserAlreadyExistsError extends BaseError {
   constructor(

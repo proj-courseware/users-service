@@ -40,6 +40,12 @@ const envSchema = z.object({
   REDIS_HOST: z.string().default("localhost"),
   REDIS_PORT: z.coerce.number().default(6379),
   REDIS_PASSWORD: z.string().optional(),
+  // Rate Limiting Configuration
+  RATE_LIMIT_WINDOW_MINUTES: z.coerce.number().default(15),
+  RATE_LIMIT_MAX_REQUESTS: z.coerce.number().default(100),
+  RATE_LIMIT_AUTH_WINDOW_MINUTES: z.coerce.number().default(15),
+  RATE_LIMIT_AUTH_MAX_REQUESTS: z.coerce.number().default(5),
+  RATE_LIMIT_STRICT_MODE: z.coerce.boolean().default(true),
 });
 
 // Create an object to allow (potentially) mapping environment variables with different names
@@ -67,6 +73,11 @@ const mappedEnv = {
   REDIS_HOST: process.env.REDIS_HOST,
   REDIS_PORT: process.env.REDIS_PORT,
   REDIS_PASSWORD: process.env.REDIS_PASSWORD,
+  RATE_LIMIT_WINDOW_MINUTES: process.env.RATE_LIMIT_WINDOW_MINUTES,
+  RATE_LIMIT_MAX_REQUESTS: process.env.RATE_LIMIT_MAX_REQUESTS,
+  RATE_LIMIT_AUTH_WINDOW_MINUTES: process.env.RATE_LIMIT_AUTH_WINDOW_MINUTES,
+  RATE_LIMIT_AUTH_MAX_REQUESTS: process.env.RATE_LIMIT_AUTH_MAX_REQUESTS,
+  RATE_LIMIT_STRICT_MODE: process.env.RATE_LIMIT_STRICT_MODE,
 };
 
 const _env = envSchema.safeParse(mappedEnv);
