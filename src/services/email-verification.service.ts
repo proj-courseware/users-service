@@ -3,12 +3,10 @@ import crypto from "crypto";
 import {
   BadRequestError,
   NotFoundError,
-  UnauthenticatedError,
 } from "@/errors";
 import type { IUserRepository } from "@/repositories/user.repository";
 import type {
   UserType,
-  EmailObjectType,
 } from "@/schemas/user.schema";
 
 // Email verification result interfaces
@@ -149,7 +147,6 @@ export class EmailVerificationService implements IEmailVerificationService {
    */
   async verifyEmailToken(
     token: string,
-    config?: Partial<EmailVerificationConfig>,
   ): Promise<EmailVerificationResult> {
     // 1. Validate token format
     if (!this.isTokenValid(token)) {
@@ -323,7 +320,7 @@ export class EmailVerificationService implements IEmailVerificationService {
     }
 
     // Check if token contains only valid characters (hex or alphanumeric)
-    const validTokenPattern = /^[a-zA-Z0-9\-]+$/;
+    const validTokenPattern = /^[a-zA-Z0-9-]+$/;
     return validTokenPattern.test(token);
   }
 
@@ -399,10 +396,7 @@ export class EmailVerificationService implements IEmailVerificationService {
    * @param config - Optional configuration overrides
    * @returns Number of tokens cleaned up
    */
-  async cleanupExpiredTokens(
-    config?: Partial<EmailVerificationConfig>,
-  ): Promise<number> {
-    const activeConfig = { ...this.config, ...config };
+  async cleanupExpiredTokens(): Promise<number> {
     let cleanedCount = 0;
 
     try {

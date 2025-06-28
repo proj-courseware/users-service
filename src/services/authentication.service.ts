@@ -442,14 +442,14 @@ export class AuthenticationService implements IAuthenticationService {
    */
   async authenticateUserByToken(token: string): Promise<{
     userId: string;
-    globalRole: string;
+    globalRole: "student" | "teacher" | "admin" | "user";
     primaryEmail: string;
   }> {
     const payload = await this.verifyAccessToken(token);
 
     return {
       userId: payload.userId,
-      globalRole: payload.role,
+      globalRole: payload.role as "student" | "teacher" | "admin" | "user",
       primaryEmail: payload.email,
     };
   }
