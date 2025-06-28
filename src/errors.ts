@@ -104,6 +104,43 @@ export class ServiceUnavailableError extends BaseError {
   }
 }
 
+// Authentication-specific error classes
+export class UserAlreadyExistsError extends BaseError {
+  constructor(
+    message: string = "User already exists",
+    options?: Omit<BaseErrorOptions, "errorCode">,
+  ) {
+    super(message, { ...options, errorCode: 409 });
+  }
+}
+
+export class InvalidCredentialsError extends BaseError {
+  constructor(
+    message: string = "Invalid credentials",
+    options?: Omit<BaseErrorOptions, "errorCode">,
+  ) {
+    super(message, { ...options, errorCode: 401 });
+  }
+}
+
+export class AccountLockedError extends BaseError {
+  constructor(
+    message: string = "Account is locked",
+    options?: Omit<BaseErrorOptions, "errorCode">,
+  ) {
+    super(message, { ...options, errorCode: 423 });
+  }
+}
+
+export class EmailNotVerifiedError extends BaseError {
+  constructor(
+    message: string = "Email not verified",
+    options?: Omit<BaseErrorOptions, "errorCode">,
+  ) {
+    super(message, { ...options, errorCode: 403 });
+  }
+}
+
 /**
  * A generic HttpError class for creating errors with specific HTTP status codes
  * without needing a dedicated class for every possible status.
