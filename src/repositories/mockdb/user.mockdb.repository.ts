@@ -427,8 +427,8 @@ export class MockDbUserRepository implements IUserRepository {
     const sortOrder = queryParams.sortOrder || "desc";
 
     filteredUsers.sort((a, b) => {
-      let aValue: any = (a as any)[sortBy];
-      let bValue: any = (b as any)[sortBy];
+      const aValue: unknown = (a as Record<string, unknown>)[sortBy];
+      const bValue: unknown = (b as Record<string, unknown>)[sortBy];
 
       // Handle date sorting
       if (aValue instanceof Date && bValue instanceof Date) {
