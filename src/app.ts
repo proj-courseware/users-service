@@ -3,7 +3,11 @@ import { cors } from "hono/cors";
 import { logger } from "hono/logger";
 import { createNoteRoutes } from "@/routes/note.router";
 import { createEventsRoutes } from "@/routes/events.router";
+import { createAuthRoutes } from "@/routes/auth.router";
+import { createUserRoutes } from "@/routes/user.router";
 import { NoteController } from "@/controllers/note.controller";
+import { AuthController } from "@/controllers/auth.controller";
+import { UserController } from "@/controllers/user.controller";
 import { NoteService } from "@/services/note.service";
 import { MockDbNoteRepository } from "@/repositories/mockdb/note.mockdb.repository";
 import { MongoDbNoteRepository } from "@/repositories/mongodb/note.mongodb.repository";
@@ -31,6 +35,14 @@ const noteRepository =
 const noteService = new NoteService(noteRepository);
 const noteController = new NoteController(noteService);
 app.route("/notes", createNoteRoutes({ noteController }));
+
+// Authentication routes
+const authController = new AuthController();
+app.route("/auth", createAuthRoutes({ authController }));
+
+// User routes (authenticated endpoints)
+const userController = new UserController();
+app.route("/me", createUserRoutes({ userController }));
 
 // Events SSE endpoint
 app.route("/events", createEventsRoutes());
