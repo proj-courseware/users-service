@@ -39,6 +39,8 @@ export const userSchema = z.object({
   passwordLastChangedAt: z.date().optional(),
   isAccountLocked: z.boolean().default(false),
   failedLoginAttempts: z.number().default(0),
+  accountLockedAt: z.date().optional(),
+  accountLockedUntil: z.date().optional(),
   createdAt: z.date().optional(), // Set by DB/service, present on retrieved entities
   updatedAt: z.date().optional(), // Set by DB/service, present on retrieved entities
 });

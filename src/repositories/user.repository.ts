@@ -53,9 +53,11 @@ export interface IUserRepository {
     email: string,
     attempts: number,
     lockAccount?: boolean,
+    lockUntil?: Date,
   ): Promise<void>;
   unlockAccount(id: string): Promise<void>;
   updateLastLogin(id: string): Promise<void>;
+  isAccountCurrentlyLocked(email: string): Promise<boolean>;
 
   // Admin operations
   findAll(

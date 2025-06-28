@@ -45,6 +45,8 @@ export interface AuthServiceConfig {
   lockoutDurationMinutes: number;
   requireEmailVerification: boolean;
   tokenMode: boolean; // true for JWT tokens, false for session-based
+  progressiveLockout: boolean; // Enable progressive lockout
+  maxProgressiveLockoutHours: number; // Maximum lockout duration in hours
 }
 
 // Default configuration
@@ -53,6 +55,8 @@ export const DEFAULT_AUTH_CONFIG: AuthServiceConfig = {
   lockoutDurationMinutes: 30,
   requireEmailVerification: true,
   tokenMode: true,
+  progressiveLockout: true,
+  maxProgressiveLockoutHours: 24,
 };
 
 // Authentication service interface
@@ -189,14 +193,27 @@ export class AuthenticationService implements IAuthenticationService {
       throw new InvalidCredentialsError("Invalid email or password");
     }
 
-    // 2. Check account status
-    if (user.isAccountLocked) {
-      throw new AccountLockedError(
-        `Account is locked due to too many failed login attempts. Please try again later or contact support.`,
-      );
+    // 2. Check account status - use time-aware lockout check
+    const isCurrentlyLocked = await this.userRepository.isAccountCurrentlyLocked(credentials.email);
+    if (isCurrentlyLocked) {
+      let lockMessage = "Account is locked due to too many failed login attempts.";
+      
+      if (user.accountLockedUntil) {
+        const lockUntilFormatted = user.accountLockedUntil.toLocaleString();
+        lockMessage += ` Account will be unlocked at ${lockUntilFormatted}.`;
+      } else {
+        lockMessage += " Please contact support to unlock your account.";
+      }
+      
+      throw new AccountLockedError(lockMessage);
     }
 
-    // 3. Check email verification if required
+    // 3. Auto-unlock account if lockout has expired
+    if (user.isAccountLocked && !isCurrentlyLocked) {
+      await this.userRepository.updateLoginAttempts(credentials.email, 0, false);
+    }
+
+    // 4. Check email verification if required
     if (activeConfig.requireEmailVerification) {
       const primaryEmailObj = user.emails.find(
         (e) => e.emailAddress === user.primaryEmail,
@@ -208,7 +225,7 @@ export class AuthenticationService implements IAuthenticationService {
       }
     }
 
-    // 4. Verify password
+    // 5. Verify password
     if (!user.passwordHash) {
       throw new InvalidCredentialsError(
         "This account uses social login. Please use the appropriate login method.",
@@ -226,15 +243,15 @@ export class AuthenticationService implements IAuthenticationService {
       throw new InvalidCredentialsError("Invalid email or password");
     }
 
-    // 5. Reset failed login attempts on successful login
+    // 6. Reset failed login attempts on successful login
     if (user.failedLoginAttempts > 0) {
       await this.resetFailedAttempts(credentials.email);
     }
 
-    // 6. Update last login time
+    // 7. Update last login time
     await this.userRepository.updateLastLogin(user.id);
 
-    // 7. Generate tokens if in token mode
+    // 8. Generate tokens if in token mode
     let accessToken: string | undefined;
     let refreshToken: string | undefined;
 
@@ -389,7 +406,7 @@ export class AuthenticationService implements IAuthenticationService {
   }
 
   /**
-   * Handle failed login attempt with account lockout logic
+   * Handle failed login attempt with progressive lockout logic
    * @param user User who failed login
    * @param config Authentication configuration
    */
@@ -400,11 +417,68 @@ export class AuthenticationService implements IAuthenticationService {
     const newAttempts = user.failedLoginAttempts + 1;
     const shouldLockAccount = newAttempts >= config.maxFailedAttempts;
 
-    await this.userRepository.updateLoginAttempts(
-      user.primaryEmail,
-      newAttempts,
-      shouldLockAccount,
-    );
+    if (shouldLockAccount && config.progressiveLockout) {
+      // Calculate progressive lockout duration
+      const lockoutDuration = this.calculateProgressiveLockoutDuration(
+        newAttempts,
+        config,
+      );
+      const lockUntil = new Date(Date.now() + lockoutDuration);
+
+      await this.userRepository.updateLoginAttempts(
+        user.primaryEmail,
+        newAttempts,
+        true,
+        lockUntil,
+      );
+    } else if (shouldLockAccount) {
+      // Standard lockout (fixed duration)
+      const lockUntil = new Date(
+        Date.now() + config.lockoutDurationMinutes * 60 * 1000,
+      );
+
+      await this.userRepository.updateLoginAttempts(
+        user.primaryEmail,
+        newAttempts,
+        true,
+        lockUntil,
+      );
+    } else {
+      // Just update failed attempts count
+      await this.userRepository.updateLoginAttempts(
+        user.primaryEmail,
+        newAttempts,
+        false,
+      );
+    }
+  }
+
+  /**
+   * Calculate progressive lockout duration based on failed attempts
+   * First lockout = base duration, then exponential backoff: 2^(lockout_number - 1) * baseDuration
+   * @param attempts Number of failed attempts
+   * @param config Authentication configuration
+   * @returns Lockout duration in milliseconds
+   */
+  private calculateProgressiveLockoutDuration(
+    attempts: number,
+    config: AuthServiceConfig,
+  ): number {
+    const baseAttempts = config.maxFailedAttempts;
+    const excessAttempts = Math.max(0, attempts - baseAttempts);
+    
+    // First lockout uses base duration, then exponential backoff
+    // excessAttempts = 0 -> multiplier = 1 (base duration)
+    // excessAttempts = 1 -> multiplier = 2 (double)
+    // excessAttempts = 2 -> multiplier = 4 (quadruple)
+    const multiplier = Math.pow(2, excessAttempts);
+    const baseDurationMs = config.lockoutDurationMinutes * 60 * 1000;
+    const calculatedDuration = multiplier * baseDurationMs;
+    
+    // Cap at maximum lockout duration
+    const maxDurationMs = config.maxProgressiveLockoutHours * 60 * 60 * 1000;
+    
+    return Math.min(calculatedDuration, maxDurationMs);
   }
 
   /**

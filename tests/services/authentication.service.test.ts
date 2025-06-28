@@ -132,7 +132,9 @@ const createMockUserRepository = (): jest.Mocked<IUserRepository> => ({
   updateLoginAttempts: vi.fn(),
   unlockAccount: vi.fn(),
   updateLastLogin: vi.fn(),
+  isAccountCurrentlyLocked: vi.fn(),
   findAll: vi.fn(),
+  findMany: vi.fn(),
 });
 
 const createMockPasswordService = (): jest.Mocked<IPasswordService> => ({
@@ -171,6 +173,9 @@ describe("AuthenticationService", () => {
       mockPasswordService,
       mockJWTService,
     );
+
+    // Set default mock behaviors
+    mockUserRepository.isAccountCurrentlyLocked.mockResolvedValue(false);
 
     // Reset all mocks
     vi.clearAllMocks();
@@ -318,6 +323,7 @@ describe("AuthenticationService", () => {
 
     it("should throw error for locked account", async () => {
       mockUserRepository.findByEmail.mockResolvedValue(lockedUser);
+      mockUserRepository.isAccountCurrentlyLocked.mockResolvedValue(true);
 
       await expect(
         authService.loginWithPassword(loginCredentials),
@@ -687,6 +693,7 @@ describe("AuthenticationService", () => {
         loginCredentials.email,
         5, // Should reach max
         true, // Should lock account
+        expect.any(Date), // lockUntil date
       );
     });
 

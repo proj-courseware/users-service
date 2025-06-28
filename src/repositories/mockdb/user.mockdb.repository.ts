@@ -355,6 +355,7 @@ export class MockDbUserRepository implements IUserRepository {
     email: string,
     attempts: number,
     lockAccount?: boolean,
+    lockUntil?: Date,
   ): Promise<void> {
     const user = await this.findByEmail(email);
     if (!user) {
@@ -362,9 +363,17 @@ export class MockDbUserRepository implements IUserRepository {
     }
 
     user.failedLoginAttempts = attempts;
+    user.isAccountLocked = !!lockAccount;
+
     if (lockAccount) {
-      user.isAccountLocked = true;
+      user.accountLockedAt = new Date();
+      user.accountLockedUntil = lockUntil;
+    } else {
+      // Clear lockout timestamps when unlocking
+      user.accountLockedAt = undefined;
+      user.accountLockedUntil = undefined;
     }
+
     user.updatedAt = new Date();
   }
 
@@ -376,6 +385,8 @@ export class MockDbUserRepository implements IUserRepository {
 
     user.failedLoginAttempts = 0;
     user.isAccountLocked = false;
+    user.accountLockedAt = undefined;
+    user.accountLockedUntil = undefined;
     user.updatedAt = new Date();
   }
 
@@ -387,6 +398,28 @@ export class MockDbUserRepository implements IUserRepository {
 
     user.lastLoginAt = new Date();
     user.updatedAt = new Date();
+  }
+
+  async isAccountCurrentlyLocked(email: string): Promise<boolean> {
+    const user = await this.findByEmail(email);
+    
+    if (!user) {
+      return false; // User doesn't exist, not locked
+    }
+
+    // If account is not marked as locked, return false
+    if (!user.isAccountLocked) {
+      return false;
+    }
+
+    // If there's no lock expiry time, it's permanently locked
+    if (!user.accountLockedUntil) {
+      return true;
+    }
+
+    // Check if the lock has expired
+    const now = new Date();
+    return now < user.accountLockedUntil;
   }
 
   async findAll(

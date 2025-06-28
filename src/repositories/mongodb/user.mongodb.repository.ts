@@ -448,16 +448,37 @@ export class MongoDbUserRepository implements IUserRepository {
     email: string,
     attempts: number,
     lockAccount = false,
+    lockUntil?: Date,
   ): Promise<void> {
     const collection = await this.getCollection();
+    
+    const updateData: {
+      failedLoginAttempts: number;
+      isAccountLocked: boolean;
+      updatedAt: Date;
+      accountLockedAt?: Date | null;
+      accountLockedUntil?: Date | null;
+    } = {
+      failedLoginAttempts: attempts,
+      isAccountLocked: lockAccount,
+      updatedAt: new Date(),
+    };
+
+    if (lockAccount) {
+      updateData.accountLockedAt = new Date();
+      if (lockUntil) {
+        updateData.accountLockedUntil = lockUntil;
+      }
+    } else {
+      // Clear lockout timestamps when unlocking
+      updateData.accountLockedAt = null;
+      updateData.accountLockedUntil = null;
+    }
+
     await collection.updateOne(
       { primaryEmail: email },
       {
-        $set: {
-          failedLoginAttempts: attempts,
-          isAccountLocked: lockAccount,
-          updatedAt: new Date(),
-        },
+        $set: updateData,
       },
     );
   }
@@ -474,6 +495,8 @@ export class MongoDbUserRepository implements IUserRepository {
         $set: {
           isAccountLocked: false,
           failedLoginAttempts: 0,
+          accountLockedAt: null,
+          accountLockedUntil: null,
           updatedAt: new Date(),
         },
       },
@@ -495,6 +518,29 @@ export class MongoDbUserRepository implements IUserRepository {
         },
       },
     );
+  }
+
+  async isAccountCurrentlyLocked(email: string): Promise<boolean> {
+    const collection = await this.getCollection();
+    const user = await collection.findOne({ primaryEmail: email });
+    
+    if (!user) {
+      return false; // User doesn't exist, not locked
+    }
+
+    // If account is not marked as locked, return false
+    if (!user.isAccountLocked) {
+      return false;
+    }
+
+    // If there's no lock expiry time, it's permanently locked
+    if (!user.accountLockedUntil) {
+      return true;
+    }
+
+    // Check if the lock has expired
+    const now = new Date();
+    return now < user.accountLockedUntil;
   }
 
   async findAll(
