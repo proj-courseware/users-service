@@ -8,6 +8,7 @@ import {
   NotFoundError,
   BadRequestError,
 } from "@/errors";
+import { BaseService } from "@/events/base.service";
 import type { IUserRepository } from "@/repositories/user.repository";
 import type { IPasswordService } from "@/services/password.service";
 import type { IJWTService } from "@/services/jwt.service";
@@ -82,7 +83,7 @@ export interface IAuthenticationService {
 }
 
 // Main authentication service implementation
-export class AuthenticationService implements IAuthenticationService {
+export class AuthenticationService extends BaseService implements IAuthenticationService {
   private readonly config: AuthServiceConfig;
 
   constructor(
@@ -91,6 +92,7 @@ export class AuthenticationService implements IAuthenticationService {
     private readonly jwtService: IJWTService,
     config?: Partial<AuthServiceConfig>,
   ) {
+    super("authentication");
     this.config = { ...DEFAULT_AUTH_CONFIG, ...config };
   }
 
@@ -163,7 +165,18 @@ export class AuthenticationService implements IAuthenticationService {
 
     const user = await this.userRepository.create(userData);
 
-    // 7. TODO: Send verification email (will be implemented in Email Verification Service)
+    // 7. Emit user registration event
+    this.emitEvent("registered", {
+      userId: user.id,
+      email: user.primaryEmail,
+      globalRole: user.globalRole,
+      firstName: user.firstName,
+      lastName: user.lastName,
+    }, {
+      user: { userId: user.id, email: user.primaryEmail }
+    });
+
+    // 8. TODO: Send verification email (will be implemented in Email Verification Service)
     const message = activeConfig.requireEmailVerification
       ? "Registration successful. Please check your email to verify your account."
       : "Registration successful. You can now log in.";
@@ -261,6 +274,16 @@ export class AuthenticationService implements IAuthenticationService {
       refreshToken = tokens.refreshToken;
     }
 
+    // 9. Emit login event
+    this.emitEvent("login", {
+      userId: user.id,
+      email: user.primaryEmail,
+      sessionId: accessToken ? "jwt-" + uuidv4() : undefined,
+      tokenType: activeConfig.tokenMode ? "access" : undefined,
+    }, {
+      user: { userId: user.id, email: user.primaryEmail }
+    });
+
     return {
       user: this.sanitizeUserData(user),
       accessToken,
@@ -298,6 +321,15 @@ export class AuthenticationService implements IAuthenticationService {
 
     // 3. Generate new token pair (token rotation for security)
     const newTokens = await this.jwtService.generateTokenPair(user);
+
+    // 4. Emit token refresh event
+    this.emitEvent("token_refreshed", {
+      userId: user.id,
+      email: user.primaryEmail,
+      tokenType: "refresh",
+    }, {
+      user: { userId: user.id, email: user.primaryEmail }
+    });
 
     return {
       accessToken: newTokens.accessToken,
@@ -395,6 +427,14 @@ export class AuthenticationService implements IAuthenticationService {
     const newPasswordHash =
       await this.passwordService.hashPassword(newPassword);
     await this.userRepository.updatePassword(userId, newPasswordHash);
+
+    // 5. Emit password change event
+    this.emitEvent("password_changed", {
+      userId: user.id,
+      email: user.primaryEmail,
+    }, {
+      user: { userId: user.id, email: user.primaryEmail }
+    });
   }
 
   /**
@@ -431,6 +471,17 @@ export class AuthenticationService implements IAuthenticationService {
         true,
         lockUntil,
       );
+
+      // Emit account locked event
+      this.emitEvent("account_locked", {
+        userId: user.id,
+        email: user.primaryEmail,
+        lockoutDuration,
+        failedAttempts: newAttempts,
+        reason: "Too many failed login attempts",
+      }, {
+        user: { userId: user.id, email: user.primaryEmail }
+      });
     } else if (shouldLockAccount) {
       // Standard lockout (fixed duration)
       const lockUntil = new Date(
@@ -443,6 +494,17 @@ export class AuthenticationService implements IAuthenticationService {
         true,
         lockUntil,
       );
+
+      // Emit account locked event
+      this.emitEvent("account_locked", {
+        userId: user.id,
+        email: user.primaryEmail,
+        lockoutDuration: config.lockoutDurationMinutes * 60 * 1000,
+        failedAttempts: newAttempts,
+        reason: "Too many failed login attempts",
+      }, {
+        user: { userId: user.id, email: user.primaryEmail }
+      });
     } else {
       // Just update failed attempts count
       await this.userRepository.updateLoginAttempts(
@@ -450,6 +512,15 @@ export class AuthenticationService implements IAuthenticationService {
         newAttempts,
         false,
       );
+
+      // Emit failed login attempt event
+      this.emitEvent("failed_login_attempt", {
+        userId: user.id,
+        email: user.primaryEmail,
+        failedAttempts: newAttempts,
+      }, {
+        user: { userId: user.id, email: user.primaryEmail }
+      });
     }
   }
 

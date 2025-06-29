@@ -35,7 +35,7 @@ export function createEventsRoutes(options?: EventsRouteOptions) {
       start(controller: SSEController) {
         // Send initial connection message
         controller.enqueue(
-          new TextEncoder().encode(`data: {"type":"connected"}\n\n`),
+          new TextEncoder().encode(`data: {"type":"connected","message":"Authentication events stream ready"}\n\n`),
         );
 
         const eventHandler = async (event: ServiceEventType) => {
@@ -46,7 +46,7 @@ export function createEventsRoutes(options?: EventsRouteOptions) {
               authorizationService,
             );
             if (canReceive) {
-              const eventData = `event: notes:${event.action}\ndata: ${JSON.stringify(event)}\n\n`;
+              const eventData = `event: ${event.resourceType}:${event.action}\ndata: ${JSON.stringify(event)}\n\n`;
               controller.enqueue(new TextEncoder().encode(eventData));
             }
           } catch (error: unknown) {
@@ -57,10 +57,28 @@ export function createEventsRoutes(options?: EventsRouteOptions) {
           }
         };
 
-        // Listen to all note events
-        appEvents.on("notes:created", eventHandler);
-        appEvents.on("notes:updated", eventHandler);
-        appEvents.on("notes:deleted", eventHandler);
+        // Authentication event listeners
+        const authEventTypes = [
+          // User lifecycle events
+          "users:registered", "users:updated", "users:deleted",
+          // Authentication events
+          "authentication:login", "authentication:logout", "authentication:token_refreshed",
+          // Email events
+          "email:email_verified", "email:email_added", "email:email_removed", "email:verification_sent",
+          // Password events
+          "password:password_changed", "password:password_reset_requested", "password:password_reset_completed",
+          // OAuth events
+          "oauth:oauth_login", "oauth:oauth_account_linked", "oauth:oauth_account_unlinked",
+          // Security events
+          "security:account_locked", "security:account_unlocked", "security:failed_login_attempt",
+          // Admin events
+          "admin:user_role_changed", "admin:admin_action_performed",
+        ];
+
+        // Register event listeners
+        authEventTypes.forEach(eventType => {
+          appEvents.on(eventType, eventHandler);
+        });
 
         // Keep connection alive with heartbeat
         const keepAlive = setInterval(() => {
@@ -77,9 +95,9 @@ export function createEventsRoutes(options?: EventsRouteOptions) {
 
         // Store cleanup function
         controller.cleanup = () => {
-          appEvents.off("notes:created", eventHandler);
-          appEvents.off("notes:updated", eventHandler);
-          appEvents.off("notes:deleted", eventHandler);
+          authEventTypes.forEach(eventType => {
+            appEvents.off(eventType, eventHandler);
+          });
           clearInterval(keepAlive);
         };
       },
@@ -97,6 +115,8 @@ export function createEventsRoutes(options?: EventsRouteOptions) {
         "Content-Type": "text/event-stream",
         "Cache-Control": "no-cache",
         Connection: "keep-alive",
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Headers": "Authorization",
       },
     });
   });
@@ -109,19 +129,39 @@ async function shouldUserReceiveEvent(
   user: AuthenticatedUserContextType,
   authorizationService: AuthorizationService,
 ): Promise<boolean> {
-  // Resource-specific authorization logic using AuthorizationService
+  // Resource-specific authorization logic for authentication events
   switch (event.resourceType) {
-    case "notes":
-      // Ensure event.data has the required structure for note events
+    case "users":
+    case "authentication":
+    case "email":
+    case "password":
+    case "oauth":
+    case "security":
+      // For authentication events, use the updated authorization service
       if (
         typeof event.data === "object" &&
         event.data !== null &&
-        "createdBy" in event.data
+        "userId" in event.data
       ) {
-        return await authorizationService.canReceiveNoteEvent(
+        return await authorizationService.canReceiveAuthEvent(
           user,
-          event.data as { createdBy: string; [key: string]: unknown },
+          event.data as { userId: string; [key: string]: unknown },
         );
+      }
+      return false;
+    case "admin":
+      // Admin events are only visible to admins or the affected user
+      if (authorizationService.isAdmin(user)) {
+        return true;
+      }
+      // If it's about the current user, they can see it
+      if (
+        typeof event.data === "object" &&
+        event.data !== null &&
+        "targetUserId" in event.data &&
+        event.data.targetUserId === user.userId
+      ) {
+        return true;
       }
       return false;
     default:

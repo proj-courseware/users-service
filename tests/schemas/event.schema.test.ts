@@ -1,16 +1,25 @@
 import { describe, it, expect } from "vitest";
-import { serviceEventSchema, noteEventSchema } from "@/schemas/event.schema";
+import { 
+  serviceEventSchema, 
+  userEventSchema,
+  authEventSchema,
+  emailEventSchema,
+  passwordEventSchema,
+  oauthEventSchema,
+  securityEventSchema,
+  adminEventSchema
+} from "@/schemas/event.schema";
 
 describe("Event Schemas", () => {
   describe("serviceEventSchema", () => {
-    it("should validate a complete service event", () => {
+    it("should validate a complete authentication service event", () => {
       const validEvent = {
         id: "event-1",
-        action: "created",
-        data: { id: "1", content: "Test note" },
+        action: "registered",
+        data: { userId: "user-1", email: "test@example.com" },
         user: { id: "user1", name: "John Doe" },
         timestamp: new Date(),
-        resourceType: "notes",
+        resourceType: "users",
       };
 
       const result = serviceEventSchema.safeParse(validEvent);
@@ -23,10 +32,10 @@ describe("Event Schemas", () => {
     it("should validate minimal service event", () => {
       const minimalEvent = {
         id: "event-2",
-        action: "updated",
-        data: { message: "Simple update" },
+        action: "login",
+        data: { userId: "user-1" },
         timestamp: new Date(),
-        resourceType: "notes",
+        resourceType: "authentication",
       };
 
       const result = serviceEventSchema.safeParse(minimalEvent);
@@ -36,15 +45,23 @@ describe("Event Schemas", () => {
       }
     });
 
-    it("should validate all action types", () => {
+    it("should validate all authentication action types", () => {
       const baseEvent = {
         id: "event-3",
-        data: { id: "1" },
+        data: { userId: "user-1" },
         timestamp: new Date(),
-        resourceType: "notes",
+        resourceType: "users",
       };
 
-      const actions = ["created", "updated", "deleted"] as const;
+      const actions = [
+        "registered", "updated", "deleted",
+        "login", "logout", "token_refreshed",
+        "email_verified", "email_added", "email_removed", "verification_sent",
+        "password_changed", "password_reset_requested", "password_reset_completed",
+        "oauth_login", "oauth_account_linked", "oauth_account_unlinked",
+        "account_locked", "account_unlocked", "failed_login_attempt",
+        "user_role_changed", "admin_action_performed"
+      ] as const;
 
       actions.forEach((action) => {
         const event = { ...baseEvent, action };
@@ -53,15 +70,15 @@ describe("Event Schemas", () => {
       });
     });
 
-    it("should validate resourceType field", () => {
+    it("should validate authentication resourceType field", () => {
       const baseEvent = {
         id: "event-4",
-        action: "created",
-        data: { id: "1" },
+        action: "registered",
+        data: { userId: "user-1" },
         timestamp: new Date(),
       };
 
-      const resourceTypes = ["notes", "users", "projects"] as const;
+      const resourceTypes = ["users", "authentication", "email", "password", "oauth", "security", "admin"];
 
       resourceTypes.forEach((resourceType) => {
         const event = { ...baseEvent, resourceType };
@@ -72,10 +89,10 @@ describe("Event Schemas", () => {
 
     it("should accept string id", () => {
       const baseEvent = {
-        action: "created",
-        data: { content: "test" },
+        action: "login",
+        data: { userId: "user-1" },
         timestamp: new Date(),
-        resourceType: "notes",
+        resourceType: "authentication",
       };
 
       // Test string id
@@ -86,17 +103,16 @@ describe("Event Schemas", () => {
     it("should allow user object with additional properties", () => {
       const event = {
         id: "event-5",
-        action: "created",
-        data: { id: "1" },
+        action: "registered",
+        data: { userId: "user-1" },
         user: {
           id: "user1",
           name: "John Doe",
           email: "john@example.com",
-          roles: ["admin"],
-          metadata: { lastLogin: new Date() },
+          role: "admin",
         },
         timestamp: new Date(),
-        resourceType: "notes",
+        resourceType: "users",
       };
 
       const result = serviceEventSchema.safeParse(event);
@@ -105,9 +121,11 @@ describe("Event Schemas", () => {
 
     it("should reject invalid action", () => {
       const invalidEvent = {
+        id: "event-6",
         action: "invalid-action",
-        data: { id: "1" },
+        data: { userId: "user-1" },
         timestamp: new Date(),
+        resourceType: "users",
       };
 
       const result = serviceEventSchema.safeParse(invalidEvent);
@@ -115,135 +133,140 @@ describe("Event Schemas", () => {
     });
 
     it("should require id field", () => {
-      const invalidEvent = {
-        action: "created",
-        data: { id: "1" },
+      const eventWithoutId = {
+        action: "login",
+        data: { userId: "user-1" },
         timestamp: new Date(),
-        resourceType: "notes",
-        // Missing required id
+        resourceType: "authentication",
       };
 
-      const result = serviceEventSchema.safeParse(invalidEvent);
+      const result = serviceEventSchema.safeParse(eventWithoutId);
       expect(result.success).toBe(false);
     });
 
     it("should require user.id when user is provided", () => {
-      const invalidEvent = {
-        action: "created",
-        data: { id: "1" },
-        user: { name: "John Doe" }, // Missing required id
+      const eventWithoutUserId = {
+        id: "event-7",
+        action: "registered",
+        data: { userId: "user-1" },
+        user: { name: "John Doe" },
         timestamp: new Date(),
+        resourceType: "users",
       };
 
-      const result = serviceEventSchema.safeParse(invalidEvent);
+      const result = serviceEventSchema.safeParse(eventWithoutUserId);
       expect(result.success).toBe(false);
     });
 
     it("should require timestamp", () => {
-      const invalidEvent = {
-        action: "created",
-        data: { id: "1" },
-        // Missing required timestamp
+      const eventWithoutTimestamp = {
+        id: "event-8",
+        action: "login",
+        data: { userId: "user-1" },
+        resourceType: "authentication",
       };
 
-      const result = serviceEventSchema.safeParse(invalidEvent);
+      const result = serviceEventSchema.safeParse(eventWithoutTimestamp);
       expect(result.success).toBe(false);
     });
   });
 
-  describe("noteEventSchema", () => {
-    it("should validate a complete note event", () => {
-      const validNoteEvent = {
-        id: "event-note1",
-        action: "created",
+  describe("userEventSchema", () => {
+    it("should validate a complete user event", () => {
+      const validUserEvent = {
+        id: "user-event-1",
+        action: "registered",
         data: {
-          id: "note1",
-          content: "This is a test note",
-          createdAt: new Date(),
-          updatedAt: new Date(),
+          userId: "user-1",
+          email: "test@example.com",
+          globalRole: "student",
+          firstName: "John",
+          lastName: "Doe",
         },
-        user: { id: "user1" },
+        user: { id: "user-1" },
         timestamp: new Date(),
-        resourceType: "notes",
+        resourceType: "users",
       };
 
-      const result = noteEventSchema.safeParse(validNoteEvent);
-      expect(result.success).toBe(true);
-      if (result.success) {
-        expect(result.data).toEqual(validNoteEvent);
-      }
-    });
-
-    it("should validate minimal note event", () => {
-      const minimalNoteEvent = {
-        id: "event-note2",
-        action: "updated",
-        data: {
-          id: "note1",
-          content: "Updated content",
-        },
-        timestamp: new Date(),
-        resourceType: "notes",
-      };
-
-      const result = noteEventSchema.safeParse(minimalNoteEvent);
+      const result = userEventSchema.safeParse(validUserEvent);
       expect(result.success).toBe(true);
     });
 
-    it("should require note data.id", () => {
+    it("should require userId in data", () => {
       const invalidEvent = {
-        action: "created",
+        id: "user-event-2",
+        action: "registered",
         data: {
-          content: "Missing id",
+          email: "test@example.com",
         },
         timestamp: new Date(),
+        resourceType: "users",
       };
 
-      const result = noteEventSchema.safeParse(invalidEvent);
+      const result = userEventSchema.safeParse(invalidEvent);
       expect(result.success).toBe(false);
     });
+  });
 
-    it("should require note data.content", () => {
-      const invalidEvent = {
-        action: "created",
+  describe("authEventSchema", () => {
+    it("should validate a complete auth event", () => {
+      const validAuthEvent = {
+        id: "auth-event-1",
+        action: "login",
         data: {
-          id: "note1",
-          // Missing required content
+          userId: "user-1",
+          email: "test@example.com",
+          ipAddress: "192.168.1.1",
+          userAgent: "Mozilla/5.0",
+          sessionId: "session-123",
+          tokenType: "access",
         },
+        user: { id: "user-1" },
         timestamp: new Date(),
+        resourceType: "authentication",
       };
 
-      const result = noteEventSchema.safeParse(invalidEvent);
-      expect(result.success).toBe(false);
+      const result = authEventSchema.safeParse(validAuthEvent);
+      expect(result.success).toBe(true);
+    });
+  });
+
+  describe("oauthEventSchema", () => {
+    it("should validate a complete oauth event", () => {
+      const validOAuthEvent = {
+        id: "oauth-event-1",
+        action: "oauth_login",
+        data: {
+          userId: "user-1",
+          provider: "google",
+          providerUserId: "google-123",
+          email: "test@example.com",
+          isNewUser: true,
+        },
+        user: { id: "user-1" },
+        timestamp: new Date(),
+        resourceType: "oauth",
+      };
+
+      const result = oauthEventSchema.safeParse(validOAuthEvent);
+      expect(result.success).toBe(true);
     });
 
-    it("should allow optional createdAt and updatedAt", () => {
-      const eventWithoutDates = {
-        id: "event-note3",
-        action: "created",
+    it("should require valid provider", () => {
+      const invalidEvent = {
+        id: "oauth-event-2",
+        action: "oauth_login",
         data: {
-          id: "note1",
-          content: "Test content",
+          userId: "user-1",
+          provider: "invalid-provider",
+          providerUserId: "123",
         },
         timestamp: new Date(),
-        resourceType: "notes",
+        resourceType: "oauth",
       };
 
-      const eventWithDates = {
-        id: "event-note4",
-        action: "created",
-        data: {
-          id: "note1",
-          content: "Test content",
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        },
-        timestamp: new Date(),
-        resourceType: "notes",
-      };
-
-      expect(noteEventSchema.safeParse(eventWithoutDates).success).toBe(true);
-      expect(noteEventSchema.safeParse(eventWithDates).success).toBe(true);
+      const result = oauthEventSchema.safeParse(invalidEvent);
+      expect(result.success).toBe(false);
     });
   });
 });

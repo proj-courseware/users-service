@@ -1,5 +1,6 @@
 import crypto from "node:crypto";
 import { env } from "@/env";
+import { BaseService } from "@/events/base.service";
 import type {
   OAuthProvider,
   OAuthUserInfo,
@@ -302,10 +303,11 @@ class LinkedInOAuthProvider implements IOAuthProvider {
   }
 }
 
-export class OAuthService implements IOAuthService {
+export class OAuthService extends BaseService implements IOAuthService {
   private providers: Map<OAuthProvider, IOAuthProvider>;
 
   constructor() {
+    super("oauth");
     this.providers = new Map();
 
     if (this.isProviderEnabled("google")) {
@@ -366,6 +368,41 @@ export class OAuthService implements IOAuthService {
     const userInfo = await oauthProvider.getUserInfo(tokenResponse.access_token);
 
     return userInfo;
+  }
+
+  // Event emission methods for OAuth controllers to use
+  emitOAuthLogin(userInfo: OAuthUserInfo, userId: string, isNewUser: boolean) {
+    this.emitEvent("oauth_login", {
+      userId,
+      provider: userInfo.provider,
+      providerUserId: userInfo.id,
+      email: userInfo.email,
+      isNewUser,
+    }, {
+      user: { userId, email: userInfo.email }
+    });
+  }
+
+  emitAccountLinked(userInfo: OAuthUserInfo, userId: string) {
+    this.emitEvent("oauth_account_linked", {
+      userId,
+      provider: userInfo.provider,
+      providerUserId: userInfo.id,
+      email: userInfo.email,
+    }, {
+      user: { userId, email: userInfo.email }
+    });
+  }
+
+  emitAccountUnlinked(provider: OAuthProvider, providerUserId: string, userId: string, email: string) {
+    this.emitEvent("oauth_account_unlinked", {
+      userId,
+      provider,
+      providerUserId,
+      email,
+    }, {
+      user: { userId, email }
+    });
   }
 
   validateState(stateString: string): OAuthState {

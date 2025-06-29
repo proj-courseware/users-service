@@ -4,6 +4,7 @@ import {
   BadRequestError,
   NotFoundError,
 } from "@/errors";
+import { BaseService } from "@/events/base.service";
 import type { IUserRepository } from "@/repositories/user.repository";
 import type {
   UserType,
@@ -68,13 +69,14 @@ export interface IEmailVerificationService {
 }
 
 // Main email verification service implementation
-export class EmailVerificationService implements IEmailVerificationService {
+export class EmailVerificationService extends BaseService implements IEmailVerificationService {
   private readonly config: EmailVerificationConfig;
 
   constructor(
     private readonly userRepository: IUserRepository,
     config?: Partial<EmailVerificationConfig>,
   ) {
+    super("email");
     this.config = { ...DEFAULT_EMAIL_VERIFICATION_CONFIG, ...config };
   }
 
@@ -131,6 +133,15 @@ export class EmailVerificationService implements IEmailVerificationService {
       token,
       expiresAt,
     );
+
+    // 7. Emit verification sent event
+    this.emitEvent("verification_sent", {
+      userId,
+      email: emailAddress,
+      isVerified: false,
+    }, {
+      user: { userId, email: emailAddress }
+    });
 
     return {
       token,
@@ -198,7 +209,17 @@ export class EmailVerificationService implements IEmailVerificationService {
     // 6. Mark email as verified and clear token
     await this.userRepository.verifyEmail(user.id, emailObj.emailAddress);
 
-    // 7. Get updated user data
+    // 7. Emit email verification event
+    this.emitEvent("email_verified", {
+      userId: user.id,
+      email: emailObj.emailAddress,
+      isVerified: true,
+      isPrimary: emailObj.emailAddress === user.primaryEmail,
+    }, {
+      user: { userId: user.id, email: user.primaryEmail }
+    });
+
+    // 8. Get updated user data
     const updatedUser = await this.userRepository.findById(user.id);
     if (!updatedUser) {
       throw new NotFoundError("User not found after verification");

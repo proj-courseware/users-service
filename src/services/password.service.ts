@@ -1,6 +1,7 @@
 import argon2 from "argon2";
 import { z } from "zod";
 import { env } from "@/env";
+import { BaseService } from "@/events/base.service";
 
 // Password policy schema
 export const passwordPolicySchema = z.object({
@@ -60,13 +61,17 @@ export interface IPasswordService {
 }
 
 // Password service implementation using Argon2id
-export class PasswordService implements IPasswordService {
+export class PasswordService extends BaseService implements IPasswordService {
   private readonly argon2Options = {
     type: argon2.argon2id,
     memoryCost: 2 ** 16, // 64MB
     timeCost: 3,
     parallelism: 1,
   };
+
+  constructor() {
+    super("password");
+  }
 
   /**
    * Hash a password using Argon2id
