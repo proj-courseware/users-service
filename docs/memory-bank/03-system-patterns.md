@@ -27,7 +27,7 @@ The application follows a strict **6-layer architecture** pattern that ensures c
 - **Purpose**: Single source of truth for data structures and validation
 - **Technology**: Zod schemas with TypeScript type inference
 - **Pattern**: Schema-first design with automatic type generation
-- **Key Files**: `user.schema.ts`, `refresh-token.schema.ts`, `admin-setting.schema.ts`
+- **Key Files**: `user.schema.ts`, `refresh-token.schema.ts`, `admin-setting.schema.ts`, `oauth.schema.ts`
 
 **Schema Definition Guidelines**:
 
@@ -1264,6 +1264,121 @@ async updatePassword(userId: string, passwordHash: string): Promise<void> {
   // ❌ Never log password hash
   // logger.info("Updating password", { userId, passwordHash });
 }
+```
+
+## OAuth Integration Patterns
+
+### OAuth Service Architecture
+
+The OAuth implementation follows a provider-abstraction pattern for supporting multiple OAuth providers:
+
+```typescript
+// Provider interface for consistent OAuth implementation
+export interface IOAuthProvider {
+  getAuthorizationUrl(state: string): string;
+  exchangeCodeForToken(code: string): Promise<OAuthTokenResponse>;
+  getUserInfo(accessToken: string): Promise<OAuthUserInfo>;
+}
+
+// Main OAuth service coordinates all providers
+export interface IOAuthService {
+  generateAuthorizationUrl(provider: OAuthProvider, redirectTo?: string): OAuthAuthorizationURL;
+  handleCallback(provider: OAuthProvider, code: string, state: string): Promise<OAuthUserInfo>;
+  validateState(stateString: string): OAuthState;
+  isProviderEnabled(provider: OAuthProvider): boolean;
+  getEnabledProviders(): OAuthProvider[];
+}
+```
+
+### OAuth Security Patterns
+
+#### State Management for CSRF Protection
+
+```typescript
+// Generate cryptographically secure state tokens
+const state: OAuthState = {
+  provider,
+  redirectTo,
+  timestamp: Date.now(),
+  nonce: crypto.randomBytes(16).toString("hex"),
+};
+
+const stateString = Buffer.from(JSON.stringify(state)).toString("base64url");
+```
+
+#### Account Linking Logic
+
+```typescript
+// Smart account linking based on verified emails
+let user = await this.userRepository.findByEmail(oauthUserInfo.email);
+
+if (user) {
+  // Link OAuth account to existing user
+  const socialIdentity = user.socialIdentities?.find(
+    (identity) => identity.provider === provider,
+  );
+  
+  if (!socialIdentity) {
+    user = await this.userRepository.linkSocialIdentity(user.id, {
+      provider,
+      providerId: oauthUserInfo.id,
+      email: oauthUserInfo.email,
+      displayName: oauthUserInfo.name,
+      profileUrl: oauthUserInfo.picture,
+    });
+  }
+} else {
+  // Create new user with OAuth account
+  user = await this.userRepository.create(newUser);
+}
+```
+
+### OAuth Route Patterns
+
+```typescript
+// OAuth routes follow RESTful conventions
+router.get("/providers", async (c) => {
+  return oauthController.getEnabledProviders(c);
+});
+
+router.get("/:provider", async (c) => {
+  return oauthController.initiateOAuth(c);
+});
+
+router.get("/:provider/callback", async (c) => {
+  return oauthController.handleOAuthCallback(c);
+});
+
+router.delete("/:provider", authMiddleware, async (c) => {
+  return oauthController.unlinkOAuthProvider(c);
+});
+```
+
+### OAuth Environment Configuration
+
+```typescript
+// Optional OAuth configuration in environment schema
+GOOGLE_CLIENT_ID: z.string().optional(),
+GOOGLE_CLIENT_SECRET: z.string().optional(),
+GOOGLE_REDIRECT_URI: z.string().url().optional(),
+GITHUB_CLIENT_ID: z.string().optional(),
+GITHUB_CLIENT_SECRET: z.string().optional(),
+GITHUB_REDIRECT_URI: z.string().url().optional(),
+LINKEDIN_CLIENT_ID: z.string().optional(),
+LINKEDIN_CLIENT_SECRET: z.string().optional(),
+LINKEDIN_REDIRECT_URI: z.string().url().optional(),
+```
+
+### OAuth Testing Patterns
+
+```typescript
+// Mock OAuth providers for testing
+vi.mocked(mockOAuthService.isProviderEnabled).mockReturnValue(true);
+vi.mocked(mockOAuthService.generateAuthorizationUrl).mockReturnValue({
+  url: "https://provider.com/oauth/authorize?client_id=123",
+  state: "encoded_state",
+});
+vi.mocked(mockOAuthService.handleCallback).mockResolvedValue(mockOAuthUserInfo);
 ```
 
 These conventions are mandatory for all developers and AI assistants working on this project. Failure to follow these patterns will result in inconsistent code that is difficult to maintain and debug.
