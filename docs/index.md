@@ -1,4 +1,4 @@
-# API Endpoints Documentation
+# Authentication API Documentation
 
 > **Base URL:**  
 > The API base URL depends on your environment (e.g., `http://localhost:3000` for local development, or your production domain).  
@@ -8,16 +8,42 @@
 
 ## API Endpoints Quick Reference
 
-| Method | Path       | Description                   | Auth Required |
-| ------ | ---------- | ----------------------------- | :-----------: |
-| GET    | /          | Root endpoint (hello)         |      No       |
-| GET    | /health    | Health check                  |      No       |
-| GET    | /notes     | List notes (with filters)     |      Yes      |
-| GET    | /notes/:id | Get note by ID                |      Yes      |
-| POST   | /notes     | Create a new note             |      Yes      |
-| PUT    | /notes/:id | Update a note                 |      Yes      |
-| DELETE | /notes/:id | Delete a note                 |      Yes      |
-| GET    | /events    | Real-time events (SSE stream) |      Yes      |
+| Method | Path                              | Description                        | Auth Required |
+| ------ | --------------------------------- | ---------------------------------- | :-----------: |
+| GET    | /                                 | Root endpoint (hello)              |      No       |
+| GET    | /health                           | Health check                       |      No       |
+| POST   | /auth/register                    | Register new user                  |      No       |
+| POST   | /auth/login                       | Login with email/password          |      No       |
+| POST   | /auth/refresh                     | Refresh access token               |      No       |
+| POST   | /auth/verify-email                | Verify email address               |      No       |
+| POST   | /auth/resend-verification         | Resend email verification          |      No       |
+| GET    | /auth/me                          | Get current user info              |      Yes      |
+| POST   | /auth/logout                      | Logout (client-side)               |      No       |
+| GET    | /auth/oauth/providers             | Get enabled OAuth providers        |      No       |
+| GET    | /auth/oauth/:provider             | Initiate OAuth login               |      No       |
+| GET    | /auth/oauth/:provider/callback    | OAuth callback handler             |      No       |
+| DELETE | /auth/oauth/:provider             | Unlink OAuth provider              |      Yes      |
+| GET    | /me                               | Get user profile                   |      Yes      |
+| PUT    | /me                               | Update user profile                |      Yes      |
+| DELETE | /me                               | Delete user account                |      Yes      |
+| PUT    | /me/password                      | Change password                    |      Yes      |
+| GET    | /me/emails                        | Get user emails                    |      Yes      |
+| POST   | /me/emails                        | Add new email                      |      Yes      |
+| PUT    | /me/emails/primary                | Set primary email                  |      Yes      |
+| DELETE | /me/emails/:emailAddress          | Remove email                       |      Yes      |
+| GET    | /admin/users                      | List all users (admin)             |    Admin      |
+| POST   | /admin/users                      | Create user (admin)                |    Admin      |
+| GET    | /admin/users/:userId              | Get user by ID (admin)             |    Admin      |
+| PUT    | /admin/users/:userId              | Update user (admin)                |    Admin      |
+| DELETE | /admin/users/:userId              | Delete user (admin)                |    Admin      |
+| POST   | /admin/users/:userId/lock         | Lock user account                  |    Admin      |
+| POST   | /admin/users/:userId/unlock       | Unlock user account                |    Admin      |
+| GET    | /admin/stats                      | System statistics                  |    Admin      |
+| GET    | /admin/health                     | System health status               |    Admin      |
+| GET    | /admin/settings                   | Get all system settings            |    Admin      |
+| PUT    | /admin/settings/:key              | Set system setting                 |    Admin      |
+| DELETE | /admin/settings/:key              | Delete system setting              |    Admin      |
+| GET    | /events                           | Real-time events (SSE stream)      |      Yes      |
 
 ---
 
@@ -39,103 +65,304 @@
   { "status": "ok" }
   ```
 
-### Notes
+### Authentication
 
-- **GET /notes**  
-  List notes with optional filters, sorting, and pagination.  
-  **Query:** `search`, `sortBy`, `sortOrder`, `page`, `limit`, `createdBy`  
-  **Response:** Paginated list of notes
-
-- **GET /notes/:id**  
-  Get a single note by ID.  
-  **Response:** Note object or 404 error
-
-- **POST /notes**  
-  Create a new note.  
+- **POST /auth/register**  
+  Register a new user account.  
   **Body:**
-
   ```json
-  { "content": "Note content" }
+  {
+    "firstName": "John",
+    "lastName": "Doe",
+    "email": "john@example.com",
+    "password": "SecurePassword123!"
+  }
   ```
+  **Response:** User object with access token
 
-  **Response:** Created note object
-
-- **PUT /notes/:id**  
-  Update an existing note.  
+- **POST /auth/login**  
+  Login with email and password.  
   **Body:**
-
   ```json
-  { "content": "Updated content" }
+  {
+    "email": "john@example.com",
+    "password": "SecurePassword123!"
+  }
+  ```
+  **Response:** User object with access and refresh tokens
+
+- **POST /auth/refresh**  
+  Refresh access token using refresh token.  
+  **Body:**
+  ```json
+  { "refreshToken": "refresh_token_string" }
+  ```
+  **Response:** New access and refresh tokens
+
+- **POST /auth/verify-email**  
+  Verify email address with token.  
+  **Body:**
+  ```json
+  { "token": "verification_token" }
   ```
 
-  **Response:** Updated note object
-
-- **DELETE /notes/:id**  
-  Delete a note by ID.  
-  **Response:**
+- **POST /auth/resend-verification**  
+  Resend email verification.  
+  **Body:**
   ```json
-  { "message": "Note deleted successfully" }
+  {
+    "userId": "user-id",
+    "emailAddress": "john@example.com"
+  }
   ```
+
+- **GET /auth/me**  
+  Get current user information.  
+  **Auth:** Bearer token required  
+  **Response:** Current user object
+
+- **POST /auth/logout**  
+  Logout (client-side token removal).  
+  **Response:** Success message
+
+### Social Authentication (OAuth)
+
+- **GET /auth/oauth/providers**  
+  Get list of enabled OAuth providers.  
+  **Response:** Array of provider names
+
+- **GET /auth/oauth/:provider**  
+  Initiate OAuth login flow (supports google, github, linkedin).  
+  **Response:** Redirect to OAuth provider
+
+- **GET /auth/oauth/:provider/callback**  
+  OAuth callback handler.  
+  **Response:** Redirect with tokens or error
+
+- **DELETE /auth/oauth/:provider**  
+  Unlink OAuth provider from account.  
+  **Auth:** Bearer token required
+
+### User Profile Management
+
+- **GET /me**  
+  Get current user profile.  
+  **Auth:** Bearer token required
+
+- **PUT /me**  
+  Update user profile.  
+  **Body:**
+  ```json
+  {
+    "firstName": "Jane",
+    "lastName": "Smith"
+  }
+  ```
+
+- **DELETE /me**  
+  Delete user account.  
+  **Body:**
+  ```json
+  { "password": "current_password" }
+  ```
+
+- **PUT /me/password**  
+  Change password.  
+  **Body:**
+  ```json
+  {
+    "currentPassword": "old_password",
+    "newPassword": "new_password"
+  }
+  ```
+
+### Email Management
+
+- **GET /me/emails**  
+  Get user's email addresses.  
+  **Response:** Array of email objects
+
+- **POST /me/emails**  
+  Add new email address.  
+  **Body:**
+  ```json
+  { "emailAddress": "new@example.com" }
+  ```
+
+- **PUT /me/emails/primary**  
+  Set primary email address.  
+  **Body:**
+  ```json
+  { "emailAddress": "primary@example.com" }
+  ```
+
+- **DELETE /me/emails/:emailAddress**  
+  Remove email address from account.
+
+### Admin User Management
+
+- **GET /admin/users**  
+  List all users with pagination and filtering.  
+  **Query:** `page`, `limit`, `search`, `role`, `status`  
+  **Auth:** Admin role required
+
+- **POST /admin/users**  
+  Create new user (admin).  
+  **Body:**
+  ```json
+  {
+    "firstName": "John",
+    "lastName": "Doe",
+    "email": "john@example.com",
+    "globalRole": "student",
+    "password": "password123",
+    "sendWelcomeEmail": true
+  }
+  ```
+
+- **GET /admin/users/:userId**  
+  Get user by ID.  
+  **Auth:** Admin role required
+
+- **PUT /admin/users/:userId**  
+  Update user information.  
+  **Auth:** Admin role required
+
+- **DELETE /admin/users/:userId**  
+  Delete user account.  
+  **Auth:** Admin role required
+
+- **POST /admin/users/:userId/lock**  
+  Lock user account.  
+  **Auth:** Admin role required
+
+- **POST /admin/users/:userId/unlock**  
+  Unlock user account.  
+  **Auth:** Admin role required
+
+### Admin System Management
+
+- **GET /admin/stats**  
+  Get system statistics.  
+  **Auth:** Admin role required  
+  **Response:** User counts, system metrics
+
+- **GET /admin/health**  
+  Get detailed system health status.  
+  **Auth:** Admin role required
+
+- **GET /admin/settings**  
+  Get all system settings.  
+  **Auth:** Admin role required
+
+- **PUT /admin/settings/:key**  
+  Set system setting.  
+  **Body:**
+  ```json
+  {
+    "value": "setting_value",
+    "description": "Setting description"
+  }
+  ```
+
+- **DELETE /admin/settings/:key**  
+  Delete system setting.  
+  **Auth:** Admin role required
 
 ### Real-time Events
 
 - **GET /events**  
-  Server-Sent Events (SSE) stream for real-time note events.  
-  **Response:** `text/event-stream` with events: `notes:created`, `notes:updated`, `notes:deleted`, and heartbeats.
+  Server-Sent Events (SSE) stream for real-time authentication events.  
+  **Auth:** Bearer token required  
+  **Response:** `text/event-stream` with authentication events and heartbeats.
 
 ---
 
 ## Authentication
 
-All endpoints except `/` and `/health` require a Bearer token:
+Most endpoints require authentication. There are two methods:
 
+### Bearer Token (Recommended)
 ```http
-Authorization: Bearer <your-token>
+Authorization: Bearer <your-access-token>
 ```
 
-- **Roles:**
-  - `admin`: Full access
-  - `user`: Access to own notes
+### Session Cookies (Optional)
+Session-based authentication via HTTP-only cookies.
+
+### User Roles
+- **admin**: Full system access, user management, system settings
+- **teacher**: Enhanced privileges (educational context)
+- **student**: Basic user privileges (default)
 
 ---
 
 ## Data Models
 
-### Note Object
+### User Object
 
 ```json
 {
-  "id": "note-123",
-  "content": "Note content",
-  "createdBy": "user-456",
-  "createdAt": "2025-06-15T20:30:00.000Z",
-  "updatedAt": "2025-06-15T20:35:00.000Z"
+  "id": "user-123",
+  "firstName": "John",
+  "lastName": "Doe",
+  "primaryEmail": "john@example.com",
+  "emails": [
+    {
+      "address": "john@example.com",
+      "isVerified": true,
+      "isPrimary": true
+    }
+  ],
+  "globalRole": "student",
+  "accountStatus": "active",
+  "socialIdentities": {
+    "google": "google-user-id",
+    "github": "github-username"
+  },
+  "createdAt": "2025-06-29T10:00:00.000Z",
+  "updatedAt": "2025-06-29T10:00:00.000Z"
 }
 ```
 
-### Create Note
+### Authentication Response
 
 ```json
-{ "content": "Note content" }
+{
+  "user": {
+    /* user object */
+  },
+  "tokens": {
+    "accessToken": "jwt-access-token",
+    "refreshToken": "jwt-refresh-token",
+    "expiresIn": 900
+  }
+}
 ```
 
-### Update Note
+### Email Object
 
 ```json
-{ "content": "Updated content" }
+{
+  "address": "email@example.com",
+  "isVerified": true,
+  "isPrimary": false,
+  "verificationToken": "token-string",
+  "verificationExpires": "2025-06-29T11:00:00.000Z"
+}
 ```
 
-### Paginated List
+### Paginated Response
 
 ```json
 {
   "data": [
-    /* array of notes */
+    /* array of objects */
   ],
-  "total": 25,
+  "total": 50,
   "page": 1,
   "limit": 10,
-  "totalPages": 3
+  "totalPages": 5
 }
 ```
 
@@ -159,54 +386,103 @@ Common status codes: 400, 401, 403, 404, 500
 ## Real-time Events (SSE)
 
 - **Endpoint:** `GET /events`
-- **Auth:** Required
+- **Auth:** Bearer token required
 - **Event types:**
-  - `notes:created`
-  - `notes:updated`
-  - `notes:deleted`
-  - Heartbeat (`: heartbeat`)
+  - **User Events:** `users:registered`, `users:updated`, `users:deleted`
+  - **Auth Events:** `authentication:login`, `authentication:logout`, `authentication:token_refreshed`
+  - **Email Events:** `email:email_verified`, `email:verification_sent`, `email:email_added`, `email:email_removed`
+  - **Password Events:** `password:password_changed`, `password:password_reset_requested`
+  - **OAuth Events:** `oauth:oauth_login`, `oauth:oauth_account_linked`, `oauth:oauth_account_unlinked`
+  - **Security Events:** `security:account_locked`, `security:failed_login_attempt`, `security:account_unlocked`
+  - **Admin Events:** `admin:user_role_changed`, `admin:admin_action_performed`
+  - **Heartbeat:** `: heartbeat`
 
 **Example event:**
 
 ```
-event: notes:created
-data: { ...note event payload... }
+event: authentication:login
+data: { "userId": "user-123", "email": "john@example.com", "timestamp": "2025-06-29T10:00:00.000Z" }
 ```
 
 **Client Example (JS):**
 
 ```js
-const es = new EventSource("/events", { withCredentials: true });
-es.addEventListener("notes:created", (e) => {
+const es = new EventSource("/events", {
+  headers: { 'Authorization': 'Bearer your-token' }
+});
+
+es.addEventListener("authentication:login", (e) => {
   const data = JSON.parse(e.data);
-  // handle new note
+  console.log("User logged in:", data.email);
+});
+
+es.addEventListener("security:account_locked", (e) => {
+  const data = JSON.parse(e.data);
+  console.log("Account locked:", data.userId);
 });
 ```
 
 ---
 
-## Authorization
+## Authorization & Security
 
-- **Admin:** Full access to all notes and events
-- **User:** Access only to own notes and related events
+### Access Control
+- **Public endpoints:** Registration, login, OAuth flows, health checks
+- **Authenticated endpoints:** User profile, email management, events
+- **Admin endpoints:** User management, system settings, statistics
+
+### Security Features
+- **Progressive account lockout:** Exponential backoff after failed login attempts
+- **Rate limiting:** Per-endpoint and per-IP request limits
+- **Input validation:** Comprehensive validation with sanitization
+- **CSRF protection:** Session-based CSRF tokens (when enabled)
+- **Password security:** Argon2id hashing with configurable policies
+
+### Social Login
+- **Supported providers:** Google, GitHub, LinkedIn
+- **Account linking:** Automatic linking based on verified email addresses
+- **Security:** OAuth2 with state validation and CSRF protection
 
 ---
 
 ## Development Notes
 
 - **Base URL:** Environment-dependent (see top of document)
-- **Mock Auth Service:** Available at `http://localhost:3333` for development
 - **Database:** Uses MongoDB (production/dev) or in-memory (test)
 - **CORS:** Enabled for all origins in development
+- **Email service:** MailHog for development, SMTP for production
+- **Environment:** Docker-based development with hot reload
 
 ---
 
 ## Environment Variables
 
-- `PORT`, `NODE_ENV`, `AUTH_SERVICE_URL`, `MONGODB_HOST`, `MONGODB_PORT`, `MONGODB_DATABASE`
+Core configuration:
+- `PORT`, `NODE_ENV`, `MONGODB_URI`
+- `JWT_SECRET`, `JWT_EXPIRES_IN`, `REFRESH_TOKEN_EXPIRES_IN`
+- `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`
+
+OAuth providers:
+- `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`
+- `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET`
+- `LINKEDIN_CLIENT_ID`, `LINKEDIN_CLIENT_SECRET`
+
+Security settings:
+- `RATE_LIMIT_WINDOW`, `RATE_LIMIT_MAX_REQUESTS`
+- `PASSWORD_MIN_LENGTH`, `PASSWORD_REQUIRE_UPPERCASE`
 
 ---
 
 ## Error Handling
 
-- Validation, authentication, authorization, business logic, and system errors are handled with consistent error responses.
+All errors return consistent JSON format with appropriate HTTP status codes:
+
+- **400:** Validation errors, malformed requests
+- **401:** Authentication required or invalid credentials
+- **403:** Access forbidden (insufficient permissions)
+- **404:** Resource not found
+- **409:** Conflict (email already exists, etc.)
+- **429:** Rate limit exceeded
+- **500:** Internal server errors
+
+Error responses include detailed messages and validation information when applicable.
