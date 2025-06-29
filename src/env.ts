@@ -31,6 +31,10 @@ const envSchema = z.object({
   SMTP_SECURE: z.coerce.boolean().default(false),
   SMTP_USER: z.string().optional(),
   SMTP_PASSWORD: z.string().optional(),
+  SMTP_FROM_ADDRESS: z.string().email().optional(),
+  SMTP_FROM_NAME: z.string().default("Authentication Service"),
+  EMAIL_MAX_RETRIES: z.coerce.number().default(3),
+  EMAIL_RETRY_DELAY_MS: z.coerce.number().default(1000),
   // Frontend Configuration
   FRONTEND_URL: z.string().url().default("http://localhost:3001"),
   // MailHog Configuration
@@ -92,6 +96,10 @@ const mappedEnv = {
   SMTP_SECURE: process.env.SMTP_SECURE,
   SMTP_USER: process.env.SMTP_USER,
   SMTP_PASSWORD: process.env.SMTP_PASSWORD,
+  SMTP_FROM_ADDRESS: process.env.SMTP_FROM_ADDRESS,
+  SMTP_FROM_NAME: process.env.SMTP_FROM_NAME,
+  EMAIL_MAX_RETRIES: process.env.EMAIL_MAX_RETRIES,
+  EMAIL_RETRY_DELAY_MS: process.env.EMAIL_RETRY_DELAY_MS,
   FRONTEND_URL: process.env.FRONTEND_URL,
   MAILHOG_SMTP_PORT: process.env.MAILHOG_SMTP_PORT,
   MAILHOG_WEB_PORT: process.env.MAILHOG_WEB_PORT,

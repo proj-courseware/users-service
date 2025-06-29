@@ -6,8 +6,10 @@ import type {
 } from "@/schemas/user.schema";
 import type { IAuthenticationService } from "@/services/authentication.service";
 import type { IEmailVerificationService } from "@/services/email-verification.service";
+import type { IEmailService } from "@/services/email.service";
 import { AuthenticationService } from "@/services/authentication.service";
 import { EmailVerificationService } from "@/services/email-verification.service";
+import { EmailService, MockEmailService } from "@/services/email.service";
 import { MockDbUserRepository } from "@/repositories/mockdb/user.mockdb.repository";
 import { MongoDbUserRepository } from "@/repositories/mongodb/user.mongodb.repository";
 import { PasswordService } from "@/services/password.service";
@@ -18,16 +20,19 @@ import { env } from "@/env";
 export interface AuthControllerDeps {
   authenticationService?: IAuthenticationService;
   emailVerificationService?: IEmailVerificationService;
+  emailService?: IEmailService;
 }
 
 export class AuthController {
   private authenticationService: IAuthenticationService;
   private emailVerificationService: IEmailVerificationService;
+  private emailService: IEmailService;
 
   constructor(deps?: AuthControllerDeps) {
-    if (deps?.authenticationService && deps?.emailVerificationService) {
+    if (deps?.authenticationService && deps?.emailVerificationService && deps?.emailService) {
       this.authenticationService = deps.authenticationService;
       this.emailVerificationService = deps.emailVerificationService;
+      this.emailService = deps.emailService;
     } else {
       // Create default services with proper dependency injection
       const userRepository = env.NODE_ENV === "test" 
@@ -44,6 +49,11 @@ export class AuthController {
       );
       
       this.emailVerificationService = new EmailVerificationService(userRepository);
+      
+      // Use MockEmailService in test environment, real EmailService otherwise
+      this.emailService = env.NODE_ENV === "test" 
+        ? new MockEmailService() 
+        : new EmailService();
     }
   }
 
@@ -56,7 +66,7 @@ export class AuthController {
 
     const result = await this.authenticationService.register(body);
 
-    // If email verification is required, generate and return verification info
+    // If email verification is required, generate token and send email
     if (result.requiresEmailVerification) {
       try {
         const verificationResult = await this.emailVerificationService.generateVerificationToken(
@@ -64,14 +74,27 @@ export class AuthController {
           result.user.primaryEmail,
         );
 
+        // Send verification email
+        const emailResult = await this.emailService.sendVerificationEmail(
+          result.user.id,
+          result.user.primaryEmail,
+          verificationResult.token,
+          result.user.firstName,
+        );
+
         return c.json({
           success: true,
           message: result.message,
           user: result.user,
           requiresEmailVerification: true,
-          verificationEmailSent: true,
-          // In a real app, you wouldn't return the token - it would be sent via email
-          // For development/testing purposes, we include it in the response
+          verificationEmailSent: emailResult.success,
+          ...(emailResult.success && { 
+            emailMessageId: emailResult.messageId 
+          }),
+          ...(emailResult.success === false && { 
+            emailError: emailResult.error 
+          }),
+          // In development/testing, include token info for manual testing
           ...(env.NODE_ENV === "development" && { 
             verificationToken: verificationResult.token,
             verificationExpiresAt: verificationResult.expiresAt,
@@ -174,20 +197,62 @@ export class AuthController {
       throw new BadRequestError("User ID and email address are required");
     }
 
-    const result = await this.emailVerificationService.resendVerificationEmail(
-      body.userId,
-      body.emailAddress,
-    );
+    try {
+      const result = await this.emailVerificationService.resendVerificationEmail(
+        body.userId,
+        body.emailAddress,
+      );
 
-    return c.json({
-      success: true,
-      message: result.message,
-      emailAddress: result.emailAddress,
-      // In development, include token info for testing
-      ...(env.NODE_ENV === "development" && {
-        verificationExpiresAt: result.expiresAt,
-      }),
-    });
+      // Get user info for personalized email
+      const userRepository = env.NODE_ENV === "test" 
+        ? new MockDbUserRepository() 
+        : new MongoDbUserRepository();
+      const user = await userRepository.findById(body.userId);
+
+      // Get the verification token from the updated user
+      const updatedUser = await userRepository.findById(body.userId);
+      const emailObj = updatedUser?.emails.find(e => e.emailAddress === body.emailAddress);
+      const token = emailObj?.verificationToken;
+
+      if (token) {
+        // Send verification email
+        const emailResult = await this.emailService.sendVerificationEmail(
+          body.userId,
+          body.emailAddress,
+          token,
+          user?.firstName,
+        );
+
+        return c.json({
+          success: true,
+          message: result.message,
+          emailAddress: result.emailAddress,
+          verificationEmailSent: emailResult.success,
+          ...(emailResult.success && { 
+            emailMessageId: emailResult.messageId 
+          }),
+          ...(emailResult.success === false && { 
+            emailError: emailResult.error 
+          }),
+          // In development, include token info for testing
+          ...(env.NODE_ENV === "development" && {
+            verificationExpiresAt: result.expiresAt,
+            verificationToken: token,
+          }),
+        });
+      } else {
+        return c.json({
+          success: true,
+          message: result.message,
+          emailAddress: result.emailAddress,
+          verificationEmailSent: false,
+          note: "Verification token was generated but could not be retrieved for email sending.",
+        });
+      }
+    } catch (error) {
+      console.error("Failed to resend verification email:", error);
+      throw error;
+    }
   };
 
   /**
