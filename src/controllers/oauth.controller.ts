@@ -1,0 +1,249 @@
+import type { Context } from "hono";
+import { z } from "zod";
+import type { AppEnv } from "@/schemas/app-env.schema";
+import type { IUserRepository } from "@/repositories/user.repository";
+import type { IJwtService } from "@/services/jwt.service";
+import type { IOAuthService } from "@/services/oauth.service";
+import type { IAuthenticationService } from "@/services/authentication.service";
+import {
+  oauthProviderSchema,
+  oauthCallbackQuerySchema,
+  type OAuthProvider,
+} from "@/schemas/oauth.schema";
+import { 
+  createUserSchema,
+  type CreateUserType,
+  type AuthenticatedUserContextType,
+} from "@/schemas/user.schemas";
+import { 
+  ValidationError, 
+  ConflictError, 
+  NotFoundError,
+  UnauthorizedError,
+} from "@/errors";
+
+const providerParamsSchema = z.object({
+  provider: oauthProviderSchema,
+});
+
+const oauthLoginQuerySchema = z.object({
+  redirectTo: z.string().url().optional(),
+});
+
+export interface IOAuthController {
+  initiateOAuth(c: Context<AppEnv>): Promise<Response>;
+  handleOAuthCallback(c: Context<AppEnv>): Promise<Response>;
+  getEnabledProviders(c: Context<AppEnv>): Promise<Response>;
+  unlinkOAuthProvider(c: Context<AppEnv>): Promise<Response>;
+}
+
+export class OAuthController implements IOAuthController {
+  constructor(
+    private userRepository: IUserRepository,
+    private jwtService: IJwtService,
+    private oauthService: IOAuthService,
+    private authService: IAuthenticationService,
+  ) {}
+
+  async initiateOAuth(c: Context<AppEnv>): Promise<Response> {
+    try {
+      const { provider } = providerParamsSchema.parse(c.req.param());
+      const query = oauthLoginQuerySchema.parse(c.req.query());
+
+      if (!this.oauthService.isProviderEnabled(provider)) {
+        throw new NotFoundError(`OAuth provider '${provider}' is not enabled`);
+      }
+
+      const { url } = this.oauthService.generateAuthorizationUrl(
+        provider,
+        query.redirectTo,
+      );
+
+      return c.redirect(url, 302);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        throw new ValidationError("Invalid request parameters", error.errors);
+      }
+      throw error;
+    }
+  }
+
+  async handleOAuthCallback(c: Context<AppEnv>): Promise<Response> {
+    try {
+      const { provider } = providerParamsSchema.parse(c.req.param());
+      const query = oauthCallbackQuerySchema.parse(c.req.query());
+
+      if (!this.oauthService.isProviderEnabled(provider)) {
+        throw new NotFoundError(`OAuth provider '${provider}' is not enabled`);
+      }
+
+      if (query.error) {
+        throw new UnauthorizedError(
+          `OAuth authentication failed: ${query.error_description || query.error}`,
+        );
+      }
+
+      const oauthUserInfo = await this.oauthService.handleCallback(
+        provider,
+        query.code,
+        query.state,
+      );
+
+      const stateData = this.oauthService.validateState(query.state);
+
+      let user = await this.userRepository.findByEmail(oauthUserInfo.email);
+
+      if (user) {
+        const socialIdentity = user.socialIdentities?.find(
+          (identity) => identity.provider === provider,
+        );
+
+        if (!socialIdentity) {
+          user = await this.userRepository.linkSocialIdentity(user.id, {
+            provider,
+            providerId: oauthUserInfo.id,
+            email: oauthUserInfo.email,
+            displayName: oauthUserInfo.name,
+            profileUrl: oauthUserInfo.picture,
+          });
+        } else if (socialIdentity.providerId !== oauthUserInfo.id) {
+          throw new ConflictError(
+            "This email is associated with a different account on this provider",
+          );
+        }
+      } else {
+        const newUser: CreateUserType = {
+          firstName: oauthUserInfo.firstName || oauthUserInfo.name.split(" ")[0] || "",
+          lastName: oauthUserInfo.lastName || oauthUserInfo.name.split(" ").slice(1).join(" ") || "",
+          primaryEmail: oauthUserInfo.email,
+          emails: [
+            {
+              email: oauthUserInfo.email,
+              isVerified: true,
+              isPrimary: true,
+            },
+          ],
+          globalRole: "student",
+          accountStatus: "active",
+          socialIdentities: [
+            {
+              provider,
+              providerId: oauthUserInfo.id,
+              email: oauthUserInfo.email,
+              displayName: oauthUserInfo.name,
+              profileUrl: oauthUserInfo.picture,
+            },
+          ],
+        };
+
+        user = await this.userRepository.create(newUser);
+      }
+
+      const tokens = await this.jwtService.generateTokenPair(
+        user.id,
+        user.globalRole,
+      );
+
+      const responseData = {
+        message: "OAuth authentication successful",
+        tokens: {
+          accessToken: tokens.accessToken,
+          refreshToken: tokens.refreshToken,
+        },
+        user: {
+          id: user.id,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          primaryEmail: user.primaryEmail,
+          globalRole: user.globalRole,
+          accountStatus: user.accountStatus,
+          provider,
+        },
+        redirectTo: stateData.redirectTo,
+      };
+
+      return c.json(responseData, 200);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        throw new ValidationError("Invalid callback parameters", error.errors);
+      }
+      throw error;
+    }
+  }
+
+  async getEnabledProviders(c: Context<AppEnv>): Promise<Response> {
+    const enabledProviders = this.oauthService.getEnabledProviders();
+
+    const providerDetails = enabledProviders.map((provider) => ({
+      name: provider,
+      displayName: this.getProviderDisplayName(provider),
+      authUrl: `/auth/oauth/${provider}`,
+    }));
+
+    return c.json({
+      providers: providerDetails,
+      count: enabledProviders.length,
+    });
+  }
+
+  async unlinkOAuthProvider(c: Context<AppEnv>): Promise<Response> {
+    try {
+      const user = c.var.user as AuthenticatedUserContextType;
+      const { provider } = providerParamsSchema.parse(c.req.param());
+
+      if (!user) {
+        throw new UnauthorizedError("User authentication required");
+      }
+
+      const currentUser = await this.userRepository.findById(user.userId);
+      if (!currentUser) {
+        throw new NotFoundError("User not found");
+      }
+
+      const hasPassword = !!currentUser.passwordHash;
+      const socialIdentities = currentUser.socialIdentities || [];
+      const hasOtherSocialIdentities = socialIdentities.length > 1;
+
+      if (!hasPassword && !hasOtherSocialIdentities) {
+        throw new ConflictError(
+          "Cannot unlink the only authentication method. Set a password first.",
+        );
+      }
+
+      const socialIdentity = socialIdentities.find(
+        (identity) => identity.provider === provider,
+      );
+
+      if (!socialIdentity) {
+        throw new NotFoundError(
+          `${this.getProviderDisplayName(provider)} account is not linked`,
+        );
+      }
+
+      await this.userRepository.unlinkSocialIdentity(currentUser.id, provider);
+
+      return c.json({
+        message: `${this.getProviderDisplayName(provider)} account unlinked successfully`,
+        provider,
+      });
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        throw new ValidationError("Invalid request parameters", error.errors);
+      }
+      throw error;
+    }
+  }
+
+  private getProviderDisplayName(provider: OAuthProvider): string {
+    switch (provider) {
+      case "google":
+        return "Google";
+      case "github":
+        return "GitHub";
+      case "linkedin":
+        return "LinkedIn";
+      default:
+        return provider;
+    }
+  }
+}

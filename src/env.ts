@@ -61,6 +61,16 @@ const envSchema = z.object({
   PASSWORD_REQUIRE_LOWERCASE: z.coerce.boolean().default(true),
   PASSWORD_REQUIRE_NUMBERS: z.coerce.boolean().default(true),
   PASSWORD_REQUIRE_SPECIAL_CHARS: z.coerce.boolean().default(true),
+  // OAuth Configuration
+  GOOGLE_CLIENT_ID: z.string().optional(),
+  GOOGLE_CLIENT_SECRET: z.string().optional(),
+  GOOGLE_REDIRECT_URI: z.string().url().optional(),
+  GITHUB_CLIENT_ID: z.string().optional(),
+  GITHUB_CLIENT_SECRET: z.string().optional(),
+  GITHUB_REDIRECT_URI: z.string().url().optional(),
+  LINKEDIN_CLIENT_ID: z.string().optional(),
+  LINKEDIN_CLIENT_SECRET: z.string().optional(),
+  LINKEDIN_REDIRECT_URI: z.string().url().optional(),
 });
 
 // Create an object to allow (potentially) mapping environment variables with different names
@@ -106,6 +116,15 @@ const mappedEnv = {
   PASSWORD_REQUIRE_LOWERCASE: process.env.PASSWORD_REQUIRE_LOWERCASE,
   PASSWORD_REQUIRE_NUMBERS: process.env.PASSWORD_REQUIRE_NUMBERS,
   PASSWORD_REQUIRE_SPECIAL_CHARS: process.env.PASSWORD_REQUIRE_SPECIAL_CHARS,
+  GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID,
+  GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET,
+  GOOGLE_REDIRECT_URI: process.env.GOOGLE_REDIRECT_URI,
+  GITHUB_CLIENT_ID: process.env.GITHUB_CLIENT_ID,
+  GITHUB_CLIENT_SECRET: process.env.GITHUB_CLIENT_SECRET,
+  GITHUB_REDIRECT_URI: process.env.GITHUB_REDIRECT_URI,
+  LINKEDIN_CLIENT_ID: process.env.LINKEDIN_CLIENT_ID,
+  LINKEDIN_CLIENT_SECRET: process.env.LINKEDIN_CLIENT_SECRET,
+  LINKEDIN_REDIRECT_URI: process.env.LINKEDIN_REDIRECT_URI,
 };
 
 const _env = envSchema.safeParse(mappedEnv);

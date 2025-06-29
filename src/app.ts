@@ -5,10 +5,18 @@ import { createNoteRoutes } from "@/routes/note.router";
 import { createEventsRoutes } from "@/routes/events.router";
 import { createAuthRoutes } from "@/routes/auth.router";
 import { createUserRoutes } from "@/routes/user.router";
+import { createOAuthRouter } from "@/routes/oauth.router";
 import { adminRouter } from "@/routes/admin.router";
 import { NoteController } from "@/controllers/note.controller";
 import { AuthController } from "@/controllers/auth.controller";
 import { UserController } from "@/controllers/user.controller";
+import { OAuthController } from "@/controllers/oauth.controller";
+import { OAuthService } from "@/services/oauth.service";
+import { PasswordService } from "@/services/password.service";
+import { JWTService } from "@/services/jwt.service";
+import { AuthenticationService } from "@/services/authentication.service";
+import { MockDbUserRepository } from "@/repositories/mockdb/user.mockdb.repository";
+import { MongoDbUserRepository } from "@/repositories/mongodb/user.mongodb.repository";
 import { NoteService } from "@/services/note.service";
 import { MockDbNoteRepository } from "@/repositories/mockdb/note.mockdb.repository";
 import { MongoDbNoteRepository } from "@/repositories/mongodb/note.mongodb.repository";
@@ -44,6 +52,26 @@ app.route("/auth", createAuthRoutes({ authController }));
 // User routes (authenticated endpoints)
 const userController = new UserController();
 app.route("/me", createUserRoutes({ userController }));
+
+// OAuth routes (social login endpoints)
+const userRepository = env.NODE_ENV === "test" 
+  ? new MockDbUserRepository() 
+  : new MongoDbUserRepository();
+const passwordService = new PasswordService();
+const jwtService = new JWTService();
+const authenticationService = new AuthenticationService(
+  userRepository,
+  passwordService,
+  jwtService,
+);
+const oauthService = new OAuthService();
+const oauthController = new OAuthController(
+  userRepository,
+  jwtService,
+  oauthService,
+  authenticationService,
+);
+app.route("/auth/oauth", createOAuthRouter(oauthController));
 
 // Admin routes (admin-only endpoints)
 app.route("/admin", adminRouter);
