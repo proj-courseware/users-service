@@ -224,6 +224,67 @@
 
 - 📋 **API Documentation**: Complete OpenAPI/Swagger documentation
 
+### Phase 5.5: Codebase Cleanup and Event System Enhancement ⚠️ **CRITICAL NEED IDENTIFIED**
+
+**Priority**: High  
+**Status**: 🎯 **READY TO BEGIN**  
+**Estimated Time**: 6-9 days
+**Date Identified**: June 29, 2025
+
+#### Critical Issues Discovered
+
+Through comprehensive codebase review, several critical issues were identified:
+
+1. **Template Remnants**: 13 note-related files still exist from original template
+2. **Missing Event System**: Authentication services don't emit events for real-time functionality
+3. **Incomplete Event Router**: Currently serves note events instead of authentication events
+4. **Missing Authentication Events**: No real-time capabilities for auth monitoring
+
+#### Phase 5.5 Implementation Plan
+
+##### **Subphase 1: Template Cleanup (Priority: HIGH - 1-2 days)**
+
+- 🗑️ **Remove Template Remnants (13 files)**
+  - Remove `src/schemas/note.schema.ts` and related imports
+  - Remove `src/controllers/note.controller.ts` 
+  - Remove `src/services/note.service.ts`
+  - Remove `src/routes/note.router.ts`
+  - Remove `src/repositories/note.repository.ts` and implementations
+  - Remove all note-related test files (6 test files)
+  - Update `src/app.ts` to remove note dependencies
+  - Clean up authorization service note-specific methods
+
+##### **Subphase 2: Event System Enhancement (Priority: HIGH - 3-4 days)**
+
+- ⚡ **Authentication Event Integration**
+  - Create authentication event schemas (user:registered, user:login, user:logout, etc.)
+  - Update `AuthenticationService` to extend BaseService and emit events
+  - Update `PasswordService` to emit password-related events
+  - Update `EmailVerificationService` to emit verification events
+  - Update `OAuthService` to emit social login events
+  - Update `AdminService` to emit administrative action events
+
+- 📡 **Event System Updates**
+  - Transform `src/routes/events.router.ts` from note events to authentication events
+  - Update `src/services/authorization.service.ts` for auth event authorization
+  - Update `src/schemas/event.schema.ts` for authentication event types
+  - Create real-time authentication monitoring capabilities
+
+##### **Subphase 3: Missing Components (Priority: MEDIUM - 2-3 days)**
+
+- 🔐 **Session Management Service**: Complete session-based authentication
+- 📊 **Audit Log Service**: Comprehensive authentication event logging
+- 📺 **Real-time Auth Dashboard**: SSE endpoint for authentication monitoring
+- 🔒 **Enhanced Security Events**: Device management and session tracking
+
+#### Expected Outcomes
+
+- **Clean Codebase**: Remove all template remnants for authentication focus
+- **Real-time Capability**: Authentication events available via Server-Sent Events
+- **Comprehensive Monitoring**: All authentication actions emit trackable events
+- **Enhanced Security**: Audit trail for all authentication operations
+- **Developer Experience**: Clear, focused authentication service without template confusion
+
 ### Phase 6: Final Integration and Documentation
 
 **Priority**: Medium
