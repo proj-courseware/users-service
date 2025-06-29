@@ -1,57 +1,52 @@
 import type { AuthenticatedUserContextType } from "@/schemas/user.schemas";
-import type { NoteType } from "@/schemas/note.schema";
 
 export class AuthorizationService {
   isAdmin(user: AuthenticatedUserContextType): boolean {
     return user.globalRole === "admin";
   }
 
-  // --- Note Permissions ---
+  isTeacher(user: AuthenticatedUserContextType): boolean {
+    return user.globalRole === "teacher";
+  }
 
-  async canViewNote(
+  isStudent(user: AuthenticatedUserContextType): boolean {
+    return user.globalRole === "student";
+  }
+
+  // --- User Management Permissions ---
+
+  async canManageUsers(user: AuthenticatedUserContextType): Promise<boolean> {
+    return this.isAdmin(user);
+  }
+
+  async canViewUserProfile(
+    requestingUser: AuthenticatedUserContextType,
+    targetUserId: string,
+  ): Promise<boolean> {
+    if (this.isAdmin(requestingUser)) return true;
+    if (requestingUser.userId === targetUserId) return true;
+    return false;
+  }
+
+  async canUpdateUserProfile(
+    requestingUser: AuthenticatedUserContextType,
+    targetUserId: string,
+  ): Promise<boolean> {
+    if (this.isAdmin(requestingUser)) return true;
+    if (requestingUser.userId === targetUserId) return true;
+    return false;
+  }
+
+  // --- Authentication Event Permissions ---
+
+  async canReceiveAuthEvent(
     user: AuthenticatedUserContextType,
-    note: NoteType,
+    eventData: { userId: string; [key: string]: unknown },
   ): Promise<boolean> {
     if (this.isAdmin(user)) return true;
-    if (note.createdBy === user.userId) return true;
+    if (eventData.userId === user.userId) return true;
     return false;
   }
 
-  async canCreateNote(user: AuthenticatedUserContextType): Promise<boolean> {
-    if (this.isAdmin(user)) return true;
-    if (user.globalRole === "user") return true;
-    return false;
-  }
-
-  async canUpdateNote(
-    user: AuthenticatedUserContextType,
-    note: NoteType,
-  ): Promise<boolean> {
-    if (this.isAdmin(user)) return true;
-    if (note.createdBy === user.userId) return true;
-    return false;
-  }
-
-  async canDeleteNote(
-    user: AuthenticatedUserContextType,
-    note: NoteType,
-  ): Promise<boolean> {
-    if (this.isAdmin(user)) return true;
-    if (note.createdBy === user.userId) return true;
-    return false;
-  }
-
-  // --- Event Permissions ---
-
-  async canReceiveNoteEvent(
-    user: AuthenticatedUserContextType,
-    noteData: { createdBy: string; [key: string]: unknown },
-  ): Promise<boolean> {
-    // Apply same rules as viewing notes
-    if (this.isAdmin(user)) return true;
-    if (noteData.createdBy === user.userId) return true;
-    return false;
-  }
-
-  // --- Add More Permissions Here ---
+  // --- Add More Authentication-Related Permissions Here ---
 }

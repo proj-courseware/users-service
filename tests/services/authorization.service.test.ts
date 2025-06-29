@@ -1,51 +1,26 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { AuthorizationService } from "@/services/authorization.service";
 import type { AuthenticatedUserContextType } from "@/schemas/user.schemas";
-import type { NoteType } from "@/schemas/note.schema";
 
 const adminUser: AuthenticatedUserContextType = {
   userId: "admin-1",
   globalRole: "admin",
 };
-const regularUser: AuthenticatedUserContextType = {
-  userId: "user-1",
-  globalRole: "user",
-};
-const otherUser: AuthenticatedUserContextType = {
-  userId: "user-2",
-  globalRole: "user",
+
+const teacherUser: AuthenticatedUserContextType = {
+  userId: "teacher-1",
+  globalRole: "teacher",
 };
 
-const mockNoteOwnedByRegularUser: NoteType = {
-  id: "note-1",
-  content: "Test content",
-  createdBy: regularUser.userId,
-  createdAt: new Date(),
-  updatedAt: new Date(),
+const studentUser: AuthenticatedUserContextType = {
+  userId: "student-1",
+  globalRole: "student",
 };
 
-const mockNoteOwnedByOtherUser: NoteType = {
-  id: "note-2",
-  content: "Other user's content",
-  createdBy: otherUser.userId,
-  createdAt: new Date(),
-  updatedAt: new Date(),
+const otherStudentUser: AuthenticatedUserContextType = {
+  userId: "student-2", 
+  globalRole: "student",
 };
-
-const findAll = vi.fn();
-const findById = vi.fn();
-const findAllByIds = vi.fn();
-const create = vi.fn();
-const update = vi.fn();
-const remove = vi.fn();
-const NoteRepositoryMock = vi.fn(() => ({
-  findAll,
-  findById,
-  findAllByIds,
-  create,
-  update,
-  delete: remove,
-}));
 
 describe("AuthorizationService", () => {
   let service: AuthorizationService;
@@ -58,98 +33,116 @@ describe("AuthorizationService", () => {
     vi.clearAllMocks();
   });
 
-  describe("isAdmin", () => {
-    it("returns true for admin", () => {
-      expect(service.isAdmin(adminUser)).toBe(true);
+  describe("Role Checks", () => {
+    describe("isAdmin", () => {
+      it("returns true for admin", () => {
+        expect(service.isAdmin(adminUser)).toBe(true);
+      });
+      it("returns false for teacher", () => {
+        expect(service.isAdmin(teacherUser)).toBe(false);
+      });
+      it("returns false for student", () => {
+        expect(service.isAdmin(studentUser)).toBe(false);
+      });
     });
-    it("returns false for regular user", () => {
-      expect(service.isAdmin(regularUser)).toBe(false);
+
+    describe("isTeacher", () => {
+      it("returns true for teacher", () => {
+        expect(service.isTeacher(teacherUser)).toBe(true);
+      });
+      it("returns false for admin", () => {
+        expect(service.isTeacher(adminUser)).toBe(false);
+      });
+      it("returns false for student", () => {
+        expect(service.isTeacher(studentUser)).toBe(false);
+      });
+    });
+
+    describe("isStudent", () => {
+      it("returns true for student", () => {
+        expect(service.isStudent(studentUser)).toBe(true);
+      });
+      it("returns false for admin", () => {
+        expect(service.isStudent(adminUser)).toBe(false);
+      });
+      it("returns false for teacher", () => {
+        expect(service.isStudent(teacherUser)).toBe(false);
+      });
     });
   });
 
-  describe("canViewNote", () => {
-    it("allows admin", async () => {
-      await expect(
-        service.canViewNote(adminUser, mockNoteOwnedByRegularUser),
-      ).resolves.toBe(true);
+  describe("User Management Permissions", () => {
+    describe("canManageUsers", () => {
+      it("allows admin to manage users", async () => {
+        await expect(service.canManageUsers(adminUser)).resolves.toBe(true);
+      });
+      it("denies teacher from managing users", async () => {
+        await expect(service.canManageUsers(teacherUser)).resolves.toBe(false);
+      });
+      it("denies student from managing users", async () => {
+        await expect(service.canManageUsers(studentUser)).resolves.toBe(false);
+      });
     });
-    it("allows owner", async () => {
-      await expect(
-        service.canViewNote(regularUser, mockNoteOwnedByRegularUser),
-      ).resolves.toBe(true);
+
+    describe("canViewUserProfile", () => {
+      it("allows admin to view any user profile", async () => {
+        await expect(
+          service.canViewUserProfile(adminUser, studentUser.userId),
+        ).resolves.toBe(true);
+      });
+      it("allows user to view their own profile", async () => {
+        await expect(
+          service.canViewUserProfile(studentUser, studentUser.userId),
+        ).resolves.toBe(true);
+      });
+      it("denies user from viewing other user's profile", async () => {
+        await expect(
+          service.canViewUserProfile(studentUser, otherStudentUser.userId),
+        ).resolves.toBe(false);
+      });
     });
-    it("denies non-owner", async () => {
-      await expect(
-        service.canViewNote(regularUser, mockNoteOwnedByOtherUser),
-      ).resolves.toBe(false);
+
+    describe("canUpdateUserProfile", () => {
+      it("allows admin to update any user profile", async () => {
+        await expect(
+          service.canUpdateUserProfile(adminUser, studentUser.userId),
+        ).resolves.toBe(true);
+      });
+      it("allows user to update their own profile", async () => {
+        await expect(
+          service.canUpdateUserProfile(studentUser, studentUser.userId),
+        ).resolves.toBe(true);
+      });
+      it("denies user from updating other user's profile", async () => {
+        await expect(
+          service.canUpdateUserProfile(studentUser, otherStudentUser.userId),
+        ).resolves.toBe(false);
+      });
     });
   });
 
-  describe("canCreateNote", () => {
-    it("allows admin", async () => {
-      await expect(service.canCreateNote(adminUser)).resolves.toBe(true);
-    });
-    it("allows regular user", async () => {
-      await expect(service.canCreateNote(regularUser)).resolves.toBe(true);
-    });
-  });
+  describe("Authentication Event Permissions", () => {
+    describe("canReceiveAuthEvent", () => {
+      it("allows admin to receive any authentication event", async () => {
+        const eventData = { userId: "other-user", action: "login" };
+        await expect(
+          service.canReceiveAuthEvent(adminUser, eventData),
+        ).resolves.toBe(true);
+      });
 
-  describe("canUpdateNote", () => {
-    it("allows admin", async () => {
-      await expect(
-        service.canUpdateNote(adminUser, mockNoteOwnedByRegularUser),
-      ).resolves.toBe(true);
-    });
-    it("allows owner", async () => {
-      await expect(
-        service.canUpdateNote(regularUser, mockNoteOwnedByRegularUser),
-      ).resolves.toBe(true);
-    });
-    it("denies non-owner", async () => {
-      await expect(
-        service.canUpdateNote(regularUser, mockNoteOwnedByOtherUser),
-      ).resolves.toBe(false);
-    });
-  });
+      it("allows user to receive their own authentication events", async () => {
+        const eventData = { userId: studentUser.userId, action: "login" };
+        await expect(
+          service.canReceiveAuthEvent(studentUser, eventData),
+        ).resolves.toBe(true);
+      });
 
-  describe("canDeleteNote", () => {
-    it("allows admin", async () => {
-      await expect(
-        service.canDeleteNote(adminUser, mockNoteOwnedByRegularUser),
-      ).resolves.toBe(true);
-    });
-    it("allows owner", async () => {
-      await expect(
-        service.canDeleteNote(regularUser, mockNoteOwnedByRegularUser),
-      ).resolves.toBe(true);
-    });
-    it("denies non-owner", async () => {
-      await expect(
-        service.canDeleteNote(regularUser, mockNoteOwnedByOtherUser),
-      ).resolves.toBe(false);
-    });
-  });
-
-  describe("canReceiveNoteEvent", () => {
-    it("allows admin to receive any note event", async () => {
-      const noteData = { createdBy: "other-user", content: "Test note" };
-      await expect(
-        service.canReceiveNoteEvent(adminUser, noteData),
-      ).resolves.toBe(true);
-    });
-
-    it("allows owner to receive their note events", async () => {
-      const noteData = { createdBy: regularUser.userId, content: "Test note" };
-      await expect(
-        service.canReceiveNoteEvent(regularUser, noteData),
-      ).resolves.toBe(true);
-    });
-
-    it("denies non-owner from receiving other users' note events", async () => {
-      const noteData = { createdBy: otherUser.userId, content: "Test note" };
-      await expect(
-        service.canReceiveNoteEvent(regularUser, noteData),
-      ).resolves.toBe(false);
+      it("denies user from receiving other users' authentication events", async () => {
+        const eventData = { userId: otherStudentUser.userId, action: "login" };
+        await expect(
+          service.canReceiveAuthEvent(studentUser, eventData),
+        ).resolves.toBe(false);
+      });
     });
   });
 });
