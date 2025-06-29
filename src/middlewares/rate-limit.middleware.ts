@@ -70,10 +70,11 @@ export interface RateLimitDeps {
 }
 
 const defaultKeyGenerator = (c: Context<AppEnv>): string => {
-  const ip = c.env?.CF_CONNECTING_IP || 
-             c.req.header("x-forwarded-for")?.split(",")[0]?.trim() ||
-             c.req.header("x-real-ip") ||
-             "unknown";
+  const ip =
+    c.env?.CF_CONNECTING_IP ||
+    c.req.header("x-forwarded-for")?.split(",")[0]?.trim() ||
+    c.req.header("x-real-ip") ||
+    "unknown";
   const userAgent = c.req.header("user-agent") || "unknown";
   return `${ip}:${userAgent}`;
 };
@@ -100,7 +101,7 @@ export const createRateLimitMiddleware = (
       const rateLimitKey = `rate_limit:${key}:${Math.floor(Date.now() / (windowSeconds * 1000))}`;
 
       const currentCount = await store.get(rateLimitKey);
-      
+
       if (currentCount !== null && currentCount >= maxRequests) {
         const retryAfter = windowSeconds;
         throw new TooManyRequestsHttpError(message, retryAfter);
@@ -130,7 +131,7 @@ export const createRateLimitMiddleware = (
       if (error instanceof TooManyRequestsHttpError) {
         throw error;
       }
-      
+
       // For other errors, still count the request (unless skipFailedRequests is true)
       if (!skipFailedRequests) {
         const key = keyGenerator(c);
@@ -139,10 +140,10 @@ export const createRateLimitMiddleware = (
           await store.increment(rateLimitKey, windowSeconds);
         } catch (storeError) {
           // If store fails, log but don't block the request
-          console.warn('Rate limit store error:', storeError);
+          console.warn("Rate limit store error:", storeError);
         }
       }
-      
+
       // Re-throw the original error
       throw error;
     }

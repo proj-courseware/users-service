@@ -29,7 +29,7 @@ export interface CSRFMiddlewareDeps {
 
 /**
  * CSRF Protection Middleware
- * 
+ *
  * This middleware provides Cross-Site Request Forgery protection by:
  * 1. Generating CSRF tokens for safe methods (GET, HEAD, OPTIONS)
  * 2. Validating CSRF tokens for unsafe methods (POST, PUT, DELETE, PATCH)
@@ -37,7 +37,7 @@ export interface CSRFMiddlewareDeps {
  */
 export const createCSRFMiddleware = (
   config?: Partial<CSRFConfig>,
-  deps?: CSRFMiddlewareDeps
+  deps?: CSRFMiddlewareDeps,
 ) => {
   const csrfConfig: CSRFConfig = {
     cookieName: config?.cookieName || env.CSRF_COOKIE_NAME,
@@ -80,7 +80,7 @@ export const createCSRFMiddleware = (
 async function generateCSRFToken(
   c: Context<AppEnv>,
   csrfService: ICSRFService,
-  config: CSRFConfig
+  config: CSRFConfig,
 ): Promise<void> {
   // Check if a valid token already exists
   const existingToken = c.req.cookie(config.cookieName);
@@ -88,7 +88,11 @@ async function generateCSRFToken(
 
   if (existingToken && existingHash) {
     // Validate existing token
-    const isValid = csrfService.validateToken(existingToken, existingHash, config.maxAgeMs);
+    const isValid = csrfService.validateToken(
+      existingToken,
+      existingHash,
+      config.maxAgeMs,
+    );
     if (isValid) {
       // Token is still valid, expose it to the client
       c.set("csrfToken", existingToken);
@@ -100,17 +104,19 @@ async function generateCSRFToken(
   const tokenData: CSRFTokenData = csrfService.generateToken();
 
   // Set CSRF token in cookie (accessible to JavaScript)
-  c.header("Set-Cookie", 
+  c.header(
+    "Set-Cookie",
     `${config.cookieName}=${tokenData.token}; Max-Age=${Math.floor(config.maxAgeMs / 1000)}; ` +
-    `Path=/; ${config.secure ? "Secure; " : ""}` +
-    `SameSite=${config.sameSite}; ${config.httpOnly ? "HttpOnly" : ""}`
+      `Path=/; ${config.secure ? "Secure; " : ""}` +
+      `SameSite=${config.sameSite}; ${config.httpOnly ? "HttpOnly" : ""}`,
   );
 
   // Set CSRF hash in a separate HTTP-only cookie (not accessible to JavaScript)
-  c.header("Set-Cookie", 
+  c.header(
+    "Set-Cookie",
     `${config.cookieName}-hash=${tokenData.hash}; Max-Age=${Math.floor(config.maxAgeMs / 1000)}; ` +
-    `Path=/; ${config.secure ? "Secure; " : ""}` +
-    `SameSite=${config.sameSite}; HttpOnly`
+      `Path=/; ${config.secure ? "Secure; " : ""}` +
+      `SameSite=${config.sameSite}; HttpOnly`,
   );
 
   // Expose token to the application
@@ -123,11 +129,11 @@ async function generateCSRFToken(
 async function validateCSRFToken(
   c: Context<AppEnv>,
   csrfService: ICSRFService,
-  config: CSRFConfig
+  config: CSRFConfig,
 ): Promise<void> {
   // Get CSRF token from header or form data
   let csrfToken = c.req.header(config.headerName);
-  
+
   if (!csrfToken) {
     // Try to get from form data
     try {
@@ -155,7 +161,11 @@ async function validateCSRFToken(
   }
 
   // Validate the token
-  const isValid = csrfService.validateToken(csrfToken, csrfHash, config.maxAgeMs);
+  const isValid = csrfService.validateToken(
+    csrfToken,
+    csrfHash,
+    config.maxAgeMs,
+  );
   if (!isValid) {
     throw new CSRFError("CSRF token validation failed");
   }
@@ -178,7 +188,7 @@ export const createCSRFTokenMiddleware = (deps?: CSRFMiddlewareDeps) => {
     }
 
     const tokenData: CSRFTokenData = csrfService.generateToken();
-    
+
     // Expose token to the response
     c.set("csrfToken", tokenData.token);
     c.set("csrfTokenData", tokenData);
@@ -196,7 +206,10 @@ export const createCSRFResponseMiddleware = () => {
 
     // Add CSRF token to JSON responses if available
     const csrfToken = c.get("csrfToken");
-    if (csrfToken && c.res.headers.get("content-type")?.includes("application/json")) {
+    if (
+      csrfToken &&
+      c.res.headers.get("content-type")?.includes("application/json")
+    ) {
       try {
         const body = await c.res.json();
         const enhancedBody = {

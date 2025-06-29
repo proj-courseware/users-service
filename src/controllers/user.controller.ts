@@ -31,26 +31,33 @@ export class UserController {
   private emailVerificationService: IEmailVerificationService;
 
   constructor(deps?: UserControllerDeps) {
-    if (deps?.userRepository && deps?.authenticationService && deps?.emailVerificationService) {
+    if (
+      deps?.userRepository &&
+      deps?.authenticationService &&
+      deps?.emailVerificationService
+    ) {
       this.userRepository = deps.userRepository;
       this.authenticationService = deps.authenticationService;
       this.emailVerificationService = deps.emailVerificationService;
     } else {
       // Create default services with proper dependency injection
-      this.userRepository = env.NODE_ENV === "test" 
-        ? new MockDbUserRepository() 
-        : new MongoDbUserRepository();
-      
+      this.userRepository =
+        env.NODE_ENV === "test"
+          ? new MockDbUserRepository()
+          : new MongoDbUserRepository();
+
       const passwordService = new PasswordService();
       const jwtService = new JWTService();
-      
+
       this.authenticationService = new AuthenticationService(
         this.userRepository,
         passwordService,
         jwtService,
       );
-      
-      this.emailVerificationService = new EmailVerificationService(this.userRepository);
+
+      this.emailVerificationService = new EmailVerificationService(
+        this.userRepository,
+      );
     }
   }
 
@@ -60,7 +67,7 @@ export class UserController {
    */
   getProfile = async (c: Context<AppEnv>): Promise<Response> => {
     const userContext = c.var.user as AuthenticatedUserContextType;
-    
+
     const user = await this.userRepository.findById(userContext.userId);
     if (!user) {
       throw new NotFoundError("User not found");
@@ -80,7 +87,10 @@ export class UserController {
     const userContext = c.var.user as AuthenticatedUserContextType;
     const body = c.var.validatedBody as UpdateUserType;
 
-    const updatedUser = await this.userRepository.update(userContext.userId, body);
+    const updatedUser = await this.userRepository.update(
+      userContext.userId,
+      body,
+    );
 
     return c.json({
       success: true,
@@ -131,9 +141,13 @@ export class UserController {
     }
 
     // Check if email is already used by another user
-    const existingUser = await this.userRepository.findByEmail(body.emailAddress);
+    const existingUser = await this.userRepository.findByEmail(
+      body.emailAddress,
+    );
     if (existingUser) {
-      throw new BadRequestError("Email address is already in use by another user");
+      throw new BadRequestError(
+        "Email address is already in use by another user",
+      );
     }
 
     // Add email to user account
@@ -147,30 +161,38 @@ export class UserController {
 
     // Generate verification token for the new email
     try {
-      const verificationResult = await this.emailVerificationService.generateVerificationToken(
-        userContext.userId,
-        body.emailAddress,
-      );
+      const verificationResult =
+        await this.emailVerificationService.generateVerificationToken(
+          userContext.userId,
+          body.emailAddress,
+        );
 
-      return c.json({
-        success: true,
-        message: "Email added successfully. Verification email sent.",
-        emailAddress: body.emailAddress,
-        verificationEmailSent: true,
-        // In development, include token for testing
-        ...(env.NODE_ENV === "development" && {
-          verificationToken: verificationResult.token,
-          verificationExpiresAt: verificationResult.expiresAt,
-        }),
-      }, 201);
+      return c.json(
+        {
+          success: true,
+          message: "Email added successfully. Verification email sent.",
+          emailAddress: body.emailAddress,
+          verificationEmailSent: true,
+          // In development, include token for testing
+          ...(env.NODE_ENV === "development" && {
+            verificationToken: verificationResult.token,
+            verificationExpiresAt: verificationResult.expiresAt,
+          }),
+        },
+        201,
+      );
     } catch (error) {
       console.error("Failed to generate verification token:", error);
-      return c.json({
-        success: true,
-        message: "Email added successfully, but verification email could not be sent. Please try to resend verification.",
-        emailAddress: body.emailAddress,
-        verificationEmailSent: false,
-      }, 201);
+      return c.json(
+        {
+          success: true,
+          message:
+            "Email added successfully, but verification email could not be sent. Please try to resend verification.",
+          emailAddress: body.emailAddress,
+          verificationEmailSent: false,
+        },
+        201,
+      );
     }
   };
 
@@ -233,7 +255,10 @@ export class UserController {
       throw new BadRequestError("Cannot set unverified email as primary");
     }
 
-    await this.userRepository.setPrimaryEmail(userContext.userId, body.emailAddress);
+    await this.userRepository.setPrimaryEmail(
+      userContext.userId,
+      body.emailAddress,
+    );
 
     return c.json({
       success: true,
@@ -289,7 +314,7 @@ export class UserController {
    */
   getEmails = async (c: Context<AppEnv>): Promise<Response> => {
     const userContext = c.var.user as AuthenticatedUserContextType;
-    
+
     const user = await this.userRepository.findById(userContext.userId);
     if (!user) {
       throw new NotFoundError("User not found");
@@ -319,12 +344,16 @@ export class UserController {
     const body = await c.req.json();
 
     if (!body.password) {
-      throw new BadRequestError("Password confirmation is required to delete account");
+      throw new BadRequestError(
+        "Password confirmation is required to delete account",
+      );
     }
 
     const user = await this.userRepository.findById(userContext.userId);
     if (!user || !user.passwordHash) {
-      throw new NotFoundError("User not found or cannot delete social login account");
+      throw new NotFoundError(
+        "User not found or cannot delete social login account",
+      );
     }
 
     // Verify password before deletion
@@ -352,7 +381,7 @@ export class UserController {
    */
   getAccountSummary = async (c: Context<AppEnv>): Promise<Response> => {
     const userContext = c.var.user as AuthenticatedUserContextType;
-    
+
     const user = await this.userRepository.findById(userContext.userId);
     if (!user) {
       throw new NotFoundError("User not found");
@@ -360,7 +389,9 @@ export class UserController {
 
     const summary = {
       userId: user.id,
-      name: `${user.firstName || ""} ${user.lastName || ""}`.trim() || "No name set",
+      name:
+        `${user.firstName || ""} ${user.lastName || ""}`.trim() ||
+        "No name set",
       primaryEmail: user.primaryEmail,
       globalRole: user.globalRole,
       emailCount: user.emails.length,

@@ -1,13 +1,13 @@
 import { describe, it, expect } from "vitest";
-import { 
-  serviceEventSchema, 
+import {
+  serviceEventSchema,
   userEventSchema,
   authEventSchema,
   emailEventSchema,
   passwordEventSchema,
   oauthEventSchema,
   securityEventSchema,
-  adminEventSchema
+  adminEventSchema,
 } from "@/schemas/event.schema";
 
 describe("Event Schemas", () => {
@@ -54,13 +54,27 @@ describe("Event Schemas", () => {
       };
 
       const actions = [
-        "registered", "updated", "deleted",
-        "login", "logout", "token_refreshed",
-        "email_verified", "email_added", "email_removed", "verification_sent",
-        "password_changed", "password_reset_requested", "password_reset_completed",
-        "oauth_login", "oauth_account_linked", "oauth_account_unlinked",
-        "account_locked", "account_unlocked", "failed_login_attempt",
-        "user_role_changed", "admin_action_performed"
+        "registered",
+        "updated",
+        "deleted",
+        "login",
+        "logout",
+        "token_refreshed",
+        "email_verified",
+        "email_added",
+        "email_removed",
+        "verification_sent",
+        "password_changed",
+        "password_reset_requested",
+        "password_reset_completed",
+        "oauth_login",
+        "oauth_account_linked",
+        "oauth_account_unlinked",
+        "account_locked",
+        "account_unlocked",
+        "failed_login_attempt",
+        "user_role_changed",
+        "admin_action_performed",
       ] as const;
 
       actions.forEach((action) => {
@@ -78,7 +92,15 @@ describe("Event Schemas", () => {
         timestamp: new Date(),
       };
 
-      const resourceTypes = ["users", "authentication", "email", "password", "oauth", "security", "admin"];
+      const resourceTypes = [
+        "users",
+        "authentication",
+        "email",
+        "password",
+        "oauth",
+        "security",
+        "admin",
+      ];
 
       resourceTypes.forEach((resourceType) => {
         const event = { ...baseEvent, resourceType };

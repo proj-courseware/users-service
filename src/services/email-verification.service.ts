@@ -1,14 +1,9 @@
 import { v4 as uuidv4 } from "uuid";
 import crypto from "crypto";
-import {
-  BadRequestError,
-  NotFoundError,
-} from "@/errors";
+import { BadRequestError, NotFoundError } from "@/errors";
 import { BaseService } from "@/events/base.service";
 import type { IUserRepository } from "@/repositories/user.repository";
-import type {
-  UserType,
-} from "@/schemas/user.schema";
+import type { UserType } from "@/schemas/user.schema";
 
 // Email verification result interfaces
 export interface EmailVerificationResult {
@@ -69,7 +64,10 @@ export interface IEmailVerificationService {
 }
 
 // Main email verification service implementation
-export class EmailVerificationService extends BaseService implements IEmailVerificationService {
+export class EmailVerificationService
+  extends BaseService
+  implements IEmailVerificationService
+{
   private readonly config: EmailVerificationConfig;
 
   constructor(
@@ -135,13 +133,17 @@ export class EmailVerificationService extends BaseService implements IEmailVerif
     );
 
     // 7. Emit verification sent event
-    this.emitEvent("verification_sent", {
-      userId,
-      email: emailAddress,
-      isVerified: false,
-    }, {
-      user: { userId, email: emailAddress }
-    });
+    this.emitEvent(
+      "verification_sent",
+      {
+        userId,
+        email: emailAddress,
+        isVerified: false,
+      },
+      {
+        user: { userId, email: emailAddress },
+      },
+    );
 
     return {
       token,
@@ -156,9 +158,7 @@ export class EmailVerificationService extends BaseService implements IEmailVerif
    * @param config - Optional configuration overrides
    * @returns Verification result with success status and user data
    */
-  async verifyEmailToken(
-    token: string,
-  ): Promise<EmailVerificationResult> {
+  async verifyEmailToken(token: string): Promise<EmailVerificationResult> {
     // 1. Validate token format
     if (!this.isTokenValid(token)) {
       return {
@@ -210,14 +210,18 @@ export class EmailVerificationService extends BaseService implements IEmailVerif
     await this.userRepository.verifyEmail(user.id, emailObj.emailAddress);
 
     // 7. Emit email verification event
-    this.emitEvent("email_verified", {
-      userId: user.id,
-      email: emailObj.emailAddress,
-      isVerified: true,
-      isPrimary: emailObj.emailAddress === user.primaryEmail,
-    }, {
-      user: { userId: user.id, email: user.primaryEmail }
-    });
+    this.emitEvent(
+      "email_verified",
+      {
+        userId: user.id,
+        email: emailObj.emailAddress,
+        isVerified: true,
+        isPrimary: emailObj.emailAddress === user.primaryEmail,
+      },
+      {
+        user: { userId: user.id, email: user.primaryEmail },
+      },
+    );
 
     // 8. Get updated user data
     const updatedUser = await this.userRepository.findById(user.id);
@@ -280,11 +284,11 @@ export class EmailVerificationService extends BaseService implements IEmailVerif
     ) {
       // Check if enough time has passed since last token generation
       const tokenAge =
-        Date.now() - 
-        (emailObj.verificationTokenExpiresAt.getTime() - 
-         activeConfig.tokenExpiryHours * 60 * 60 * 1000);
+        Date.now() -
+        (emailObj.verificationTokenExpiresAt.getTime() -
+          activeConfig.tokenExpiryHours * 60 * 60 * 1000);
       const cooldownMs = activeConfig.resendCooldownMinutes * 60 * 1000;
-      
+
       if (tokenAge < cooldownMs) {
         const remainingMinutes = Math.ceil((cooldownMs - tokenAge) / 60000);
         throw new BadRequestError(
@@ -352,12 +356,12 @@ export class EmailVerificationService extends BaseService implements IEmailVerif
    */
   generateSecureToken(length?: number): string {
     const tokenLength = length || this.config.tokenLength;
-    
+
     // Use combination of UUID and crypto random for maximum entropy
     const uuid = uuidv4().replace(/-/g, "");
     const randomBytes = crypto.randomBytes(Math.ceil(tokenLength / 2));
     const randomHex = randomBytes.toString("hex");
-    
+
     // Combine and truncate to desired length
     const combined = uuid + randomHex;
     return combined.substring(0, tokenLength);
@@ -423,10 +427,10 @@ export class EmailVerificationService extends BaseService implements IEmailVerif
     try {
       // Get all users (this could be optimized with a specific query)
       const users = await this.userRepository.findMany({}, 1000); // Limit for safety
-      
+
       for (const user of users) {
         let hasExpiredTokens = false;
-        
+
         for (const email of user.emails) {
           if (
             email.verificationToken &&
@@ -437,14 +441,14 @@ export class EmailVerificationService extends BaseService implements IEmailVerif
             break;
           }
         }
-        
+
         if (hasExpiredTokens) {
           // Clear expired tokens for this user
           await this.userRepository.clearExpiredVerificationTokens(user.id);
           cleanedCount++;
         }
       }
-      
+
       return cleanedCount;
     } catch (error) {
       console.error("Error cleaning up expired verification tokens:", error);

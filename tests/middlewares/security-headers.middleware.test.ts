@@ -1,10 +1,10 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { Hono } from "hono";
 import type { AppEnv } from "@/schemas/app-env.schema";
-import { 
-  createSecurityHeadersMiddleware, 
-  securityHeadersMiddleware, 
-  devSecurityHeadersMiddleware 
+import {
+  createSecurityHeadersMiddleware,
+  securityHeadersMiddleware,
+  devSecurityHeadersMiddleware,
 } from "@/middlewares/security-headers.middleware";
 
 describe("Security Headers Middleware", () => {
@@ -32,7 +32,9 @@ describe("Security Headers Middleware", () => {
 
     it("should set Referrer-Policy", async () => {
       const res = await app.request("/test");
-      expect(res.headers.get("Referrer-Policy")).toBe("strict-origin-when-cross-origin");
+      expect(res.headers.get("Referrer-Policy")).toBe(
+        "strict-origin-when-cross-origin",
+      );
     });
 
     it("should set X-XSS-Protection", async () => {
@@ -43,7 +45,7 @@ describe("Security Headers Middleware", () => {
     it("should set Content-Security-Policy with default values", async () => {
       const res = await app.request("/test");
       const csp = res.headers.get("Content-Security-Policy");
-      
+
       expect(csp).toContain("default-src 'self'");
       expect(csp).toContain("script-src 'self'");
       expect(csp).toContain("object-src 'none'");
@@ -54,16 +56,20 @@ describe("Security Headers Middleware", () => {
 
     it("should set Cross-Origin policies", async () => {
       const res = await app.request("/test");
-      
-      expect(res.headers.get("Cross-Origin-Embedder-Policy")).toBe("unsafe-none");
+
+      expect(res.headers.get("Cross-Origin-Embedder-Policy")).toBe(
+        "unsafe-none",
+      );
       expect(res.headers.get("Cross-Origin-Opener-Policy")).toBe("same-origin");
-      expect(res.headers.get("Cross-Origin-Resource-Policy")).toBe("same-origin");
+      expect(res.headers.get("Cross-Origin-Resource-Policy")).toBe(
+        "same-origin",
+      );
     });
 
     it("should set Permissions-Policy", async () => {
       const res = await app.request("/test");
       const policy = res.headers.get("Permissions-Policy");
-      
+
       expect(policy).toContain("camera=()");
       expect(policy).toContain("microphone=()");
       expect(policy).toContain("geolocation=()");
@@ -71,7 +77,7 @@ describe("Security Headers Middleware", () => {
 
     it("should set custom authentication service headers", async () => {
       const res = await app.request("/test");
-      
+
       expect(res.headers.get("X-Service-Type")).toBe("authentication");
       expect(res.headers.get("X-API-Version")).toBe("1.0");
     });
@@ -94,7 +100,7 @@ describe("Security Headers Middleware", () => {
 
       const req = new Request("https://example.com/test");
       const res = await app.request(req);
-      
+
       const hsts = res.headers.get("Strict-Transport-Security");
       expect(hsts).toContain("max-age=31536000");
       expect(hsts).toContain("includeSubDomains");
@@ -105,11 +111,13 @@ describe("Security Headers Middleware", () => {
       app.get("/test", (c) => c.json({ message: "test" }));
 
       const req = new Request("http://example.com/test", {
-        headers: { "x-forwarded-proto": "https" }
+        headers: { "x-forwarded-proto": "https" },
       });
       const res = await app.request(req);
-      
-      expect(res.headers.get("Strict-Transport-Security")).toContain("max-age=31536000");
+
+      expect(res.headers.get("Strict-Transport-Security")).toContain(
+        "max-age=31536000",
+      );
     });
 
     it("should not set HSTS on HTTP requests", async () => {
@@ -118,7 +126,7 @@ describe("Security Headers Middleware", () => {
 
       const req = new Request("http://example.com/test");
       const res = await app.request(req);
-      
+
       expect(res.headers.get("Strict-Transport-Security")).toBeNull();
     });
   });
@@ -129,7 +137,7 @@ describe("Security Headers Middleware", () => {
         contentSecurityPolicy: {
           defaultSrc: ["'self'", "https://api.example.com"],
           scriptSrc: ["'self'", "'unsafe-inline'"],
-        }
+        },
       });
 
       app.use("*", customMiddleware);
@@ -137,14 +145,14 @@ describe("Security Headers Middleware", () => {
 
       const res = await app.request("/test");
       const csp = res.headers.get("Content-Security-Policy");
-      
+
       expect(csp).toContain("default-src 'self' https://api.example.com");
       expect(csp).toContain("script-src 'self' 'unsafe-inline'");
     });
 
     it("should allow custom frame options", async () => {
       const customMiddleware = createSecurityHeadersMiddleware({
-        frameOptions: "SAMEORIGIN"
+        frameOptions: "SAMEORIGIN",
       });
 
       app.use("*", customMiddleware);
@@ -160,7 +168,7 @@ describe("Security Headers Middleware", () => {
           maxAge: 7776000, // 90 days
           includeSubDomains: false,
           preload: true,
-        }
+        },
       });
 
       app.use("*", customMiddleware);
@@ -168,7 +176,7 @@ describe("Security Headers Middleware", () => {
 
       const req = new Request("https://example.com/test");
       const res = await app.request(req);
-      
+
       const hsts = res.headers.get("Strict-Transport-Security");
       expect(hsts).toBe("max-age=7776000; preload");
     });
@@ -177,8 +185,8 @@ describe("Security Headers Middleware", () => {
       const customMiddleware = createSecurityHeadersMiddleware({
         customHeaders: {
           "X-Custom-Header": "custom-value",
-          "X-API-Rate-Limit": "1000"
-        }
+          "X-API-Rate-Limit": "1000",
+        },
       });
 
       app.use("*", customMiddleware);
@@ -195,7 +203,7 @@ describe("Security Headers Middleware", () => {
           camera: ["'self'"],
           microphone: ["'self'", "https://trusted.com"],
           geolocation: [],
-        }
+        },
       });
 
       app.use("*", customMiddleware);
@@ -203,7 +211,7 @@ describe("Security Headers Middleware", () => {
 
       const res = await app.request("/test");
       const policy = res.headers.get("Permissions-Policy");
-      
+
       expect(policy).toContain("camera=('self')");
       expect(policy).toContain("microphone=('self' https://trusted.com)");
       expect(policy).toContain("geolocation=()");
@@ -237,21 +245,21 @@ describe("Security Headers Middleware", () => {
     it("should allow unsafe-eval and unsafe-inline in script-src for development", async () => {
       const res = await app.request("/test");
       const csp = res.headers.get("Content-Security-Policy");
-      
+
       expect(csp).toContain("script-src 'self' 'unsafe-eval' 'unsafe-inline'");
     });
 
     it("should allow WebSocket connections for hot reload", async () => {
       const res = await app.request("/test");
       const csp = res.headers.get("Content-Security-Policy");
-      
+
       expect(csp).toContain("connect-src 'self' ws: wss:");
     });
 
     it("should not enforce HTTPS upgrade in development", async () => {
       const res = await app.request("/test");
       const csp = res.headers.get("Content-Security-Policy");
-      
+
       expect(csp).not.toContain("upgrade-insecure-requests");
       expect(csp).not.toContain("block-all-mixed-content");
     });
@@ -264,7 +272,7 @@ describe("Security Headers Middleware", () => {
     it("should disable HSTS in development", async () => {
       const req = new Request("https://example.com/test");
       const res = await app.request(req);
-      
+
       const hsts = res.headers.get("Strict-Transport-Security");
       expect(hsts).toBe("max-age=0");
     });
@@ -273,7 +281,7 @@ describe("Security Headers Middleware", () => {
   describe("CSP Builder", () => {
     it("should handle null CSP configuration", async () => {
       const customMiddleware = createSecurityHeadersMiddleware({
-        contentSecurityPolicy: null
+        contentSecurityPolicy: null,
       });
 
       app.use("*", customMiddleware);
@@ -300,7 +308,7 @@ describe("Security Headers Middleware", () => {
           formAction: ["'self'"],
           upgradeInsecureRequests: true,
           blockAllMixedContent: true,
-        }
+        },
       });
 
       app.use("*", customMiddleware);
@@ -308,7 +316,7 @@ describe("Security Headers Middleware", () => {
 
       const res = await app.request("/test");
       const csp = res.headers.get("Content-Security-Policy");
-      
+
       expect(csp).toContain("default-src 'self'");
       expect(csp).toContain("script-src 'self' https://cdn.example.com");
       expect(csp).toContain("style-src 'self' 'unsafe-inline'");
@@ -338,17 +346,23 @@ describe("Security Headers Middleware", () => {
       app.get("/test", (c) => c.json({ message: "test" }));
 
       const res = await app.request("/test");
-      
-      expect(res.headers.get("Cross-Origin-Embedder-Policy")).toBe("require-corp");
-      expect(res.headers.get("Cross-Origin-Opener-Policy")).toBe("same-origin-allow-popups");
-      expect(res.headers.get("Cross-Origin-Resource-Policy")).toBe("cross-origin");
+
+      expect(res.headers.get("Cross-Origin-Embedder-Policy")).toBe(
+        "require-corp",
+      );
+      expect(res.headers.get("Cross-Origin-Opener-Policy")).toBe(
+        "same-origin-allow-popups",
+      );
+      expect(res.headers.get("Cross-Origin-Resource-Policy")).toBe(
+        "cross-origin",
+      );
     });
   });
 
   describe("Edge Cases", () => {
     it("should handle null permissions policy", async () => {
       const customMiddleware = createSecurityHeadersMiddleware({
-        permissionsPolicy: null
+        permissionsPolicy: null,
       });
 
       app.use("*", customMiddleware);
@@ -360,7 +374,7 @@ describe("Security Headers Middleware", () => {
 
     it("should handle null HSTS configuration", async () => {
       const customMiddleware = createSecurityHeadersMiddleware({
-        hsts: null
+        hsts: null,
       });
 
       app.use("*", customMiddleware);
@@ -368,7 +382,7 @@ describe("Security Headers Middleware", () => {
 
       const req = new Request("https://example.com/test");
       const res = await app.request(req);
-      
+
       expect(res.headers.get("Strict-Transport-Security")).toBeNull();
     });
 
@@ -376,22 +390,24 @@ describe("Security Headers Middleware", () => {
       const customMiddleware = createSecurityHeadersMiddleware({
         frameOptions: "SAMEORIGIN",
         customHeaders: {
-          "X-Custom": "value"
-        }
+          "X-Custom": "value",
+        },
       });
 
       app.use("*", customMiddleware);
       app.get("/test", (c) => c.json({ message: "test" }));
 
       const res = await app.request("/test");
-      
+
       // Custom values should override defaults
       expect(res.headers.get("X-Frame-Options")).toBe("SAMEORIGIN");
       expect(res.headers.get("X-Custom")).toBe("value");
-      
+
       // Defaults should still be present
       expect(res.headers.get("X-Content-Type-Options")).toBe("nosniff");
-      expect(res.headers.get("Referrer-Policy")).toBe("strict-origin-when-cross-origin");
+      expect(res.headers.get("Referrer-Policy")).toBe(
+        "strict-origin-when-cross-origin",
+      );
     });
   });
 });

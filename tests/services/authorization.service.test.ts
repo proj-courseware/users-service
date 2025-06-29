@@ -18,7 +18,7 @@ const studentUser: AuthenticatedUserContextType = {
 };
 
 const otherStudentUser: AuthenticatedUserContextType = {
-  userId: "student-2", 
+  userId: "student-2",
   globalRole: "student",
 };
 

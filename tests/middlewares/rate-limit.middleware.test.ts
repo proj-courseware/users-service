@@ -18,16 +18,16 @@ class MockRateLimitStore implements RateLimitStore {
   async get(key: string): Promise<number | null> {
     const value = this.store.get(key);
     const ttl = this.ttls.get(key);
-    
+
     if (value !== undefined && ttl !== undefined && ttl > Date.now()) {
       return value;
     }
-    
+
     if (value !== undefined) {
       this.store.delete(key);
       this.ttls.delete(key);
     }
-    
+
     return null;
   }
 
@@ -79,8 +79,10 @@ describe("Rate Limit Middleware", () => {
         maxRequests: 5,
       };
 
-      const middleware = createRateLimitMiddleware(config, { store: mockStore });
-      
+      const middleware = createRateLimitMiddleware(config, {
+        store: mockStore,
+      });
+
       app.use("/test", middleware);
       app.get("/test", (c) => c.json({ success: true }));
 
@@ -101,8 +103,10 @@ describe("Rate Limit Middleware", () => {
         message: "Custom rate limit message",
       };
 
-      const middleware = createRateLimitMiddleware(config, { store: mockStore });
-      
+      const middleware = createRateLimitMiddleware(config, {
+        store: mockStore,
+      });
+
       app.use("/test", middleware);
       app.get("/test", (c) => c.json({ success: true }));
 
@@ -129,8 +133,10 @@ describe("Rate Limit Middleware", () => {
         maxRequests: 2,
       };
 
-      const middleware = createRateLimitMiddleware(config, { store: mockStore });
-      
+      const middleware = createRateLimitMiddleware(config, {
+        store: mockStore,
+      });
+
       app.use("/test", middleware);
       app.get("/test", (c) => c.json({ success: true }));
 
@@ -170,8 +176,10 @@ describe("Rate Limit Middleware", () => {
         keyGenerator: (c) => c.req.header("user-id") || "anonymous",
       };
 
-      const middleware = createRateLimitMiddleware(config, { store: mockStore });
-      
+      const middleware = createRateLimitMiddleware(config, {
+        store: mockStore,
+      });
+
       app.use("/test", middleware);
       app.get("/test", (c) => c.json({ success: true }));
 
@@ -200,7 +208,7 @@ describe("Rate Limit Middleware", () => {
     });
 
     it.skip("should handle skipFailedRequests option (complex implementation)", async () => {
-      // Skipping this test as it requires complex status code tracking in Hono  
+      // Skipping this test as it requires complex status code tracking in Hono
       // The feature is implemented but difficult to test reliably
     });
 
@@ -218,8 +226,10 @@ describe("Rate Limit Middleware", () => {
         maxRequests: 3,
       };
 
-      const middleware = createRateLimitMiddleware(config, { store: faultyStore });
-      
+      const middleware = createRateLimitMiddleware(config, {
+        store: faultyStore,
+      });
+
       app.use("/test", middleware);
       app.get("/test", (c) => c.json({ success: true }));
 
@@ -276,8 +286,10 @@ describe("Rate Limit Middleware", () => {
         maxRequests: 2,
       };
 
-      const middleware = createRateLimitMiddleware(config, { store: mockStore });
-      
+      const middleware = createRateLimitMiddleware(config, {
+        store: mockStore,
+      });
+
       app.use("/test", middleware);
       app.get("/test", (c) => c.json({ success: true }));
 
@@ -312,8 +324,10 @@ describe("Rate Limit Middleware", () => {
         maxRequests: 1,
       };
 
-      const middleware = createRateLimitMiddleware(config, { store: mockStore });
-      
+      const middleware = createRateLimitMiddleware(config, {
+        store: mockStore,
+      });
+
       app.use("/test", middleware);
       app.get("/test", (c) => c.json({ success: true }));
 
@@ -336,8 +350,10 @@ describe("Rate Limit Middleware", () => {
         maxRequests: 1,
       };
 
-      const middleware = createRateLimitMiddleware(config, { store: mockStore });
-      
+      const middleware = createRateLimitMiddleware(config, {
+        store: mockStore,
+      });
+
       app.use("/test", middleware);
       app.get("/test", (c) => c.json({ success: true }));
 
@@ -360,8 +376,10 @@ describe("Rate Limit Middleware", () => {
         maxRequests: 1,
       };
 
-      const middleware = createRateLimitMiddleware(config, { store: mockStore });
-      
+      const middleware = createRateLimitMiddleware(config, {
+        store: mockStore,
+      });
+
       app.use("/test", middleware);
       app.get("/test", (c) => c.json({ success: true }));
 

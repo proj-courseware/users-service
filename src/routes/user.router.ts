@@ -33,10 +33,7 @@ export const createUserRoutes = (dependencies: CreateUserRoutesDeps) => {
    * Get current user profile
    * GET /me
    */
-  userRoutes.get(
-    "/",
-    userController.getProfile,
-  );
+  userRoutes.get("/", userController.getProfile);
 
   /**
    * Update current user profile
@@ -57,19 +54,13 @@ export const createUserRoutes = (dependencies: CreateUserRoutesDeps) => {
    * DELETE /me
    * Body: { password: string }
    */
-  userRoutes.delete(
-    "/",
-    userController.deleteAccount,
-  );
+  userRoutes.delete("/", userController.deleteAccount);
 
   /**
    * Get account summary
    * GET /me/summary
    */
-  userRoutes.get(
-    "/summary",
-    userController.getAccountSummary,
-  );
+  userRoutes.get("/summary", userController.getAccountSummary);
 
   /**
    * Change user password
@@ -89,10 +80,7 @@ export const createUserRoutes = (dependencies: CreateUserRoutesDeps) => {
    * Get user's email addresses
    * GET /me/emails
    */
-  userRoutes.get(
-    "/emails",
-    userController.getEmails,
-  );
+  userRoutes.get("/emails", userController.getEmails);
 
   /**
    * Add new email address

@@ -4,33 +4,33 @@ export const serviceEventSchema = z.object({
   id: z.string(), // Event's own ID for storage/audit
   action: z.enum([
     // User lifecycle events
-    "registered", 
-    "updated", 
+    "registered",
+    "updated",
     "deleted",
     // Authentication events
-    "login", 
-    "logout", 
+    "login",
+    "logout",
     "token_refreshed",
     // Email events
-    "email_verified", 
-    "email_added", 
-    "email_removed", 
+    "email_verified",
+    "email_added",
+    "email_removed",
     "verification_sent",
     // Password events
-    "password_changed", 
-    "password_reset_requested", 
+    "password_changed",
+    "password_reset_requested",
     "password_reset_completed",
     // OAuth events
-    "oauth_login", 
-    "oauth_account_linked", 
+    "oauth_login",
+    "oauth_account_linked",
     "oauth_account_unlinked",
     // Security events
-    "account_locked", 
-    "account_unlocked", 
+    "account_locked",
+    "account_unlocked",
     "failed_login_attempt",
     // Admin events
-    "user_role_changed", 
-    "admin_action_performed"
+    "user_role_changed",
+    "admin_action_performed",
   ]),
   data: z.unknown(), // Will be typed based on specific entity
   user: z
@@ -134,11 +134,11 @@ export type OAuthEventType = z.infer<typeof oauthEventSchema>;
 export type SecurityEventType = z.infer<typeof securityEventSchema>;
 export type AdminEventType = z.infer<typeof adminEventSchema>;
 
-export type AuthenticationEventType = 
-  | UserEventType 
-  | AuthEventType 
-  | EmailEventType 
-  | PasswordEventType 
-  | OAuthEventType 
-  | SecurityEventType 
+export type AuthenticationEventType =
+  | UserEventType
+  | AuthEventType
+  | EmailEventType
+  | PasswordEventType
+  | OAuthEventType
+  | SecurityEventType
   | AdminEventType;

@@ -10,7 +10,10 @@ import type {
 import type { GlobalRole } from "@/schemas/roles.schemas";
 import type { IUserRepository } from "@/repositories/user.repository";
 import type { IAuthenticationService } from "@/services/authentication.service";
-import type { IPasswordService, PasswordPolicyType } from "@/services/password.service";
+import type {
+  IPasswordService,
+  PasswordPolicyType,
+} from "@/services/password.service";
 import type { IAdminSettingRepository } from "@/repositories/admin-setting.repository";
 import type { AdminSettingType } from "@/schemas/user.schema";
 import { MongoDbUserRepository } from "@/repositories/mongodb/user.mongodb.repository";
@@ -20,9 +23,9 @@ import { PasswordService } from "@/services/password.service";
 import { JWTService } from "@/services/jwt.service";
 import { MongoDbAdminSettingRepository } from "@/repositories/mongodb/admin-setting.mongodb.repository";
 import { MockDbAdminSettingRepository } from "@/repositories/mockdb/admin-setting.mockdb.repository";
-import { 
-  NotFoundError, 
-  BadRequestError, 
+import {
+  NotFoundError,
+  BadRequestError,
   ForbiddenError,
   UserAlreadyExistsError,
 } from "@/errors";
@@ -42,24 +45,31 @@ export class AdminController {
   private adminSettingRepository: IAdminSettingRepository;
 
   constructor(deps?: AdminControllerDeps) {
-    if (deps?.userRepository && deps?.authenticationService && deps?.passwordService && deps?.adminSettingRepository) {
+    if (
+      deps?.userRepository &&
+      deps?.authenticationService &&
+      deps?.passwordService &&
+      deps?.adminSettingRepository
+    ) {
       this.userRepository = deps.userRepository;
       this.authenticationService = deps.authenticationService;
       this.passwordService = deps.passwordService;
       this.adminSettingRepository = deps.adminSettingRepository;
     } else {
       // Create default services with proper dependency injection
-      this.userRepository = env.NODE_ENV === "test" 
-        ? new MockDbUserRepository() 
-        : new MongoDbUserRepository();
-      
-      this.adminSettingRepository = env.NODE_ENV === "test" 
-        ? new MockDbAdminSettingRepository() 
-        : new MongoDbAdminSettingRepository();
-      
+      this.userRepository =
+        env.NODE_ENV === "test"
+          ? new MockDbUserRepository()
+          : new MongoDbUserRepository();
+
+      this.adminSettingRepository =
+        env.NODE_ENV === "test"
+          ? new MockDbAdminSettingRepository()
+          : new MongoDbAdminSettingRepository();
+
       this.passwordService = new PasswordService();
       const jwtService = new JWTService();
-      
+
       this.authenticationService = new AuthenticationService(
         this.userRepository,
         this.passwordService,
@@ -89,7 +99,9 @@ export class AdminController {
     const result = await this.userRepository.findAll(queryParams);
 
     // Remove sensitive data from response
-    const sanitizedUsers = result.data.map((user) => this.sanitizeUserData(user));
+    const sanitizedUsers = result.data.map((user) =>
+      this.sanitizeUserData(user),
+    );
 
     return c.json({
       success: true,
@@ -132,14 +144,16 @@ export class AdminController {
     const userContext = c.var.user as AuthenticatedUserContextType;
     this.checkAdminRole(userContext);
 
-    const body = c.var.validatedBody as CreateUserType & { 
-      password?: string; 
+    const body = c.var.validatedBody as CreateUserType & {
+      password?: string;
       sendWelcomeEmail?: boolean;
       generatePassword?: boolean;
     };
 
     // Check if user already exists
-    const existingUser = await this.userRepository.findByEmail(body.primaryEmail);
+    const existingUser = await this.userRepository.findByEmail(
+      body.primaryEmail,
+    );
     if (existingUser) {
       throw new UserAlreadyExistsError("User with this email already exists");
     }
@@ -153,9 +167,13 @@ export class AdminController {
       passwordHash = await this.passwordService.hashPassword(generatedPassword);
     } else if (body.password) {
       // Validate provided password
-      const validation = this.passwordService.validatePasswordStrength(body.password);
+      const validation = this.passwordService.validatePasswordStrength(
+        body.password,
+      );
       if (!validation.isValid) {
-        throw new BadRequestError(`Password validation failed: ${validation.errors.join(", ")}`);
+        throw new BadRequestError(
+          `Password validation failed: ${validation.errors.join(", ")}`,
+        );
       }
       passwordHash = await this.passwordService.hashPassword(body.password);
     }
@@ -166,11 +184,13 @@ export class AdminController {
       primaryEmail: body.primaryEmail,
       passwordHash,
       globalRole: body.globalRole || "student",
-      emails: [{
-        emailAddress: body.primaryEmail,
-        isVerified: true, // Admin-created users have verified emails
-        addedAt: new Date(),
-      }],
+      emails: [
+        {
+          emailAddress: body.primaryEmail,
+          isVerified: true, // Admin-created users have verified emails
+          addedAt: new Date(),
+        },
+      ],
       socialIdentities: [],
       isAccountLocked: false,
       failedLoginAttempts: 0,
@@ -207,7 +227,9 @@ export class AdminController {
     this.checkAdminRole(userContext);
 
     const { userId } = c.var.validatedParams as { userId: string };
-    const body = c.var.validatedBody as Partial<UpdateUserType & { globalRole: GlobalRole }>;
+    const body = c.var.validatedBody as Partial<
+      UpdateUserType & { globalRole: GlobalRole }
+    >;
 
     const existingUser = await this.userRepository.findById(userId);
     if (!existingUser) {
@@ -215,7 +237,11 @@ export class AdminController {
     }
 
     // Prevent admin from demoting themselves
-    if (userId === userContext.userId && body.globalRole && body.globalRole !== "admin") {
+    if (
+      userId === userContext.userId &&
+      body.globalRole &&
+      body.globalRole !== "admin"
+    ) {
       throw new BadRequestError("Cannot change your own admin role");
     }
 
@@ -286,7 +312,7 @@ export class AdminController {
       existingUser.primaryEmail,
       existingUser.failedLoginAttempts,
       true,
-      lockUntil
+      lockUntil,
     );
 
     return c.json({
@@ -340,12 +366,16 @@ export class AdminController {
     }
 
     let newPassword: string;
-    
+
     if (body.password) {
       // Admin provided a password
-      const validation = this.passwordService.validatePasswordStrength(body.password);
+      const validation = this.passwordService.validatePasswordStrength(
+        body.password,
+      );
       if (!validation.isValid) {
-        throw new BadRequestError(`Password validation failed: ${validation.errors.join(", ")}`);
+        throw new BadRequestError(
+          `Password validation failed: ${validation.errors.join(", ")}`,
+        );
       }
       newPassword = body.password;
     } else {
@@ -373,37 +403,43 @@ export class AdminController {
 
     // Get user counts by role
     const allUsers = await this.userRepository.findMany({}, 10000); // Reasonable limit for stats
-    
+
     const stats = {
       totalUsers: allUsers.length,
       usersByRole: {
-        admin: allUsers.filter(u => u.globalRole === "admin").length,
-        teacher: allUsers.filter(u => u.globalRole === "teacher").length,
-        student: allUsers.filter(u => u.globalRole === "student").length,
+        admin: allUsers.filter((u) => u.globalRole === "admin").length,
+        teacher: allUsers.filter((u) => u.globalRole === "teacher").length,
+        student: allUsers.filter((u) => u.globalRole === "student").length,
       },
       accountStatus: {
-        active: allUsers.filter(u => !u.isAccountLocked).length,
-        locked: allUsers.filter(u => u.isAccountLocked).length,
+        active: allUsers.filter((u) => !u.isAccountLocked).length,
+        locked: allUsers.filter((u) => u.isAccountLocked).length,
       },
       emailVerification: {
-        fullyVerified: allUsers.filter(u => 
-          u.emails.every(email => email.isVerified)
+        fullyVerified: allUsers.filter((u) =>
+          u.emails.every((email) => email.isVerified),
         ).length,
-        partiallyVerified: allUsers.filter(u => 
-          u.emails.some(email => email.isVerified) && 
-          !u.emails.every(email => email.isVerified)
+        partiallyVerified: allUsers.filter(
+          (u) =>
+            u.emails.some((email) => email.isVerified) &&
+            !u.emails.every((email) => email.isVerified),
         ).length,
-        unverified: allUsers.filter(u => 
-          !u.emails.some(email => email.isVerified)
+        unverified: allUsers.filter(
+          (u) => !u.emails.some((email) => email.isVerified),
         ).length,
       },
-      socialLogins: allUsers.filter(u => u.socialIdentities.length > 0).length,
+      socialLogins: allUsers.filter((u) => u.socialIdentities.length > 0)
+        .length,
       recentActivity: {
-        newUsersLast7Days: allUsers.filter(u => 
-          u.createdAt && u.createdAt > new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
+        newUsersLast7Days: allUsers.filter(
+          (u) =>
+            u.createdAt &&
+            u.createdAt > new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
         ).length,
-        activeUsersLast7Days: allUsers.filter(u => 
-          u.lastLoginAt && u.lastLoginAt > new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
+        activeUsersLast7Days: allUsers.filter(
+          (u) =>
+            u.lastLoginAt &&
+            u.lastLoginAt > new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
         ).length,
       },
     };
@@ -464,7 +500,9 @@ export class AdminController {
 
     // Prevent admin from performing bulk operations on themselves
     if (userIds.includes(userContext.userId)) {
-      throw new BadRequestError("Cannot perform bulk operations on your own account");
+      throw new BadRequestError(
+        "Cannot perform bulk operations on your own account",
+      );
     }
 
     const results = {
@@ -488,7 +526,7 @@ export class AdminController {
               await this.userRepository.updateLoginAttempts(
                 user.primaryEmail,
                 user.failedLoginAttempts,
-                true
+                true,
               );
               results.success++;
             } else {
@@ -516,7 +554,9 @@ export class AdminController {
         }
       } catch (error) {
         results.failed++;
-        results.errors.push(`Failed to ${operation} user ${userId}: ${(error as Error).message}`);
+        results.errors.push(
+          `Failed to ${operation} user ${userId}: ${(error as Error).message}`,
+        );
       }
     }
 
@@ -574,9 +614,16 @@ export class AdminController {
     this.checkAdminRole(userContext);
 
     const { key } = c.var.validatedParams as { key: string };
-    const body = c.var.validatedBody as { value: unknown; description?: string };
+    const body = c.var.validatedBody as {
+      value: unknown;
+      description?: string;
+    };
 
-    const setting = await this.adminSettingRepository.setValue(key, body.value, body.description);
+    const setting = await this.adminSettingRepository.setValue(
+      key,
+      body.value,
+      body.description,
+    );
 
     return c.json({
       success: true,
@@ -615,7 +662,9 @@ export class AdminController {
     this.checkAdminRole(userContext);
 
     const body = c.var.validatedBody as { keys: string[] };
-    const settingsMap = await this.adminSettingRepository.getMultiple(body.keys);
+    const settingsMap = await this.adminSettingRepository.getMultiple(
+      body.keys,
+    );
 
     return c.json({
       success: true,
@@ -684,14 +733,22 @@ export class AdminController {
     const memUsagePercent = (usedMem / totalMem) * 100;
 
     healthChecks.checks.memory = {
-      status: memUsagePercent > 90 ? "critical" : memUsagePercent > 75 ? "warning" : "healthy",
+      status:
+        memUsagePercent > 90
+          ? "critical"
+          : memUsagePercent > 75
+            ? "warning"
+            : "healthy",
       used: usedMem,
       free: freeMem,
     };
 
     if (healthChecks.checks.memory.status === "critical") {
       healthChecks.status = "critical";
-    } else if (healthChecks.checks.memory.status === "warning" && healthChecks.status === "healthy") {
+    } else if (
+      healthChecks.checks.memory.status === "warning" &&
+      healthChecks.status === "healthy"
+    ) {
       healthChecks.status = "warning";
     }
 
@@ -716,7 +773,8 @@ export class AdminController {
       data: {
         policy: currentPolicy,
         source: "environment",
-        description: "Current password policy configuration loaded from environment variables"
+        description:
+          "Current password policy configuration loaded from environment variables",
       },
     });
   };
@@ -729,8 +787,8 @@ export class AdminController {
     const userContext = c.var.user as AuthenticatedUserContextType;
     this.checkAdminRole(userContext);
 
-    const body = await c.req.json() as PasswordPolicyType;
-    
+    const body = (await c.req.json()) as PasswordPolicyType;
+
     // Validate the policy structure
     const validation = this.passwordService.validatePasswordPolicy(body);
 
@@ -752,9 +810,9 @@ export class AdminController {
     const userContext = c.var.user as AuthenticatedUserContextType;
     this.checkAdminRole(userContext);
 
-    const body = await c.req.json() as { 
-      password: string; 
-      policy?: PasswordPolicyType 
+    const body = (await c.req.json()) as {
+      password: string;
+      policy?: PasswordPolicyType;
     };
 
     if (!body.password) {
@@ -763,10 +821,11 @@ export class AdminController {
 
     const testResult = this.passwordService.validatePasswordStrength(
       body.password,
-      body.policy
+      body.policy,
     );
 
-    const usedPolicy = body.policy || this.passwordService.getCurrentPasswordPolicy();
+    const usedPolicy =
+      body.policy || this.passwordService.getCurrentPasswordPolicy();
 
     return c.json({
       success: true,
@@ -787,11 +846,13 @@ export class AdminController {
     this.checkAdminRole(userContext);
 
     const currentPolicy = this.passwordService.getCurrentPasswordPolicy();
-    
+
     // Generate example passwords that meet the current policy
     const examplePasswords = [];
     for (let i = 0; i < 3; i++) {
-      const password = this.passwordService.generateSecurePassword(currentPolicy.minLength + 2);
+      const password = this.passwordService.generateSecurePassword(
+        currentPolicy.minLength + 2,
+      );
       examplePasswords.push(password);
     }
 
@@ -799,17 +860,19 @@ export class AdminController {
       success: true,
       data: {
         currentPolicy,
-        policyValidation: this.passwordService.validatePasswordPolicy(currentPolicy),
+        policyValidation:
+          this.passwordService.validatePasswordPolicy(currentPolicy),
         examplePasswords,
         environmentVariables: {
           PASSWORD_MIN_LENGTH: "Minimum password length (4-128)",
-          PASSWORD_MAX_LENGTH: "Maximum password length (8-256)", 
+          PASSWORD_MAX_LENGTH: "Maximum password length (8-256)",
           PASSWORD_REQUIRE_UPPERCASE: "Require uppercase letters (true/false)",
           PASSWORD_REQUIRE_LOWERCASE: "Require lowercase letters (true/false)",
           PASSWORD_REQUIRE_NUMBERS: "Require numbers (true/false)",
-          PASSWORD_REQUIRE_SPECIAL_CHARS: "Require special characters (true/false)",
+          PASSWORD_REQUIRE_SPECIAL_CHARS:
+            "Require special characters (true/false)",
         },
-        specialCharacters: "!@#$%^&*(),.?\":{}|<>",
+        specialCharacters: '!@#$%^&*(),.?":{}|<>',
       },
     });
   };
@@ -818,13 +881,18 @@ export class AdminController {
    * Sanitize user data for admin responses
    */
   private sanitizeUserData(user: UserType): Omit<UserType, "passwordHash"> & {
-    emails: Array<Omit<UserType["emails"][0], "verificationToken" | "verificationTokenExpiresAt">>;
+    emails: Array<
+      Omit<
+        UserType["emails"][0],
+        "verificationToken" | "verificationTokenExpiresAt"
+      >
+    >;
   } {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { passwordHash: _passwordHash, ...sanitizedUser } = user;
     return {
       ...sanitizedUser,
-      emails: user.emails.map(email => ({
+      emails: user.emails.map((email) => ({
         emailAddress: email.emailAddress,
         isVerified: email.isVerified,
         addedAt: email.addedAt,

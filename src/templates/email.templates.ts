@@ -31,9 +31,11 @@ function renderTemplate(template: string, data: Record<string, any>): string {
 }
 
 // Email verification template
-export function createVerificationEmailTemplate(data: VerificationEmailData): EmailTemplate {
+export function createVerificationEmailTemplate(
+  data: VerificationEmailData,
+): EmailTemplate {
   const greeting = data.firstName ? `Hi ${data.firstName}` : "Hello";
-  
+
   const htmlTemplate = `
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f9f9f9;">
       <div style="background-color: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
@@ -111,9 +113,11 @@ This email was sent from an automated system. Please do not reply.
 }
 
 // Password reset template
-export function createPasswordResetEmailTemplate(data: PasswordResetEmailData): EmailTemplate {
+export function createPasswordResetEmailTemplate(
+  data: PasswordResetEmailData,
+): EmailTemplate {
   const greeting = data.firstName ? `Hi ${data.firstName}` : "Hello";
-  
+
   const htmlTemplate = `
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f9f9f9;">
       <div style="background-color: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
@@ -191,9 +195,11 @@ This email was sent from an automated system. Please do not reply.
 }
 
 // Welcome email template (optional, for after email verification)
-export function createWelcomeEmailTemplate(data: WelcomeEmailData): EmailTemplate {
+export function createWelcomeEmailTemplate(
+  data: WelcomeEmailData,
+): EmailTemplate {
   const greeting = data.firstName ? `Hi ${data.firstName}` : "Welcome";
-  
+
   const htmlTemplate = `
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f9f9f9;">
       <div style="background-color: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">

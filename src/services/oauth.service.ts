@@ -143,18 +143,21 @@ class GitHubOAuthProvider implements IOAuthProvider {
   }
 
   async exchangeCodeForToken(code: string): Promise<OAuthTokenResponse> {
-    const response = await fetch("https://github.com/login/oauth/access_token", {
-      method: "POST",
-      headers: {
-        Accept: "application/json",
-        "Content-Type": "application/json",
+    const response = await fetch(
+      "https://github.com/login/oauth/access_token",
+      {
+        method: "POST",
+        headers: {
+          Accept: "application/json",
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          client_id: this.config.clientId,
+          client_secret: this.config.clientSecret,
+          code,
+        }),
       },
-      body: JSON.stringify({
-        client_id: this.config.clientId,
-        client_secret: this.config.clientSecret,
-        code,
-      }),
-    });
+    );
 
     if (!response.ok) {
       const errorText = await response.text();
@@ -339,7 +342,9 @@ export class OAuthService extends BaseService implements IOAuthService {
       nonce: crypto.randomBytes(16).toString("hex"),
     };
 
-    const stateString = Buffer.from(JSON.stringify(state)).toString("base64url");
+    const stateString = Buffer.from(JSON.stringify(state)).toString(
+      "base64url",
+    );
     const url = oauthProvider.getAuthorizationUrl(stateString);
 
     return {
@@ -365,44 +370,63 @@ export class OAuthService extends BaseService implements IOAuthService {
     }
 
     const tokenResponse = await oauthProvider.exchangeCodeForToken(code);
-    const userInfo = await oauthProvider.getUserInfo(tokenResponse.access_token);
+    const userInfo = await oauthProvider.getUserInfo(
+      tokenResponse.access_token,
+    );
 
     return userInfo;
   }
 
   // Event emission methods for OAuth controllers to use
   emitOAuthLogin(userInfo: OAuthUserInfo, userId: string, isNewUser: boolean) {
-    this.emitEvent("oauth_login", {
-      userId,
-      provider: userInfo.provider,
-      providerUserId: userInfo.id,
-      email: userInfo.email,
-      isNewUser,
-    }, {
-      user: { userId, email: userInfo.email }
-    });
+    this.emitEvent(
+      "oauth_login",
+      {
+        userId,
+        provider: userInfo.provider,
+        providerUserId: userInfo.id,
+        email: userInfo.email,
+        isNewUser,
+      },
+      {
+        user: { userId, email: userInfo.email },
+      },
+    );
   }
 
   emitAccountLinked(userInfo: OAuthUserInfo, userId: string) {
-    this.emitEvent("oauth_account_linked", {
-      userId,
-      provider: userInfo.provider,
-      providerUserId: userInfo.id,
-      email: userInfo.email,
-    }, {
-      user: { userId, email: userInfo.email }
-    });
+    this.emitEvent(
+      "oauth_account_linked",
+      {
+        userId,
+        provider: userInfo.provider,
+        providerUserId: userInfo.id,
+        email: userInfo.email,
+      },
+      {
+        user: { userId, email: userInfo.email },
+      },
+    );
   }
 
-  emitAccountUnlinked(provider: OAuthProvider, providerUserId: string, userId: string, email: string) {
-    this.emitEvent("oauth_account_unlinked", {
-      userId,
-      provider,
-      providerUserId,
-      email,
-    }, {
-      user: { userId, email }
-    });
+  emitAccountUnlinked(
+    provider: OAuthProvider,
+    providerUserId: string,
+    userId: string,
+    email: string,
+  ) {
+    this.emitEvent(
+      "oauth_account_unlinked",
+      {
+        userId,
+        provider,
+        providerUserId,
+        email,
+      },
+      {
+        user: { userId, email },
+      },
+    );
   }
 
   validateState(stateString: string): OAuthState {

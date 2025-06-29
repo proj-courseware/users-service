@@ -589,10 +589,10 @@ The authentication service implements a sophisticated progressive lockout system
 
 ```typescript
 interface AuthServiceConfig {
-  maxFailedAttempts: number;           // Threshold for lockout (default: 5)
-  lockoutDurationMinutes: number;      // Base lockout duration (default: 30)
-  progressiveLockout: boolean;         // Enable progressive mode (default: true)
-  maxProgressiveLockoutHours: number;  // Maximum lockout duration (default: 24)
+  maxFailedAttempts: number; // Threshold for lockout (default: 5)
+  lockoutDurationMinutes: number; // Base lockout duration (default: 30)
+  progressiveLockout: boolean; // Enable progressive mode (default: true)
+  maxProgressiveLockoutHours: number; // Maximum lockout duration (default: 24)
 }
 ```
 
@@ -603,8 +603,8 @@ export const userSchema = z.object({
   // ... existing fields
   isAccountLocked: z.boolean().default(false),
   failedLoginAttempts: z.number().default(0),
-  accountLockedAt: z.date().optional(),      // When lockout started
-  accountLockedUntil: z.date().optional(),   // When lockout expires
+  accountLockedAt: z.date().optional(), // When lockout started
+  accountLockedUntil: z.date().optional(), // When lockout expires
 });
 ```
 
@@ -618,12 +618,12 @@ class AuthenticationService {
   ): number {
     const baseAttempts = config.maxFailedAttempts;
     const excessAttempts = Math.max(0, attempts - baseAttempts);
-    
+
     // Exponential backoff: 2^(excess_attempts) × base_duration
     const multiplier = Math.pow(2, excessAttempts);
     const baseDurationMs = config.lockoutDurationMinutes * 60 * 1000;
     const calculatedDuration = multiplier * baseDurationMs;
-    
+
     // Cap at maximum lockout duration
     const maxDurationMs = config.maxProgressiveLockoutHours * 60 * 60 * 1000;
     return Math.min(calculatedDuration, maxDurationMs);
@@ -637,7 +637,7 @@ class AuthenticationService {
 // Repository method for checking current lockout status
 async isAccountCurrentlyLocked(email: string): Promise<boolean> {
   const user = await this.findByEmail(email);
-  
+
   if (!user || !user.isAccountLocked) {
     return false;
   }
@@ -658,7 +658,7 @@ async isAccountCurrentlyLocked(email: string): Promise<boolean> {
 ```typescript
 async loginWithPassword(credentials: LoginCredentialsType): Promise<AuthResult> {
   // ... find user
-  
+
   // Check time-aware lockout status
   const isCurrentlyLocked = await this.userRepository.isAccountCurrentlyLocked(email);
   if (isCurrentlyLocked) {
@@ -669,12 +669,13 @@ async loginWithPassword(credentials: LoginCredentialsType): Promise<AuthResult> 
   if (user.isAccountLocked && !isCurrentlyLocked) {
     await this.userRepository.updateLoginAttempts(email, 0, false);
   }
-  
+
   // ... continue authentication
 }
 ```
 
 **Progressive Lockout Example Sequence** (5 attempt threshold, 30-min base):
+
 1. **Attempts 1-4**: No lockout, increment counter
 2. **Attempt 5**: 30-minute lockout (2^0 × 30 = 30 min)
 3. **Attempt 6**: 60-minute lockout (2^1 × 30 = 60 min)
@@ -682,6 +683,7 @@ async loginWithPassword(credentials: LoginCredentialsType): Promise<AuthResult> 
 5. **Subsequent**: Caps at 24-hour maximum
 
 **Security Benefits**:
+
 - **Adaptive Protection**: Increasingly severe penalties for persistent attacks
 - **Automatic Recovery**: Time-based expiry prevents permanent lockouts
 - **User-Friendly**: Clear unlock times in error messages
@@ -1282,8 +1284,15 @@ export interface IOAuthProvider {
 
 // Main OAuth service coordinates all providers
 export interface IOAuthService {
-  generateAuthorizationUrl(provider: OAuthProvider, redirectTo?: string): OAuthAuthorizationURL;
-  handleCallback(provider: OAuthProvider, code: string, state: string): Promise<OAuthUserInfo>;
+  generateAuthorizationUrl(
+    provider: OAuthProvider,
+    redirectTo?: string,
+  ): OAuthAuthorizationURL;
+  handleCallback(
+    provider: OAuthProvider,
+    code: string,
+    state: string,
+  ): Promise<OAuthUserInfo>;
   validateState(stateString: string): OAuthState;
   isProviderEnabled(provider: OAuthProvider): boolean;
   getEnabledProviders(): OAuthProvider[];
@@ -1317,7 +1326,7 @@ if (user) {
   const socialIdentity = user.socialIdentities?.find(
     (identity) => identity.provider === provider,
   );
-  
+
   if (!socialIdentity) {
     user = await this.userRepository.linkSocialIdentity(user.id, {
       provider,

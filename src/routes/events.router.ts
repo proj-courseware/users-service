@@ -35,7 +35,9 @@ export function createEventsRoutes(options?: EventsRouteOptions) {
       start(controller: SSEController) {
         // Send initial connection message
         controller.enqueue(
-          new TextEncoder().encode(`data: {"type":"connected","message":"Authentication events stream ready"}\n\n`),
+          new TextEncoder().encode(
+            `data: {"type":"connected","message":"Authentication events stream ready"}\n\n`,
+          ),
         );
 
         const eventHandler = async (event: ServiceEventType) => {
@@ -60,23 +62,37 @@ export function createEventsRoutes(options?: EventsRouteOptions) {
         // Authentication event listeners
         const authEventTypes = [
           // User lifecycle events
-          "users:registered", "users:updated", "users:deleted",
+          "users:registered",
+          "users:updated",
+          "users:deleted",
           // Authentication events
-          "authentication:login", "authentication:logout", "authentication:token_refreshed",
+          "authentication:login",
+          "authentication:logout",
+          "authentication:token_refreshed",
           // Email events
-          "email:email_verified", "email:email_added", "email:email_removed", "email:verification_sent",
+          "email:email_verified",
+          "email:email_added",
+          "email:email_removed",
+          "email:verification_sent",
           // Password events
-          "password:password_changed", "password:password_reset_requested", "password:password_reset_completed",
+          "password:password_changed",
+          "password:password_reset_requested",
+          "password:password_reset_completed",
           // OAuth events
-          "oauth:oauth_login", "oauth:oauth_account_linked", "oauth:oauth_account_unlinked",
+          "oauth:oauth_login",
+          "oauth:oauth_account_linked",
+          "oauth:oauth_account_unlinked",
           // Security events
-          "security:account_locked", "security:account_unlocked", "security:failed_login_attempt",
+          "security:account_locked",
+          "security:account_unlocked",
+          "security:failed_login_attempt",
           // Admin events
-          "admin:user_role_changed", "admin:admin_action_performed",
+          "admin:user_role_changed",
+          "admin:admin_action_performed",
         ];
 
         // Register event listeners
-        authEventTypes.forEach(eventType => {
+        authEventTypes.forEach((eventType) => {
           appEvents.on(eventType, eventHandler);
         });
 
@@ -95,7 +111,7 @@ export function createEventsRoutes(options?: EventsRouteOptions) {
 
         // Store cleanup function
         controller.cleanup = () => {
-          authEventTypes.forEach(eventType => {
+          authEventTypes.forEach((eventType) => {
             appEvents.off(eventType, eventHandler);
           });
           clearInterval(keepAlive);

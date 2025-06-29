@@ -520,7 +520,7 @@ describe("PasswordService", () => {
     it("should fall back to default policy on error", () => {
       // This test assumes environment is properly set, but tests fallback behavior
       const policy = passwordService.getCurrentPasswordPolicy();
-      
+
       // Should have valid structure
       expect(policy.minLength).toBeGreaterThanOrEqual(4);
       expect(policy.maxLength).toBeLessThanOrEqual(256);
@@ -558,7 +558,9 @@ describe("PasswordService", () => {
       const result = passwordService.validatePasswordPolicy(invalidPolicy);
 
       expect(result.isValid).toBe(false);
-      expect(result.errors).toContain("Minimum length cannot be greater than maximum length");
+      expect(result.errors).toContain(
+        "Minimum length cannot be greater than maximum length",
+      );
     });
 
     it("should reject policy with min length too small", () => {
@@ -574,7 +576,9 @@ describe("PasswordService", () => {
       const result = passwordService.validatePasswordPolicy(invalidPolicy);
 
       expect(result.isValid).toBe(false);
-      expect(result.errors).toContain("Minimum length must be at least 4 characters");
+      expect(result.errors).toContain(
+        "Minimum length must be at least 4 characters",
+      );
     });
 
     it("should reject policy with max length too large", () => {
@@ -590,7 +594,9 @@ describe("PasswordService", () => {
       const result = passwordService.validatePasswordPolicy(invalidPolicy);
 
       expect(result.isValid).toBe(false);
-      expect(result.errors).toContain("Maximum length cannot exceed 256 characters");
+      expect(result.errors).toContain(
+        "Maximum length cannot exceed 256 characters",
+      );
     });
 
     it("should reject policy with min length too large", () => {
@@ -606,7 +612,9 @@ describe("PasswordService", () => {
       const result = passwordService.validatePasswordPolicy(invalidPolicy);
 
       expect(result.isValid).toBe(false);
-      expect(result.errors).toContain("Minimum length cannot exceed 128 characters");
+      expect(result.errors).toContain(
+        "Minimum length cannot exceed 128 characters",
+      );
     });
 
     it("should reject policy with max length too small", () => {
@@ -622,7 +630,9 @@ describe("PasswordService", () => {
       const result = passwordService.validatePasswordPolicy(invalidPolicy);
 
       expect(result.isValid).toBe(false);
-      expect(result.errors).toContain("Maximum length must be at least 8 characters");
+      expect(result.errors).toContain(
+        "Maximum length must be at least 8 characters",
+      );
     });
 
     it("should reject policy where required character types exceed min length", () => {
@@ -639,7 +649,7 @@ describe("PasswordService", () => {
 
       expect(result.isValid).toBe(false);
       expect(result.errors).toContain(
-        "Minimum length (3) must be at least 4 to accommodate all required character types"
+        "Minimum length (3) must be at least 4 to accommodate all required character types",
       );
     });
 
@@ -673,8 +683,12 @@ describe("PasswordService", () => {
 
       expect(result.isValid).toBe(false);
       expect(result.errors.length).toBeGreaterThan(1);
-      expect(result.errors).toContain("Minimum length must be at least 4 characters");
-      expect(result.errors).toContain("Maximum length cannot exceed 256 characters");
+      expect(result.errors).toContain(
+        "Minimum length must be at least 4 characters",
+      );
+      expect(result.errors).toContain(
+        "Maximum length cannot exceed 256 characters",
+      );
     });
   });
 
@@ -694,8 +708,12 @@ describe("PasswordService", () => {
     it("should use environment policy in password validation", () => {
       // Test that the service uses environment policy by default
       const password = "Test123!";
-      const resultWithoutPolicy = passwordService.validatePasswordStrength(password);
-      const resultWithEnvPolicy = passwordService.validatePasswordStrength(password, getEnvironmentPasswordPolicy());
+      const resultWithoutPolicy =
+        passwordService.validatePasswordStrength(password);
+      const resultWithEnvPolicy = passwordService.validatePasswordStrength(
+        password,
+        getEnvironmentPasswordPolicy(),
+      );
 
       expect(resultWithoutPolicy).toEqual(resultWithEnvPolicy);
     });
@@ -713,7 +731,10 @@ describe("PasswordService", () => {
       };
 
       const password = "abcd";
-      const result = passwordService.validatePasswordStrength(password, lenientPolicy);
+      const result = passwordService.validatePasswordStrength(
+        password,
+        lenientPolicy,
+      );
 
       expect(result.isValid).toBe(true);
       expect(result.errors).toHaveLength(0);
@@ -730,7 +751,10 @@ describe("PasswordService", () => {
       };
 
       const validPassword = "MySecurePass123!";
-      const result = passwordService.validatePasswordStrength(validPassword, strictPolicy);
+      const result = passwordService.validatePasswordStrength(
+        validPassword,
+        strictPolicy,
+      );
 
       expect(result.isValid).toBe(true);
       expect(result.errors).toHaveLength(0);
@@ -747,10 +771,15 @@ describe("PasswordService", () => {
       };
 
       const shortPassword = "Test123!";
-      const result = passwordService.validatePasswordStrength(shortPassword, strictPolicy);
+      const result = passwordService.validatePasswordStrength(
+        shortPassword,
+        strictPolicy,
+      );
 
       expect(result.isValid).toBe(false);
-      expect(result.errors).toContain("Password must be at least 15 characters long");
+      expect(result.errors).toContain(
+        "Password must be at least 15 characters long",
+      );
     });
   });
 });

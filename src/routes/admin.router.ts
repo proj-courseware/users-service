@@ -3,7 +3,7 @@ import type { AppEnv } from "@/schemas/app-env.schema";
 import { AdminController } from "@/controllers/admin.controller";
 import { authMiddleware } from "@/middlewares/auth.middleware";
 import { validate } from "@/middlewares/validation.middleware";
-import { 
+import {
   userQueryParamsSchema,
   createUserSchema,
   updateUserSchema,
@@ -31,10 +31,7 @@ adminRouter.get(
   adminController.getAllUsers,
 );
 
-adminRouter.get(
-  "/users/search",
-  adminController.searchUsers,
-);
+adminRouter.get("/users/search", adminController.searchUsers);
 
 adminRouter.get(
   "/users/:userId",
@@ -72,9 +69,11 @@ adminRouter.put(
     varKey: "validatedParams",
   }),
   validate({
-    schema: updateUserSchema.extend({
-      globalRole: globalRoleSchema.optional(),
-    }).partial(),
+    schema: updateUserSchema
+      .extend({
+        globalRole: globalRoleSchema.optional(),
+      })
+      .partial(),
     source: "body",
     varKey: "validatedBody",
   }),
@@ -131,28 +130,16 @@ adminRouter.post(
 );
 
 // Bulk operations
-adminRouter.post(
-  "/users/bulk",
-  adminController.bulkOperations,
-);
+adminRouter.post("/users/bulk", adminController.bulkOperations);
 
 // System statistics and monitoring
-adminRouter.get(
-  "/stats",
-  adminController.getSystemStats,
-);
+adminRouter.get("/stats", adminController.getSystemStats);
 
 // System health check
-adminRouter.get(
-  "/health",
-  adminController.getHealthStatus,
-);
+adminRouter.get("/health", adminController.getHealthStatus);
 
 // Admin settings management routes
-adminRouter.get(
-  "/settings",
-  adminController.getAllSettings,
-);
+adminRouter.get("/settings", adminController.getAllSettings);
 
 adminRouter.get(
   "/settings/:key",
@@ -211,15 +198,9 @@ adminRouter.post(
 );
 
 // Password policy management routes
-adminRouter.get(
-  "/password-policy",
-  adminController.getPasswordPolicy,
-);
+adminRouter.get("/password-policy", adminController.getPasswordPolicy);
 
-adminRouter.get(
-  "/password-policy/info",
-  adminController.getPasswordPolicyInfo,
-);
+adminRouter.get("/password-policy/info", adminController.getPasswordPolicyInfo);
 
 adminRouter.post(
   "/password-policy/validate",

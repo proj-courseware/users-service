@@ -31,7 +31,6 @@ app.get("/", (c) => {
   return c.text("Hello Hono!");
 });
 
-
 // Authentication routes
 const authController = new AuthController();
 app.route("/auth", createAuthRoutes({ authController }));
@@ -41,9 +40,10 @@ const userController = new UserController();
 app.route("/me", createUserRoutes({ userController }));
 
 // OAuth routes (social login endpoints)
-const userRepository = env.NODE_ENV === "test" 
-  ? new MockDbUserRepository() 
-  : new MongoDbUserRepository();
+const userRepository =
+  env.NODE_ENV === "test"
+    ? new MockDbUserRepository()
+    : new MongoDbUserRepository();
 const passwordService = new PasswordService();
 const jwtService = new JWTService();
 const authenticationService = new AuthenticationService(

@@ -36,11 +36,13 @@ export class CSRFService implements ICSRFService {
    */
   generateToken(): CSRFTokenData {
     const timestamp = Date.now();
-    
+
     // Generate token with specified length (in hex characters)
     const tokenBytes = Math.ceil(this.config.tokenLength / 2);
-    const token = randomBytes(tokenBytes).toString("hex").slice(0, this.config.tokenLength);
-    
+    const token = randomBytes(tokenBytes)
+      .toString("hex")
+      .slice(0, this.config.tokenLength);
+
     // Create HMAC hash using the token, timestamp, and secret
     const hash = this.createHash(token, timestamp);
 

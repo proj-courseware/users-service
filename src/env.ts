@@ -51,7 +51,9 @@ const envSchema = z.object({
   RATE_LIMIT_AUTH_MAX_REQUESTS: z.coerce.number().default(5),
   RATE_LIMIT_STRICT_MODE: z.coerce.boolean().default(true),
   // Session and CSRF Configuration
-  SESSION_SECRET: z.string().min(32, "Session secret must be at least 32 characters"),
+  SESSION_SECRET: z
+    .string()
+    .min(32, "Session secret must be at least 32 characters"),
   SESSION_MAX_AGE_HOURS: z.coerce.number().default(24),
   CSRF_SECRET: z.string().min(32, "CSRF secret must be at least 32 characters"),
   CSRF_TOKEN_LENGTH: z.coerce.number().default(32),

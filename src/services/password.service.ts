@@ -57,7 +57,10 @@ export interface IPasswordService {
   ): PasswordValidationResultType;
   generateSecurePassword(length?: number): string;
   getCurrentPasswordPolicy(): PasswordPolicyType;
-  validatePasswordPolicy(policy: PasswordPolicyType): { isValid: boolean; errors: string[] };
+  validatePasswordPolicy(policy: PasswordPolicyType): {
+    isValid: boolean;
+    errors: string[];
+  };
 }
 
 // Password service implementation using Argon2id
@@ -202,7 +205,10 @@ export class PasswordService extends BaseService implements IPasswordService {
     try {
       return getEnvironmentPasswordPolicy();
     } catch (error) {
-      console.warn("Failed to load environment password policy, using default:", error);
+      console.warn(
+        "Failed to load environment password policy, using default:",
+        error,
+      );
       return DEFAULT_PASSWORD_POLICY;
     }
   }
@@ -212,7 +218,10 @@ export class PasswordService extends BaseService implements IPasswordService {
    * @param policy - Password policy to validate
    * @returns Validation result with isValid flag and error messages
    */
-  validatePasswordPolicy(policy: PasswordPolicyType): { isValid: boolean; errors: string[] } {
+  validatePasswordPolicy(policy: PasswordPolicyType): {
+    isValid: boolean;
+    errors: string[];
+  } {
     const errors: string[] = [];
 
     // Validate min/max length consistency
@@ -246,7 +255,7 @@ export class PasswordService extends BaseService implements IPasswordService {
 
     if (requiredCharTypes > policy.minLength) {
       errors.push(
-        `Minimum length (${policy.minLength}) must be at least ${requiredCharTypes} to accommodate all required character types`
+        `Minimum length (${policy.minLength}) must be at least ${requiredCharTypes} to accommodate all required character types`,
       );
     }
 

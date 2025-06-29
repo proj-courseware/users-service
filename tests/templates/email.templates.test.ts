@@ -23,11 +23,15 @@ describe("Email Templates", () => {
 
       expect(template.subject).toBe("Verify your email address");
       expect(template.html).toContain("Hi John");
-      expect(template.html).toContain("https://app.example.com/verify?token=abc123");
+      expect(template.html).toContain(
+        "https://app.example.com/verify?token=abc123",
+      );
       expect(template.html).toContain("24 hours");
       expect(template.html).toContain("Verify Email Address");
       expect(template.text).toContain("Hi John");
-      expect(template.text).toContain("https://app.example.com/verify?token=abc123");
+      expect(template.text).toContain(
+        "https://app.example.com/verify?token=abc123",
+      );
       expect(template.text).toContain("24 hours");
     });
 
@@ -42,10 +46,14 @@ describe("Email Templates", () => {
       expect(template.subject).toBe("Verify your email address");
       expect(template.html).toContain("Hello,");
       expect(template.html).not.toContain("Hi ");
-      expect(template.html).toContain("https://app.example.com/verify?token=xyz789");
+      expect(template.html).toContain(
+        "https://app.example.com/verify?token=xyz789",
+      );
       expect(template.html).toContain("12 hours");
       expect(template.text).toContain("Hello,");
-      expect(template.text).toContain("https://app.example.com/verify?token=xyz789");
+      expect(template.text).toContain(
+        "https://app.example.com/verify?token=xyz789",
+      );
       expect(template.text).toContain("12 hours");
     });
 
@@ -64,7 +72,7 @@ describe("Email Templates", () => {
       expect(template.html).toContain("<p");
       expect(template.html).toContain("<a href=");
       expect(template.html).toContain("style=");
-      
+
       // Check button styling
       expect(template.html).toContain("background-color: #007bff");
       expect(template.html).toContain("color: white");
@@ -85,10 +93,12 @@ describe("Email Templates", () => {
       expect(template.text).not.toContain("<");
       expect(template.text).not.toContain(">");
       expect(template.text).not.toContain("style=");
-      
+
       // But should contain key information
       expect(template.text).toContain("Hi Bob");
-      expect(template.text).toContain("https://test.com/verify?token=plaintext");
+      expect(template.text).toContain(
+        "https://test.com/verify?token=plaintext",
+      );
       expect(template.text).toContain("24 hours");
       expect(template.text).toContain("Email Verification");
     });
@@ -106,11 +116,15 @@ describe("Email Templates", () => {
 
       expect(template.subject).toBe("Password Reset Request");
       expect(template.html).toContain("Hi Jane");
-      expect(template.html).toContain("https://app.example.com/reset?token=reset123");
+      expect(template.html).toContain(
+        "https://app.example.com/reset?token=reset123",
+      );
       expect(template.html).toContain("1 hour");
       expect(template.html).toContain("Reset Password");
       expect(template.text).toContain("Hi Jane");
-      expect(template.text).toContain("https://app.example.com/reset?token=reset123");
+      expect(template.text).toContain(
+        "https://app.example.com/reset?token=reset123",
+      );
       expect(template.text).toContain("1 hour");
     });
 
@@ -125,10 +139,14 @@ describe("Email Templates", () => {
       expect(template.subject).toBe("Password Reset Request");
       expect(template.html).toContain("Hello,");
       expect(template.html).not.toContain("Hi ");
-      expect(template.html).toContain("https://app.example.com/reset?token=reset456");
+      expect(template.html).toContain(
+        "https://app.example.com/reset?token=reset456",
+      );
       expect(template.html).toContain("2 hour");
       expect(template.text).toContain("Hello,");
-      expect(template.text).toContain("https://app.example.com/reset?token=reset456");
+      expect(template.text).toContain(
+        "https://app.example.com/reset?token=reset456",
+      );
       expect(template.text).toContain("2 hour");
     });
 
@@ -295,7 +313,9 @@ describe("Email Templates", () => {
 
       // Specific values should be present
       expect(template.html).toContain("Multi");
-      expect(template.html).toContain("https://multi.test/verify?token=multi123");
+      expect(template.html).toContain(
+        "https://multi.test/verify?token=multi123",
+      );
       expect(template.html).toContain("48 hours");
     });
 
@@ -311,7 +331,7 @@ describe("Email Templates", () => {
       // Should default to generic greeting
       expect(template.html).toContain("Hello,");
       expect(template.text).toContain("Hello,");
-      
+
       // Other variables should still work
       expect(template.html).toContain("https://test.com/verify");
       expect(template.html).toContain("24 hours");
@@ -326,7 +346,8 @@ describe("Email Templates", () => {
 
       const longData: VerificationEmailData = {
         firstName: "Verylongfirstnamethatmightcauseissues",
-        verificationUrl: "https://very-long-domain-name-for-testing.example.com/verify-email-address?token=very-long-token-that-might-cause-line-wrapping-issues",
+        verificationUrl:
+          "https://very-long-domain-name-for-testing.example.com/verify-email-address?token=very-long-token-that-might-cause-line-wrapping-issues",
         expiresInHours: 168, // 1 week
       };
 
@@ -353,13 +374,19 @@ describe("Email Templates", () => {
       const template = createVerificationEmailTemplate(data);
 
       // Token should appear in the URL (both as href and displayed URL for accessibility)
-      expect(template.html).toContain('href="https://secure.com/verify?token=secret-token-123"');
+      expect(template.html).toContain(
+        'href="https://secure.com/verify?token=secret-token-123"',
+      );
       expect(template.html).toContain("Verify Email Address");
-      expect(template.text).toContain("https://secure.com/verify?token=secret-token-123");
-      
+      expect(template.text).toContain(
+        "https://secure.com/verify?token=secret-token-123",
+      );
+
       // Should not appear as raw token elsewhere
       expect(template.html).not.toContain("Token: secret-token-123");
-      expect(template.html).not.toContain("secret-token-123 is your verification code");
+      expect(template.html).not.toContain(
+        "secret-token-123 is your verification code",
+      );
     });
 
     it("should use secure link styling", () => {
@@ -371,7 +398,9 @@ describe("Email Templates", () => {
       const template = createVerificationEmailTemplate(data);
 
       // Button should be clearly styled and accessible
-      expect(template.html).toContain('href="https://secure.test/verify?token=test"');
+      expect(template.html).toContain(
+        'href="https://secure.test/verify?token=test"',
+      );
       expect(template.html).toContain("Verify Email Address");
       expect(template.html).toContain("display: inline-block");
     });

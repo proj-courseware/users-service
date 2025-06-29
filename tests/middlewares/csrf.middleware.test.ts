@@ -17,9 +17,9 @@ class MockCSRFService implements ICSRFService {
     const token = "mock-token-" + Math.random().toString(36).substring(7);
     const timestamp = Date.now();
     const hash = `mock-hash-${token}:${timestamp}`;
-    
+
     this.tokens.set(token, { hash, timestamp });
-    
+
     return {
       token,
       hash,
@@ -36,7 +36,9 @@ class MockCSRFService implements ICSRFService {
   }
 
   generateSecureToken(length: number): string {
-    return Math.random().toString(36).substring(2, 2 + length);
+    return Math.random()
+      .toString(36)
+      .substring(2, 2 + length);
   }
 }
 
@@ -53,22 +55,26 @@ describe("CSRF Middleware", () => {
   describe("createCSRFMiddleware", () => {
     it("should allow GET requests without CSRF token", async () => {
       const config: Partial<CSRFConfig> = { enabled: true };
-      const middleware = createCSRFMiddleware(config, { csrfService: mockCSRFService });
-      
+      const middleware = createCSRFMiddleware(config, {
+        csrfService: mockCSRFService,
+      });
+
       app.use("*", middleware);
       app.get("/test", (c) => c.json({ success: true }));
 
       const response = await app.request("/test");
       expect(response.status).toBe(200);
-      
+
       const body = await response.json();
       expect(body).toEqual({ success: true });
     });
 
     it("should generate CSRF token for GET requests", async () => {
       const config: Partial<CSRFConfig> = { enabled: true };
-      const middleware = createCSRFMiddleware(config, { csrfService: mockCSRFService });
-      
+      const middleware = createCSRFMiddleware(config, {
+        csrfService: mockCSRFService,
+      });
+
       app.use("*", middleware);
       app.get("/test", (c) => {
         const csrfToken = c.get("csrfToken");
@@ -77,7 +83,7 @@ describe("CSRF Middleware", () => {
 
       const response = await app.request("/test");
       expect(response.status).toBe(200);
-      
+
       const body = await response.json();
       expect(body.success).toBe(true);
       expect(body.csrfToken).toBeDefined();
@@ -85,61 +91,77 @@ describe("CSRF Middleware", () => {
     });
 
     it("should set CSRF cookies for GET requests", async () => {
-      const config: Partial<CSRFConfig> = { enabled: true, cookieName: "test-csrf" };
-      const middleware = createCSRFMiddleware(config, { csrfService: mockCSRFService });
-      
+      const config: Partial<CSRFConfig> = {
+        enabled: true,
+        cookieName: "test-csrf",
+      };
+      const middleware = createCSRFMiddleware(config, {
+        csrfService: mockCSRFService,
+      });
+
       app.use("*", middleware);
       app.get("/test", (c) => c.json({ success: true }));
 
       const response = await app.request("/test");
       expect(response.status).toBe(200);
-      
+
       const setCookieHeaders = response.headers.getSetCookie();
       expect(setCookieHeaders.length).toBeGreaterThanOrEqual(2);
-      
+
       // Should have both token and hash cookies
-      const hasCsrfCookie = setCookieHeaders.some(header => header.includes("test-csrf="));
-      const hasHashCookie = setCookieHeaders.some(header => header.includes("test-csrf-hash="));
-      
+      const hasCsrfCookie = setCookieHeaders.some((header) =>
+        header.includes("test-csrf="),
+      );
+      const hasHashCookie = setCookieHeaders.some((header) =>
+        header.includes("test-csrf-hash="),
+      );
+
       expect(hasCsrfCookie).toBe(true);
       expect(hasHashCookie).toBe(true);
     });
 
     it("should reject POST requests without CSRF token", async () => {
       const config: Partial<CSRFConfig> = { enabled: true };
-      const middleware = createCSRFMiddleware(config, { csrfService: mockCSRFService });
-      
+      const middleware = createCSRFMiddleware(config, {
+        csrfService: mockCSRFService,
+      });
+
       app.use("*", middleware);
       app.post("/test", (c) => c.json({ success: true }));
 
       const response = await app.request("/test", { method: "POST" });
       expect(response.status).toBe(401);
-      
+
       const body = await response.json();
       expect(body.error).toContain("CSRF token is required");
     });
 
     it("should accept POST requests with valid CSRF token in header", async () => {
-      const config: Partial<CSRFConfig> = { 
-        enabled: true, 
+      const config: Partial<CSRFConfig> = {
+        enabled: true,
         cookieName: "test-csrf",
-        headerName: "x-test-csrf"
+        headerName: "x-test-csrf",
       };
-      const middleware = createCSRFMiddleware(config, { csrfService: mockCSRFService });
-      
+      const middleware = createCSRFMiddleware(config, {
+        csrfService: mockCSRFService,
+      });
+
       app.use("*", middleware);
       app.post("/test", (c) => c.json({ success: true }));
 
       // First, generate a token with GET request
       const getResponse = await app.request("/test", { method: "GET" });
       const setCookieHeaders = getResponse.headers.getSetCookie();
-      
+
       // Extract token and hash from cookies
       let csrfToken = "";
       let csrfHash = "";
-      
-      setCookieHeaders.forEach(header => {
-        if (header.includes("test-csrf=") && !header.includes("test-csrf-hash=")) {
+
+      setCookieHeaders.forEach((header) => {
+        if (
+          header.includes("test-csrf=") &&
+          !header.includes("test-csrf-hash=")
+        ) {
           csrfToken = header.split("test-csrf=")[1].split(";")[0];
         }
         if (header.includes("test-csrf-hash=")) {
@@ -152,7 +174,7 @@ describe("CSRF Middleware", () => {
         method: "POST",
         headers: {
           "x-test-csrf": csrfToken,
-          "Cookie": `test-csrf=${csrfToken}; test-csrf-hash=${csrfHash}`,
+          Cookie: `test-csrf=${csrfToken}; test-csrf-hash=${csrfHash}`,
         },
       });
 
@@ -162,13 +184,15 @@ describe("CSRF Middleware", () => {
     });
 
     it("should reject POST requests with invalid CSRF token", async () => {
-      const config: Partial<CSRFConfig> = { 
-        enabled: true, 
+      const config: Partial<CSRFConfig> = {
+        enabled: true,
         headerName: "x-test-csrf",
-        cookieName: "test-csrf"
+        cookieName: "test-csrf",
       };
-      const middleware = createCSRFMiddleware(config, { csrfService: mockCSRFService });
-      
+      const middleware = createCSRFMiddleware(config, {
+        csrfService: mockCSRFService,
+      });
+
       app.use("*", middleware);
       app.post("/test", (c) => c.json({ success: true }));
 
@@ -176,7 +200,7 @@ describe("CSRF Middleware", () => {
         method: "POST",
         headers: {
           "x-test-csrf": "invalid-token",
-          "Cookie": "test-csrf-hash=invalid-hash",
+          Cookie: "test-csrf-hash=invalid-hash",
         },
       });
 
@@ -187,25 +211,29 @@ describe("CSRF Middleware", () => {
 
     it("should skip CSRF protection when disabled", async () => {
       const config: Partial<CSRFConfig> = { enabled: false };
-      const middleware = createCSRFMiddleware(config, { csrfService: mockCSRFService });
-      
+      const middleware = createCSRFMiddleware(config, {
+        csrfService: mockCSRFService,
+      });
+
       app.use("*", middleware);
       app.post("/test", (c) => c.json({ success: true }));
 
       const response = await app.request("/test", { method: "POST" });
       expect(response.status).toBe(200);
-      
+
       const body = await response.json();
       expect(body).toEqual({ success: true });
     });
 
     it("should handle form data CSRF token", async () => {
-      const config: Partial<CSRFConfig> = { 
+      const config: Partial<CSRFConfig> = {
         enabled: true,
-        cookieName: "test-csrf"
+        cookieName: "test-csrf",
       };
-      const middleware = createCSRFMiddleware(config, { csrfService: mockCSRFService });
-      
+      const middleware = createCSRFMiddleware(config, {
+        csrfService: mockCSRFService,
+      });
+
       app.use("*", middleware);
       app.post("/test", (c) => c.json({ success: true }));
 
@@ -221,7 +249,7 @@ describe("CSRF Middleware", () => {
         method: "POST",
         body: formData,
         headers: {
-          "Cookie": `test-csrf-hash=${tokenData.hash}`,
+          Cookie: `test-csrf-hash=${tokenData.hash}`,
         },
       });
 
@@ -231,12 +259,14 @@ describe("CSRF Middleware", () => {
     });
 
     it("should handle JSON body CSRF token", async () => {
-      const config: Partial<CSRFConfig> = { 
+      const config: Partial<CSRFConfig> = {
         enabled: true,
-        cookieName: "test-csrf"
+        cookieName: "test-csrf",
       };
-      const middleware = createCSRFMiddleware(config, { csrfService: mockCSRFService });
-      
+      const middleware = createCSRFMiddleware(config, {
+        csrfService: mockCSRFService,
+      });
+
       app.use("*", middleware);
       app.post("/test", (c) => c.json({ success: true }));
 
@@ -247,7 +277,7 @@ describe("CSRF Middleware", () => {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "Cookie": `test-csrf-hash=${tokenData.hash}`,
+          Cookie: `test-csrf-hash=${tokenData.hash}`,
         },
         body: JSON.stringify({
           _csrf: tokenData.token,
@@ -261,18 +291,20 @@ describe("CSRF Middleware", () => {
     });
 
     it("should respect custom skip methods", async () => {
-      const config: Partial<CSRFConfig> = { 
+      const config: Partial<CSRFConfig> = {
         enabled: true,
-        skipMethods: ["GET", "HEAD", "OPTIONS", "POST"] // Include POST in skip methods
+        skipMethods: ["GET", "HEAD", "OPTIONS", "POST"], // Include POST in skip methods
       };
-      const middleware = createCSRFMiddleware(config, { csrfService: mockCSRFService });
-      
+      const middleware = createCSRFMiddleware(config, {
+        csrfService: mockCSRFService,
+      });
+
       app.use("*", middleware);
       app.post("/test", (c) => c.json({ success: true }));
 
       const response = await app.request("/test", { method: "POST" });
       expect(response.status).toBe(200);
-      
+
       const body = await response.json();
       expect(body).toEqual({ success: true });
     });
@@ -280,8 +312,10 @@ describe("CSRF Middleware", () => {
 
   describe("createCSRFTokenMiddleware", () => {
     it("should generate CSRF token and expose it", async () => {
-      const middleware = createCSRFTokenMiddleware({ csrfService: mockCSRFService });
-      
+      const middleware = createCSRFTokenMiddleware({
+        csrfService: mockCSRFService,
+      });
+
       app.use("*", middleware);
       app.get("/token", (c) => {
         const csrfToken = c.get("csrfToken");
@@ -291,7 +325,7 @@ describe("CSRF Middleware", () => {
 
       const response = await app.request("/token");
       expect(response.status).toBe(200);
-      
+
       const body = await response.json();
       expect(body.csrfToken).toBeDefined();
       expect(typeof body.csrfToken).toBe("string");
@@ -303,8 +337,10 @@ describe("CSRF Middleware", () => {
       const originalEnv = process.env.ENABLE_CSRF_PROTECTION;
       process.env.ENABLE_CSRF_PROTECTION = "false";
 
-      const middleware = createCSRFTokenMiddleware({ csrfService: mockCSRFService });
-      
+      const middleware = createCSRFTokenMiddleware({
+        csrfService: mockCSRFService,
+      });
+
       app.use("*", middleware);
       app.get("/token", (c) => {
         const csrfToken = c.get("csrfToken");
@@ -313,7 +349,7 @@ describe("CSRF Middleware", () => {
 
       const response = await app.request("/token");
       expect(response.status).toBe(200);
-      
+
       const body = await response.json();
       expect(body.csrfToken).toBeNull();
 
@@ -341,40 +377,48 @@ describe("CSRF Middleware", () => {
       const originalEnv = process.env.NODE_ENV;
       process.env.NODE_ENV = "production";
 
-      const config: Partial<CSRFConfig> = { 
+      const config: Partial<CSRFConfig> = {
         enabled: true,
         cookieName: "test-csrf",
-        secure: true
+        secure: true,
       };
-      const middleware = createCSRFMiddleware(config, { csrfService: mockCSRFService });
-      
+      const middleware = createCSRFMiddleware(config, {
+        csrfService: mockCSRFService,
+      });
+
       app.use("*", middleware);
       app.get("/test", (c) => c.json({ success: true }));
 
       const response = await app.request("/test");
       const setCookieHeaders = response.headers.getSetCookie();
-      
-      const hasSecureCookie = setCookieHeaders.some(header => header.includes("Secure"));
+
+      const hasSecureCookie = setCookieHeaders.some((header) =>
+        header.includes("Secure"),
+      );
       expect(hasSecureCookie).toBe(true);
 
       process.env.NODE_ENV = originalEnv;
     });
 
     it("should set SameSite cookies", async () => {
-      const config: Partial<CSRFConfig> = { 
+      const config: Partial<CSRFConfig> = {
         enabled: true,
         cookieName: "test-csrf",
-        sameSite: "strict"
+        sameSite: "strict",
       };
-      const middleware = createCSRFMiddleware(config, { csrfService: mockCSRFService });
-      
+      const middleware = createCSRFMiddleware(config, {
+        csrfService: mockCSRFService,
+      });
+
       app.use("*", middleware);
       app.get("/test", (c) => c.json({ success: true }));
 
       const response = await app.request("/test");
       const setCookieHeaders = response.headers.getSetCookie();
-      
-      const hasSameSiteCookie = setCookieHeaders.some(header => header.includes("SameSite=strict"));
+
+      const hasSameSiteCookie = setCookieHeaders.some((header) =>
+        header.includes("SameSite=strict"),
+      );
       expect(hasSameSiteCookie).toBe(true);
     });
   });

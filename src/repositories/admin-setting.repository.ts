@@ -9,7 +9,9 @@ export interface IAdminSettingRepository {
    * @param data - Setting data
    * @returns Created setting
    */
-  create(data: Omit<AdminSettingType, "id" | "updatedAt">): Promise<AdminSettingType>;
+  create(
+    data: Omit<AdminSettingType, "id" | "updatedAt">,
+  ): Promise<AdminSettingType>;
 
   /**
    * Find setting by key
@@ -30,7 +32,10 @@ export interface IAdminSettingRepository {
    * @param data - Updated setting data
    * @returns Updated setting
    */
-  updateByKey(key: string, data: Partial<Omit<AdminSettingType, "id" | "key">>): Promise<AdminSettingType>;
+  updateByKey(
+    key: string,
+    data: Partial<Omit<AdminSettingType, "id" | "key">>,
+  ): Promise<AdminSettingType>;
 
   /**
    * Delete setting by key
@@ -61,7 +66,11 @@ export interface IAdminSettingRepository {
    * @param description - Optional description
    * @returns Updated/created setting
    */
-  setValue(key: string, value: unknown, description?: string): Promise<AdminSettingType>;
+  setValue(
+    key: string,
+    value: unknown,
+    description?: string,
+  ): Promise<AdminSettingType>;
 
   /**
    * Get multiple settings by keys

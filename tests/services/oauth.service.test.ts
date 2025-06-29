@@ -49,9 +49,13 @@ describe("OAuthService", () => {
     it("should generate Google authorization URL correctly", () => {
       const result = oauthService.generateAuthorizationUrl("google");
 
-      expect(result.url).toContain("https://accounts.google.com/o/oauth2/v2/auth");
+      expect(result.url).toContain(
+        "https://accounts.google.com/o/oauth2/v2/auth",
+      );
       expect(result.url).toContain("client_id=google_client_id");
-      expect(result.url).toContain("redirect_uri=http%3A%2F%2Flocalhost%3A3000%2Fauth%2Fgoogle%2Fcallback");
+      expect(result.url).toContain(
+        "redirect_uri=http%3A%2F%2Flocalhost%3A3000%2Fauth%2Fgoogle%2Fcallback",
+      );
       expect(result.url).toContain("scope=openid");
       expect(result.url).toContain("response_type=code");
       expect(result.url).toContain("access_type=offline");
@@ -64,7 +68,9 @@ describe("OAuthService", () => {
 
       expect(result.url).toContain("https://github.com/login/oauth/authorize");
       expect(result.url).toContain("client_id=github_client_id");
-      expect(result.url).toContain("redirect_uri=http%3A%2F%2Flocalhost%3A3000%2Fauth%2Fgithub%2Fcallback");
+      expect(result.url).toContain(
+        "redirect_uri=http%3A%2F%2Flocalhost%3A3000%2Fauth%2Fgithub%2Fcallback",
+      );
       expect(result.url).toContain("scope=user%3Aemail");
       expect(result.url).toContain("allow_signup=true");
       expect(result.state).toBeTruthy();
@@ -73,9 +79,13 @@ describe("OAuthService", () => {
     it("should generate LinkedIn authorization URL correctly", () => {
       const result = oauthService.generateAuthorizationUrl("linkedin");
 
-      expect(result.url).toContain("https://www.linkedin.com/oauth/v2/authorization");
+      expect(result.url).toContain(
+        "https://www.linkedin.com/oauth/v2/authorization",
+      );
       expect(result.url).toContain("client_id=linkedin_client_id");
-      expect(result.url).toContain("redirect_uri=http%3A%2F%2Flocalhost%3A3000%2Fauth%2Flinkedin%2Fcallback");
+      expect(result.url).toContain(
+        "redirect_uri=http%3A%2F%2Flocalhost%3A3000%2Fauth%2Flinkedin%2Fcallback",
+      );
       expect(result.url).toContain("scope=openid");
       expect(result.url).toContain("response_type=code");
       expect(result.state).toBeTruthy();
@@ -83,7 +93,10 @@ describe("OAuthService", () => {
 
     it("should include redirectTo in state when provided", () => {
       const redirectTo = "http://localhost:3001/dashboard";
-      const result = oauthService.generateAuthorizationUrl("google", redirectTo);
+      const result = oauthService.generateAuthorizationUrl(
+        "google",
+        redirectTo,
+      );
 
       const stateData = oauthService.validateState(result.state);
       expect(stateData.redirectTo).toBe(redirectTo);
@@ -307,10 +320,11 @@ describe("OAuthService", () => {
         })
         .mockResolvedValueOnce({
           ok: true,
-          json: () => Promise.resolve({
-            ...mockGitHubUserInfo,
-            name: null,
-          }),
+          json: () =>
+            Promise.resolve({
+              ...mockGitHubUserInfo,
+              name: null,
+            }),
         })
         .mockResolvedValueOnce({
           ok: true,
@@ -342,13 +356,14 @@ describe("OAuthService", () => {
         })
         .mockResolvedValueOnce({
           ok: true,
-          json: () => Promise.resolve([
-            {
-              email: "user@example.com",
-              primary: false,
-              verified: true,
-            },
-          ]),
+          json: () =>
+            Promise.resolve([
+              {
+                email: "user@example.com",
+                primary: false,
+                verified: true,
+              },
+            ]),
         });
 
       await expect(
@@ -438,10 +453,12 @@ describe("OAuthService", () => {
           GOOGLE_REDIRECT_URI: undefined,
         },
       }));
-      
-      const { OAuthService: MockOAuthService } = await import("@/services/oauth.service");
+
+      const { OAuthService: MockOAuthService } = await import(
+        "@/services/oauth.service"
+      );
       const disabledService = new MockOAuthService();
-      
+
       await expect(
         disabledService.handleCallback("google", "code", "validbase64state"),
       ).rejects.toThrow("OAuth provider 'google' is not enabled");

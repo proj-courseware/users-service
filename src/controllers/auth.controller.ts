@@ -29,31 +29,37 @@ export class AuthController {
   private emailService: IEmailService;
 
   constructor(deps?: AuthControllerDeps) {
-    if (deps?.authenticationService && deps?.emailVerificationService && deps?.emailService) {
+    if (
+      deps?.authenticationService &&
+      deps?.emailVerificationService &&
+      deps?.emailService
+    ) {
       this.authenticationService = deps.authenticationService;
       this.emailVerificationService = deps.emailVerificationService;
       this.emailService = deps.emailService;
     } else {
       // Create default services with proper dependency injection
-      const userRepository = env.NODE_ENV === "test" 
-        ? new MockDbUserRepository() 
-        : new MongoDbUserRepository();
-      
+      const userRepository =
+        env.NODE_ENV === "test"
+          ? new MockDbUserRepository()
+          : new MongoDbUserRepository();
+
       const passwordService = new PasswordService();
       const jwtService = new JWTService();
-      
+
       this.authenticationService = new AuthenticationService(
         userRepository,
         passwordService,
         jwtService,
       );
-      
-      this.emailVerificationService = new EmailVerificationService(userRepository);
-      
+
+      this.emailVerificationService = new EmailVerificationService(
+        userRepository,
+      );
+
       // Use MockEmailService in test environment, real EmailService otherwise
-      this.emailService = env.NODE_ENV === "test" 
-        ? new MockEmailService() 
-        : new EmailService();
+      this.emailService =
+        env.NODE_ENV === "test" ? new MockEmailService() : new EmailService();
     }
   }
 
@@ -69,10 +75,11 @@ export class AuthController {
     // If email verification is required, generate token and send email
     if (result.requiresEmailVerification) {
       try {
-        const verificationResult = await this.emailVerificationService.generateVerificationToken(
-          result.user.id,
-          result.user.primaryEmail,
-        );
+        const verificationResult =
+          await this.emailVerificationService.generateVerificationToken(
+            result.user.id,
+            result.user.primaryEmail,
+          );
 
         // Send verification email
         const emailResult = await this.emailService.sendVerificationEmail(
@@ -82,45 +89,54 @@ export class AuthController {
           result.user.firstName,
         );
 
-        return c.json({
-          success: true,
-          message: result.message,
-          user: result.user,
-          requiresEmailVerification: true,
-          verificationEmailSent: emailResult.success,
-          ...(emailResult.success && { 
-            emailMessageId: emailResult.messageId 
-          }),
-          ...(emailResult.success === false && { 
-            emailError: emailResult.error 
-          }),
-          // In development/testing, include token info for manual testing
-          ...(env.NODE_ENV === "development" && { 
-            verificationToken: verificationResult.token,
-            verificationExpiresAt: verificationResult.expiresAt,
-          }),
-        }, 201);
+        return c.json(
+          {
+            success: true,
+            message: result.message,
+            user: result.user,
+            requiresEmailVerification: true,
+            verificationEmailSent: emailResult.success,
+            ...(emailResult.success && {
+              emailMessageId: emailResult.messageId,
+            }),
+            ...(emailResult.success === false && {
+              emailError: emailResult.error,
+            }),
+            // In development/testing, include token info for manual testing
+            ...(env.NODE_ENV === "development" && {
+              verificationToken: verificationResult.token,
+              verificationExpiresAt: verificationResult.expiresAt,
+            }),
+          },
+          201,
+        );
       } catch (error) {
         // If verification token generation fails, user is still created
         // Log error and return success with manual verification note
         console.error("Failed to generate verification token:", error);
-        return c.json({
-          success: true,
-          message: result.message,
-          user: result.user,
-          requiresEmailVerification: true,
-          verificationEmailSent: false,
-          note: "User created successfully, but verification email could not be sent. Please contact support.",
-        }, 201);
+        return c.json(
+          {
+            success: true,
+            message: result.message,
+            user: result.user,
+            requiresEmailVerification: true,
+            verificationEmailSent: false,
+            note: "User created successfully, but verification email could not be sent. Please contact support.",
+          },
+          201,
+        );
       }
     }
 
-    return c.json({
-      success: true,
-      message: result.message,
-      user: result.user,
-      requiresEmailVerification: false,
-    }, 201);
+    return c.json(
+      {
+        success: true,
+        message: result.message,
+        user: result.user,
+        requiresEmailVerification: false,
+      },
+      201,
+    );
   };
 
   /**
@@ -147,12 +163,14 @@ export class AuthController {
    */
   refreshToken = async (c: Context<AppEnv>): Promise<Response> => {
     const body = await c.req.json();
-    
+
     if (!body.refreshToken) {
       throw new BadRequestError("Refresh token is required");
     }
 
-    const result = await this.authenticationService.refreshTokens(body.refreshToken);
+    const result = await this.authenticationService.refreshTokens(
+      body.refreshToken,
+    );
 
     return c.json({
       success: true,
@@ -168,12 +186,14 @@ export class AuthController {
    */
   verifyEmail = async (c: Context<AppEnv>): Promise<Response> => {
     const body = await c.req.json();
-    
+
     if (!body.token) {
       throw new BadRequestError("Verification token is required");
     }
 
-    const result = await this.emailVerificationService.verifyEmailToken(body.token);
+    const result = await this.emailVerificationService.verifyEmailToken(
+      body.token,
+    );
 
     if (!result.success) {
       throw new BadRequestError(result.message);
@@ -192,26 +212,30 @@ export class AuthController {
    */
   resendVerification = async (c: Context<AppEnv>): Promise<Response> => {
     const body = await c.req.json();
-    
+
     if (!body.userId || !body.emailAddress) {
       throw new BadRequestError("User ID and email address are required");
     }
 
     try {
-      const result = await this.emailVerificationService.resendVerificationEmail(
-        body.userId,
-        body.emailAddress,
-      );
+      const result =
+        await this.emailVerificationService.resendVerificationEmail(
+          body.userId,
+          body.emailAddress,
+        );
 
       // Get user info for personalized email
-      const userRepository = env.NODE_ENV === "test" 
-        ? new MockDbUserRepository() 
-        : new MongoDbUserRepository();
+      const userRepository =
+        env.NODE_ENV === "test"
+          ? new MockDbUserRepository()
+          : new MongoDbUserRepository();
       const user = await userRepository.findById(body.userId);
 
       // Get the verification token from the updated user
       const updatedUser = await userRepository.findById(body.userId);
-      const emailObj = updatedUser?.emails.find(e => e.emailAddress === body.emailAddress);
+      const emailObj = updatedUser?.emails.find(
+        (e) => e.emailAddress === body.emailAddress,
+      );
       const token = emailObj?.verificationToken;
 
       if (token) {
@@ -228,11 +252,11 @@ export class AuthController {
           message: result.message,
           emailAddress: result.emailAddress,
           verificationEmailSent: emailResult.success,
-          ...(emailResult.success && { 
-            emailMessageId: emailResult.messageId 
+          ...(emailResult.success && {
+            emailMessageId: emailResult.messageId,
           }),
-          ...(emailResult.success === false && { 
-            emailError: emailResult.error 
+          ...(emailResult.success === false && {
+            emailError: emailResult.error,
           }),
           // In development, include token info for testing
           ...(env.NODE_ENV === "development" && {
@@ -261,7 +285,7 @@ export class AuthController {
    */
   me = async (c: Context<AppEnv>): Promise<Response> => {
     const authHeader = c.req.header("Authorization");
-    
+
     if (!authHeader || !authHeader.startsWith("Bearer ")) {
       throw new BadRequestError("Valid authorization header required");
     }
@@ -282,10 +306,11 @@ export class AuthController {
   logout = async (c: Context<AppEnv>): Promise<Response> => {
     // For JWT tokens, logout is typically handled client-side by removing the token
     // In a more sophisticated setup, you might maintain a token blacklist
-    
+
     return c.json({
       success: true,
-      message: "Logged out successfully. Please remove the access token from your client.",
+      message:
+        "Logged out successfully. Please remove the access token from your client.",
     });
   };
 
@@ -295,16 +320,16 @@ export class AuthController {
    */
   tokenInfo = async (c: Context<AppEnv>): Promise<Response> => {
     const authHeader = c.req.header("Authorization");
-    
+
     if (!authHeader || !authHeader.startsWith("Bearer ")) {
       throw new BadRequestError("Valid authorization header required");
     }
 
     const token = authHeader.split(" ")[1];
-    
+
     try {
       const payload = await this.authenticationService.verifyAccessToken(token);
-      
+
       return c.json({
         success: true,
         tokenInfo: {

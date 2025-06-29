@@ -364,7 +364,7 @@ export class MongoDbUserRepository implements IUserRepository {
 
     const collection = await this.getCollection();
     const now = new Date();
-    
+
     await collection.updateOne(
       { _id: new ObjectId(id) },
       {
@@ -451,7 +451,7 @@ export class MongoDbUserRepository implements IUserRepository {
     lockUntil?: Date,
   ): Promise<void> {
     const collection = await this.getCollection();
-    
+
     const updateData: {
       failedLoginAttempts: number;
       isAccountLocked: boolean;
@@ -523,7 +523,7 @@ export class MongoDbUserRepository implements IUserRepository {
   async isAccountCurrentlyLocked(email: string): Promise<boolean> {
     const collection = await this.getCollection();
     const user = await collection.findOne({ primaryEmail: email });
-    
+
     if (!user) {
       return false; // User doesn't exist, not locked
     }

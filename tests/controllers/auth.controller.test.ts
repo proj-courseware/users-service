@@ -142,16 +142,17 @@ describe("AuthController", () => {
       };
 
       mockAuthService.register = vi.fn().mockResolvedValue(registrationResult);
-      mockEmailVerificationService.generateVerificationToken = vi.fn().mockResolvedValue(verificationResult);
+      mockEmailVerificationService.generateVerificationToken = vi
+        .fn()
+        .mockResolvedValue(verificationResult);
 
       const context = createMockContext({ validatedBody: registerData });
       const response = await authController.register(context);
 
       expect(mockAuthService.register).toHaveBeenCalledWith(registerData);
-      expect(mockEmailVerificationService.generateVerificationToken).toHaveBeenCalledWith(
-        mockUser.id,
-        mockUser.primaryEmail,
-      );
+      expect(
+        mockEmailVerificationService.generateVerificationToken,
+      ).toHaveBeenCalledWith(mockUser.id, mockUser.primaryEmail);
       expect(response).toMatchObject({
         success: true,
         message: registrationResult.message,
@@ -176,9 +177,9 @@ describe("AuthController", () => {
       };
 
       mockAuthService.register = vi.fn().mockResolvedValue(registrationResult);
-      mockEmailVerificationService.generateVerificationToken = vi.fn().mockRejectedValue(
-        new Error("Email service unavailable"),
-      );
+      mockEmailVerificationService.generateVerificationToken = vi
+        .fn()
+        .mockRejectedValue(new Error("Email service unavailable"));
 
       const context = createMockContext({ validatedBody: registerData });
       const response = await authController.register(context);
@@ -206,7 +207,9 @@ describe("AuthController", () => {
         refreshToken: "refresh_token_123",
       };
 
-      mockAuthService.loginWithPassword = vi.fn().mockResolvedValue(loginResult);
+      mockAuthService.loginWithPassword = vi
+        .fn()
+        .mockResolvedValue(loginResult);
 
       const context = createMockContext({ validatedBody: loginData });
       const response = await authController.login(context);
@@ -231,7 +234,9 @@ describe("AuthController", () => {
         user: mockUser,
       };
 
-      mockAuthService.loginWithPassword = vi.fn().mockResolvedValue(loginResult);
+      mockAuthService.loginWithPassword = vi
+        .fn()
+        .mockResolvedValue(loginResult);
 
       const context = createMockContext({ validatedBody: loginData });
       const response = await authController.login(context);
@@ -258,7 +263,9 @@ describe("AuthController", () => {
       });
       const response = await authController.refreshToken(context);
 
-      expect(mockAuthService.refreshTokens).toHaveBeenCalledWith("old_refresh_token");
+      expect(mockAuthService.refreshTokens).toHaveBeenCalledWith(
+        "old_refresh_token",
+      );
       expect(response).toEqual({
         success: true,
         message: "Tokens refreshed successfully",
@@ -270,7 +277,9 @@ describe("AuthController", () => {
     it("should throw error when refresh token is missing", async () => {
       const context = createMockContext({ json: {} });
 
-      await expect(authController.refreshToken(context)).rejects.toThrow(BadRequestError);
+      await expect(authController.refreshToken(context)).rejects.toThrow(
+        BadRequestError,
+      );
     });
   });
 
@@ -282,14 +291,18 @@ describe("AuthController", () => {
         user: mockUser,
       };
 
-      mockEmailVerificationService.verifyEmailToken = vi.fn().mockResolvedValue(verificationResult);
+      mockEmailVerificationService.verifyEmailToken = vi
+        .fn()
+        .mockResolvedValue(verificationResult);
 
       const context = createMockContext({
         json: { token: "verification_token_123" },
       });
       const response = await authController.verifyEmail(context);
 
-      expect(mockEmailVerificationService.verifyEmailToken).toHaveBeenCalledWith("verification_token_123");
+      expect(
+        mockEmailVerificationService.verifyEmailToken,
+      ).toHaveBeenCalledWith("verification_token_123");
       expect(response).toEqual({
         success: true,
         message: "Email verified successfully",
@@ -303,19 +316,25 @@ describe("AuthController", () => {
         message: "Invalid verification token",
       };
 
-      mockEmailVerificationService.verifyEmailToken = vi.fn().mockResolvedValue(verificationResult);
+      mockEmailVerificationService.verifyEmailToken = vi
+        .fn()
+        .mockResolvedValue(verificationResult);
 
       const context = createMockContext({
         json: { token: "invalid_token" },
       });
 
-      await expect(authController.verifyEmail(context)).rejects.toThrow(BadRequestError);
+      await expect(authController.verifyEmail(context)).rejects.toThrow(
+        BadRequestError,
+      );
     });
 
     it("should throw error when token is missing", async () => {
       const context = createMockContext({ json: {} });
 
-      await expect(authController.verifyEmail(context)).rejects.toThrow(BadRequestError);
+      await expect(authController.verifyEmail(context)).rejects.toThrow(
+        BadRequestError,
+      );
     });
   });
 
@@ -328,17 +347,18 @@ describe("AuthController", () => {
         expiresAt: new Date(),
       };
 
-      mockEmailVerificationService.resendVerificationEmail = vi.fn().mockResolvedValue(resendResult);
+      mockEmailVerificationService.resendVerificationEmail = vi
+        .fn()
+        .mockResolvedValue(resendResult);
 
       const context = createMockContext({
         json: { userId: "user-123", emailAddress: "john.doe@example.com" },
       });
       const response = await authController.resendVerification(context);
 
-      expect(mockEmailVerificationService.resendVerificationEmail).toHaveBeenCalledWith(
-        "user-123",
-        "john.doe@example.com",
-      );
+      expect(
+        mockEmailVerificationService.resendVerificationEmail,
+      ).toHaveBeenCalledWith("user-123", "john.doe@example.com");
       expect(response).toMatchObject({
         success: true,
         message: resendResult.message,
@@ -349,7 +369,9 @@ describe("AuthController", () => {
     it("should throw error when required fields are missing", async () => {
       const context = createMockContext({ json: { userId: "user-123" } });
 
-      await expect(authController.resendVerification(context)).rejects.toThrow(BadRequestError);
+      await expect(authController.resendVerification(context)).rejects.toThrow(
+        BadRequestError,
+      );
     });
   });
 
@@ -362,7 +384,9 @@ describe("AuthController", () => {
       });
       const response = await authController.me(context);
 
-      expect(mockAuthService.getUserFromToken).toHaveBeenCalledWith("valid_token_123");
+      expect(mockAuthService.getUserFromToken).toHaveBeenCalledWith(
+        "valid_token_123",
+      );
       expect(response).toEqual({
         success: true,
         user: mockUser,
@@ -391,7 +415,8 @@ describe("AuthController", () => {
 
       expect(response).toEqual({
         success: true,
-        message: "Logged out successfully. Please remove the access token from your client.",
+        message:
+          "Logged out successfully. Please remove the access token from your client.",
       });
     });
   });
@@ -406,14 +431,18 @@ describe("AuthController", () => {
         exp: Math.floor(Date.now() / 1000) + 900,
       };
 
-      mockAuthService.verifyAccessToken = vi.fn().mockResolvedValue(tokenPayload);
+      mockAuthService.verifyAccessToken = vi
+        .fn()
+        .mockResolvedValue(tokenPayload);
 
       const context = createMockContext({
         headers: { Authorization: "Bearer valid_token_123" },
       });
       const response = await authController.tokenInfo(context);
 
-      expect(mockAuthService.verifyAccessToken).toHaveBeenCalledWith("valid_token_123");
+      expect(mockAuthService.verifyAccessToken).toHaveBeenCalledWith(
+        "valid_token_123",
+      );
       expect(response).toMatchObject({
         success: true,
         tokenInfo: {
@@ -426,13 +455,17 @@ describe("AuthController", () => {
     });
 
     it("should throw error for invalid token", async () => {
-      mockAuthService.verifyAccessToken = vi.fn().mockRejectedValue(new Error("Invalid token"));
+      mockAuthService.verifyAccessToken = vi
+        .fn()
+        .mockRejectedValue(new Error("Invalid token"));
 
       const context = createMockContext({
         headers: { Authorization: "Bearer invalid_token" },
       });
 
-      await expect(authController.tokenInfo(context)).rejects.toThrow(BadRequestError);
+      await expect(authController.tokenInfo(context)).rejects.toThrow(
+        BadRequestError,
+      );
     });
   });
 

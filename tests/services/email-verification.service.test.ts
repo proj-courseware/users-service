@@ -12,11 +12,7 @@ import type {
   CreateUserType,
   EmailObjectType,
 } from "@/schemas/user.schema";
-import {
-  BadRequestError,
-  NotFoundError,
-  UnauthenticatedError,
-} from "@/errors";
+import { BadRequestError, NotFoundError, UnauthenticatedError } from "@/errors";
 
 describe("EmailVerificationService", () => {
   let emailVerificationService: IEmailVerificationService;
@@ -44,7 +40,7 @@ describe("EmailVerificationService", () => {
   beforeEach(async () => {
     userRepository = new MockDbUserRepository();
     emailVerificationService = new EmailVerificationService(userRepository);
-    
+
     // Clear any existing users
     (userRepository as MockDbUserRepository).clear();
   });
@@ -63,7 +59,10 @@ describe("EmailVerificationService", () => {
         resendCooldownMinutes: 10,
       };
 
-      const service = new EmailVerificationService(userRepository, customConfig);
+      const service = new EmailVerificationService(
+        userRepository,
+        customConfig,
+      );
       expect(service).toBeDefined();
     });
   });
@@ -132,7 +131,10 @@ describe("EmailVerificationService", () => {
 
     it("should throw error for missing parameters", async () => {
       await expect(
-        emailVerificationService.generateVerificationToken("", "test@example.com"),
+        emailVerificationService.generateVerificationToken(
+          "",
+          "test@example.com",
+        ),
       ).rejects.toThrow(BadRequestError);
 
       await expect(
@@ -155,9 +157,9 @@ describe("EmailVerificationService", () => {
       );
 
       expect(result.token.length).toBe(128);
-      
+
       // Check that expiry is approximately 48 hours from now
-      const expectedExpiry = Date.now() + (48 * 60 * 60 * 1000);
+      const expectedExpiry = Date.now() + 48 * 60 * 60 * 1000;
       const timeDiff = Math.abs(result.expiresAt.getTime() - expectedExpiry);
       expect(timeDiff).toBeLessThan(1000); // Within 1 second
     });
@@ -167,10 +169,11 @@ describe("EmailVerificationService", () => {
     it("should verify valid token and mark email as verified", async () => {
       // Create user and generate token
       const user = await userRepository.create(testUserData);
-      const tokenResult = await emailVerificationService.generateVerificationToken(
-        user.id,
-        "john.doe@example.com",
-      );
+      const tokenResult =
+        await emailVerificationService.generateVerificationToken(
+          user.id,
+          "john.doe@example.com",
+        );
 
       // Verify the token
       const result = await emailVerificationService.verifyEmailToken(
@@ -194,9 +197,8 @@ describe("EmailVerificationService", () => {
     it("should return failure for non-existent token", async () => {
       const validFormatToken = "a".repeat(64); // Valid format but doesn't exist
 
-      const result = await emailVerificationService.verifyEmailToken(
-        validFormatToken,
-      );
+      const result =
+        await emailVerificationService.verifyEmailToken(validFormatToken);
 
       expect(result.success).toBe(false);
       expect(result.message).toContain("Invalid or expired verification token");
@@ -218,11 +220,12 @@ describe("EmailVerificationService", () => {
       const user = await userRepository.create(freshUserData);
       const customConfig = { tokenExpiryHours: -1 }; // Expired immediately
 
-      const tokenResult = await emailVerificationService.generateVerificationToken(
-        user.id,
-        "expired-test@example.com",
-        customConfig,
-      );
+      const tokenResult =
+        await emailVerificationService.generateVerificationToken(
+          user.id,
+          "expired-test@example.com",
+          customConfig,
+        );
 
       const result = await emailVerificationService.verifyEmailToken(
         tokenResult.token,
@@ -246,10 +249,11 @@ describe("EmailVerificationService", () => {
         ],
       };
       const user = await userRepository.create(freshUserData);
-      const tokenResult = await emailVerificationService.generateVerificationToken(
-        user.id,
-        "already-verified@example.com",
-      );
+      const tokenResult =
+        await emailVerificationService.generateVerificationToken(
+          user.id,
+          "already-verified@example.com",
+        );
 
       // First verification should succeed
       const firstResult = await emailVerificationService.verifyEmailToken(
@@ -262,7 +266,9 @@ describe("EmailVerificationService", () => {
         tokenResult.token,
       );
       expect(secondResult.success).toBe(false);
-      expect(secondResult.message).toContain("Invalid or expired verification token");
+      expect(secondResult.message).toContain(
+        "Invalid or expired verification token",
+      );
     });
   });
 
@@ -349,11 +355,12 @@ describe("EmailVerificationService", () => {
       const customConfig = { resendCooldownMinutes: 60 }; // 1 hour cooldown
 
       // First request should succeed
-      const firstResult = await emailVerificationService.resendVerificationEmail(
-        user.id,
-        "cooldown@example.com",
-        customConfig,
-      );
+      const firstResult =
+        await emailVerificationService.resendVerificationEmail(
+          user.id,
+          "cooldown@example.com",
+          customConfig,
+        );
       expect(firstResult.success).toBe(true);
 
       // Second request within cooldown should fail
@@ -382,19 +389,21 @@ describe("EmailVerificationService", () => {
       const customConfig = { resendCooldownMinutes: 0 }; // No cooldown
 
       // First request
-      const firstResult = await emailVerificationService.resendVerificationEmail(
-        user.id,
-        "nocooldown@example.com",
-        customConfig,
-      );
+      const firstResult =
+        await emailVerificationService.resendVerificationEmail(
+          user.id,
+          "nocooldown@example.com",
+          customConfig,
+        );
       expect(firstResult.success).toBe(true);
 
       // Second request should also succeed with no cooldown
-      const secondResult = await emailVerificationService.resendVerificationEmail(
-        user.id,
-        "nocooldown@example.com",
-        customConfig,
-      );
+      const secondResult =
+        await emailVerificationService.resendVerificationEmail(
+          user.id,
+          "nocooldown@example.com",
+          customConfig,
+        );
       expect(secondResult.success).toBe(true);
     });
   });
@@ -423,16 +432,20 @@ describe("EmailVerificationService", () => {
     it("should return false for invalid token formats", () => {
       // Too short
       expect(emailVerificationService.isTokenValid("short")).toBe(false);
-      
+
       // Too long
-      expect(emailVerificationService.isTokenValid("a".repeat(200))).toBe(false);
-      
+      expect(emailVerificationService.isTokenValid("a".repeat(200))).toBe(
+        false,
+      );
+
       // Invalid characters
-      expect(emailVerificationService.isTokenValid("invalid@token#")).toBe(false);
-      
+      expect(emailVerificationService.isTokenValid("invalid@token#")).toBe(
+        false,
+      );
+
       // Empty string
       expect(emailVerificationService.isTokenValid("")).toBe(false);
-      
+
       // Not a string
       expect(emailVerificationService.isTokenValid(null as any)).toBe(false);
     });
@@ -473,23 +486,26 @@ describe("EmailVerificationService", () => {
         ],
       };
       const user = await userRepository.create(freshUserData);
-      const tokenResult = await emailVerificationService.generateVerificationToken(
-        user.id,
-        "finduser@example.com",
-      );
+      const tokenResult =
+        await emailVerificationService.generateVerificationToken(
+          user.id,
+          "finduser@example.com",
+        );
 
-      const foundUser = await emailVerificationService.findUserByVerificationToken(
-        tokenResult.token,
-      );
+      const foundUser =
+        await emailVerificationService.findUserByVerificationToken(
+          tokenResult.token,
+        );
 
       expect(foundUser).toBeDefined();
       expect(foundUser!.id).toBe(user.id);
     });
 
     it("should return null for non-existent token", async () => {
-      const foundUser = await emailVerificationService.findUserByVerificationToken(
-        "non-existent-token",
-      );
+      const foundUser =
+        await emailVerificationService.findUserByVerificationToken(
+          "non-existent-token",
+        );
       expect(foundUser).toBeNull();
     });
   });
@@ -508,10 +524,11 @@ describe("EmailVerificationService", () => {
         ],
       };
       const user = await userRepository.create(freshUserData);
-      const tokenResult = await emailVerificationService.generateVerificationToken(
-        user.id,
-        "tokeninfo@example.com",
-      );
+      const tokenResult =
+        await emailVerificationService.generateVerificationToken(
+          user.id,
+          "tokeninfo@example.com",
+        );
 
       const tokenInfo = await emailVerificationService.getTokenInfo(
         tokenResult.token,
@@ -543,11 +560,12 @@ describe("EmailVerificationService", () => {
       const user = await userRepository.create(freshUserData);
       const customConfig = { tokenExpiryHours: -1 }; // Expired immediately
 
-      const tokenResult = await emailVerificationService.generateVerificationToken(
-        user.id,
-        "expiredinfo@example.com",
-        customConfig,
-      );
+      const tokenResult =
+        await emailVerificationService.generateVerificationToken(
+          user.id,
+          "expiredinfo@example.com",
+          customConfig,
+        );
 
       const tokenInfo = await emailVerificationService.getTokenInfo(
         tokenResult.token,
@@ -583,7 +601,7 @@ describe("EmailVerificationService", () => {
           },
         ],
       };
-      
+
       const user1 = await userRepository.create(user1Data);
       const user2 = await userRepository.create(user2Data);
 
@@ -601,7 +619,8 @@ describe("EmailVerificationService", () => {
       );
 
       // Clean up expired tokens
-      const cleanedCount = await emailVerificationService.cleanupExpiredTokens();
+      const cleanedCount =
+        await emailVerificationService.cleanupExpiredTokens();
 
       expect(cleanedCount).toBeGreaterThan(0);
 
@@ -626,13 +645,15 @@ describe("EmailVerificationService", () => {
         ],
       };
       const user = await userRepository.create(freshUserData);
-      const tokenResult = await emailVerificationService.generateVerificationToken(
-        user.id,
-        "nonexpired@example.com",
-      );
+      const tokenResult =
+        await emailVerificationService.generateVerificationToken(
+          user.id,
+          "nonexpired@example.com",
+        );
 
       // Clean up expired tokens
-      const cleanedCount = await emailVerificationService.cleanupExpiredTokens();
+      const cleanedCount =
+        await emailVerificationService.cleanupExpiredTokens();
 
       // Non-expired token should remain
       const updatedUser = await userRepository.findById(user.id);
@@ -680,7 +701,7 @@ describe("EmailVerificationService", () => {
         );
 
       const results = await Promise.allSettled(promises);
-      
+
       // All should succeed and generate unique tokens
       const successResults = results.filter((r) => r.status === "fulfilled");
       expect(successResults.length).toBe(5);

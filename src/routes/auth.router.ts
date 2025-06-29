@@ -106,37 +106,25 @@ export const createAuthRoutes = (dependencies: CreateAuthRoutesDeps) => {
    * Get current user info (requires auth header)
    * GET /auth/me
    */
-  authRoutes.get(
-    "/me",
-    authController.me,
-  );
+  authRoutes.get("/me", authController.me);
 
   /**
    * Logout (client-side token removal)
    * POST /auth/logout
    */
-  authRoutes.post(
-    "/logout",
-    authController.logout,
-  );
+  authRoutes.post("/logout", authController.logout);
 
   /**
    * Get token information (for debugging)
    * GET /auth/token-info
    */
-  authRoutes.get(
-    "/token-info",
-    authController.tokenInfo,
-  );
+  authRoutes.get("/token-info", authController.tokenInfo);
 
   /**
    * Health check for authentication service
    * GET /auth/health
    */
-  authRoutes.get(
-    "/health",
-    authController.health,
-  );
+  authRoutes.get("/health", authController.health);
 
   return authRoutes;
 };

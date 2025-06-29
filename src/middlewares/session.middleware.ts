@@ -52,7 +52,7 @@ export class SessionService implements ISessionService {
    */
   async createSession(user: UserType): Promise<string> {
     const now = Date.now();
-    const expiresAt = now + (this.config.maxAgeHours * 60 * 60 * 1000);
+    const expiresAt = now + this.config.maxAgeHours * 60 * 60 * 1000;
 
     const sessionData: SessionData = {
       userId: user.id,
@@ -72,8 +72,11 @@ export class SessionService implements ISessionService {
    */
   async validateSession(sessionToken: string): Promise<SessionData | null> {
     try {
-      const payload = await verify(sessionToken, this.config.secret) as SessionData;
-      
+      const payload = (await verify(
+        sessionToken,
+        this.config.secret,
+      )) as SessionData;
+
       // Check if session has expired
       if (payload.expiresAt < Date.now()) {
         return null;
@@ -110,7 +113,7 @@ export class SessionService implements ISessionService {
     const newSessionData: SessionData = {
       ...sessionData,
       issuedAt: now,
-      expiresAt: now + (this.config.maxAgeHours * 60 * 60 * 1000),
+      expiresAt: now + this.config.maxAgeHours * 60 * 60 * 1000,
     };
 
     return await sign(newSessionData, this.config.secret);
@@ -131,8 +134,12 @@ export class SessionService implements ISessionService {
       maxAge: this.config.maxAgeHours * 60 * 60, // in seconds
       secure: this.config.secure,
       httpOnly: this.config.httpOnly,
-      sameSite: this.config.sameSite === "strict" ? "Strict" : 
-                this.config.sameSite === "lax" ? "Lax" : "None",
+      sameSite:
+        this.config.sameSite === "strict"
+          ? "Strict"
+          : this.config.sameSite === "lax"
+            ? "Lax"
+            : "None",
       domain: this.config.domain,
       path: this.config.path,
     };
@@ -158,7 +165,7 @@ export const createSessionMiddleware = (deps?: SessionMiddlewareDeps) => {
 
   return createMiddleware<AppEnv>(async (c, next) => {
     const sessionToken = c.req.cookie(sessionService.getCookieName());
-    
+
     if (sessionToken) {
       const sessionData = await sessionService.validateSession(sessionToken);
       if (sessionData) {
@@ -183,7 +190,7 @@ export const createSessionAuthMiddleware = (deps?: SessionMiddlewareDeps) => {
 
   return createMiddleware<AppEnv>(async (c, next) => {
     const sessionToken = c.req.cookie(sessionService.getCookieName());
-    
+
     if (!sessionToken) {
       throw new UnauthenticatedError("No session found");
     }
@@ -207,4 +214,6 @@ export const sessionService = new SessionService();
 
 // Default middleware instances
 export const sessionMiddleware = createSessionMiddleware({ sessionService });
-export const sessionAuthMiddleware = createSessionAuthMiddleware({ sessionService });
+export const sessionAuthMiddleware = createSessionAuthMiddleware({
+  sessionService,
+});

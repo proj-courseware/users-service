@@ -10,14 +10,14 @@ import {
   oauthCallbackQuerySchema,
   type OAuthProvider,
 } from "@/schemas/oauth.schema";
-import { 
+import {
   createUserSchema,
   type CreateUserType,
   type AuthenticatedUserContextType,
 } from "@/schemas/user.schemas";
-import { 
-  ValidationError, 
-  ConflictError, 
+import {
+  ValidationError,
+  ConflictError,
   NotFoundError,
   UnauthorizedError,
 } from "@/errors";
@@ -113,8 +113,12 @@ export class OAuthController implements IOAuthController {
         }
       } else {
         const newUser: CreateUserType = {
-          firstName: oauthUserInfo.firstName || oauthUserInfo.name.split(" ")[0] || "",
-          lastName: oauthUserInfo.lastName || oauthUserInfo.name.split(" ").slice(1).join(" ") || "",
+          firstName:
+            oauthUserInfo.firstName || oauthUserInfo.name.split(" ")[0] || "",
+          lastName:
+            oauthUserInfo.lastName ||
+            oauthUserInfo.name.split(" ").slice(1).join(" ") ||
+            "",
           primaryEmail: oauthUserInfo.email,
           emails: [
             {

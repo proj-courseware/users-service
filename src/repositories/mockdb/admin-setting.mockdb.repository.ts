@@ -30,11 +30,15 @@ export class MockDbAdminSettingRepository implements IAdminSettingRepository {
     this.settings = [...settings];
   }
 
-  async create(data: Omit<AdminSettingType, "id" | "updatedAt">): Promise<AdminSettingType> {
+  async create(
+    data: Omit<AdminSettingType, "id" | "updatedAt">,
+  ): Promise<AdminSettingType> {
     // Check if key already exists
-    const existing = this.settings.find(s => s.key === data.key);
+    const existing = this.settings.find((s) => s.key === data.key);
     if (existing) {
-      throw new InternalServerError(`Admin setting with key '${data.key}' already exists`);
+      throw new InternalServerError(
+        `Admin setting with key '${data.key}' already exists`,
+      );
     }
 
     const setting: AdminSettingType = {
@@ -50,18 +54,21 @@ export class MockDbAdminSettingRepository implements IAdminSettingRepository {
   }
 
   async findByKey(key: string): Promise<AdminSettingType | null> {
-    const setting = this.settings.find(s => s.key === key);
+    const setting = this.settings.find((s) => s.key === key);
     return setting ? { ...setting } : null;
   }
 
   async findAll(): Promise<AdminSettingType[]> {
     return this.settings
-      .map(setting => ({ ...setting }))
+      .map((setting) => ({ ...setting }))
       .sort((a, b) => a.key.localeCompare(b.key));
   }
 
-  async updateByKey(key: string, data: Partial<Omit<AdminSettingType, "id" | "key">>): Promise<AdminSettingType> {
-    const index = this.settings.findIndex(s => s.key === key);
+  async updateByKey(
+    key: string,
+    data: Partial<Omit<AdminSettingType, "id" | "key">>,
+  ): Promise<AdminSettingType> {
+    const index = this.settings.findIndex((s) => s.key === key);
     if (index === -1) {
       throw new NotFoundError(`Admin setting with key '${key}' not found`);
     }
@@ -78,7 +85,7 @@ export class MockDbAdminSettingRepository implements IAdminSettingRepository {
   }
 
   async deleteByKey(key: string): Promise<boolean> {
-    const index = this.settings.findIndex(s => s.key === key);
+    const index = this.settings.findIndex((s) => s.key === key);
     if (index === -1) {
       return false;
     }
@@ -88,17 +95,21 @@ export class MockDbAdminSettingRepository implements IAdminSettingRepository {
   }
 
   async existsByKey(key: string): Promise<boolean> {
-    return this.settings.some(s => s.key === key);
+    return this.settings.some((s) => s.key === key);
   }
 
   async getValue<T = unknown>(key: string, defaultValue?: T): Promise<T> {
     const setting = await this.findByKey(key);
-    return setting?.value as T ?? defaultValue as T;
+    return (setting?.value as T) ?? (defaultValue as T);
   }
 
-  async setValue(key: string, value: unknown, description?: string): Promise<AdminSettingType> {
+  async setValue(
+    key: string,
+    value: unknown,
+    description?: string,
+  ): Promise<AdminSettingType> {
     const existing = await this.findByKey(key);
-    
+
     if (existing) {
       return await this.updateByKey(key, { value, description });
     } else {
@@ -108,14 +119,14 @@ export class MockDbAdminSettingRepository implements IAdminSettingRepository {
 
   async getMultiple(keys: string[]): Promise<Map<string, unknown>> {
     const result = new Map<string, unknown>();
-    
+
     for (const key of keys) {
-      const setting = this.settings.find(s => s.key === key);
+      const setting = this.settings.find((s) => s.key === key);
       if (setting) {
         result.set(key, setting.value);
       }
     }
-    
+
     return result;
   }
 }

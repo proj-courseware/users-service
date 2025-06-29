@@ -150,7 +150,9 @@ describe("UserController", () => {
 
       const context = createMockContext();
 
-      await expect(userController.getProfile(context)).rejects.toThrow(NotFoundError);
+      await expect(userController.getProfile(context)).rejects.toThrow(
+        NotFoundError,
+      );
     });
   });
 
@@ -167,7 +169,10 @@ describe("UserController", () => {
       const context = createMockContext({ validatedBody: updateData });
       const response = await userController.updateProfile(context);
 
-      expect(mockUserRepository.update).toHaveBeenCalledWith("user-123", updateData);
+      expect(mockUserRepository.update).toHaveBeenCalledWith(
+        "user-123",
+        updateData,
+      );
       expect(response).toEqual({
         success: true,
         message: "Profile updated successfully",
@@ -215,20 +220,26 @@ describe("UserController", () => {
       mockUserRepository.findById = vi.fn().mockResolvedValue(mockUser);
       mockUserRepository.findByEmail = vi.fn().mockResolvedValue(null);
       mockUserRepository.addEmail = vi.fn().mockResolvedValue(undefined);
-      mockEmailVerificationService.generateVerificationToken = vi.fn().mockResolvedValue(verificationResult);
+      mockEmailVerificationService.generateVerificationToken = vi
+        .fn()
+        .mockResolvedValue(verificationResult);
 
       const context = createMockContext({ validatedBody: emailData });
       const response = await userController.addEmail(context);
 
-      expect(mockUserRepository.findByEmail).toHaveBeenCalledWith("jane.doe@example.com");
-      expect(mockUserRepository.addEmail).toHaveBeenCalledWith("user-123", expect.objectContaining({
-        emailAddress: "jane.doe@example.com",
-        isVerified: false,
-      }));
-      expect(mockEmailVerificationService.generateVerificationToken).toHaveBeenCalledWith(
-        "user-123",
+      expect(mockUserRepository.findByEmail).toHaveBeenCalledWith(
         "jane.doe@example.com",
       );
+      expect(mockUserRepository.addEmail).toHaveBeenCalledWith(
+        "user-123",
+        expect.objectContaining({
+          emailAddress: "jane.doe@example.com",
+          isVerified: false,
+        }),
+      );
+      expect(
+        mockEmailVerificationService.generateVerificationToken,
+      ).toHaveBeenCalledWith("user-123", "jane.doe@example.com");
       expect(response).toMatchObject({
         success: true,
         message: "Email added successfully. Verification email sent.",
@@ -246,7 +257,9 @@ describe("UserController", () => {
 
       const context = createMockContext({ validatedBody: emailData });
 
-      await expect(userController.addEmail(context)).rejects.toThrow(BadRequestError);
+      await expect(userController.addEmail(context)).rejects.toThrow(
+        BadRequestError,
+      );
     });
 
     it("should throw error when email is used by another user", async () => {
@@ -260,7 +273,9 @@ describe("UserController", () => {
 
       const context = createMockContext({ validatedBody: emailData });
 
-      await expect(userController.addEmail(context)).rejects.toThrow(BadRequestError);
+      await expect(userController.addEmail(context)).rejects.toThrow(
+        BadRequestError,
+      );
     });
 
     it("should handle verification token generation failure gracefully", async () => {
@@ -271,9 +286,9 @@ describe("UserController", () => {
       mockUserRepository.findById = vi.fn().mockResolvedValue(mockUser);
       mockUserRepository.findByEmail = vi.fn().mockResolvedValue(null);
       mockUserRepository.addEmail = vi.fn().mockResolvedValue(undefined);
-      mockEmailVerificationService.generateVerificationToken = vi.fn().mockRejectedValue(
-        new Error("Email service unavailable"),
-      );
+      mockEmailVerificationService.generateVerificationToken = vi
+        .fn()
+        .mockRejectedValue(new Error("Email service unavailable"));
 
       const context = createMockContext({ validatedBody: emailData });
       const response = await userController.addEmail(context);
@@ -299,7 +314,9 @@ describe("UserController", () => {
         ],
       };
 
-      mockUserRepository.findById = vi.fn().mockResolvedValue(userWithMultipleEmails);
+      mockUserRepository.findById = vi
+        .fn()
+        .mockResolvedValue(userWithMultipleEmails);
       mockUserRepository.removeEmail = vi.fn().mockResolvedValue(undefined);
 
       const context = createMockContext({
@@ -307,7 +324,10 @@ describe("UserController", () => {
       });
       const response = await userController.removeEmail(context);
 
-      expect(mockUserRepository.removeEmail).toHaveBeenCalledWith("user-123", "secondary@example.com");
+      expect(mockUserRepository.removeEmail).toHaveBeenCalledWith(
+        "user-123",
+        "secondary@example.com",
+      );
       expect(response).toEqual({
         success: true,
         message: "Email address removed successfully",
@@ -321,7 +341,9 @@ describe("UserController", () => {
         validatedParams: { emailAddress: "john.doe@example.com" }, // Primary email
       });
 
-      await expect(userController.removeEmail(context)).rejects.toThrow(BadRequestError);
+      await expect(userController.removeEmail(context)).rejects.toThrow(
+        BadRequestError,
+      );
     });
 
     it("should throw error when email not found", async () => {
@@ -331,7 +353,9 @@ describe("UserController", () => {
         validatedParams: { emailAddress: "nonexistent@example.com" },
       });
 
-      await expect(userController.removeEmail(context)).rejects.toThrow(NotFoundError);
+      await expect(userController.removeEmail(context)).rejects.toThrow(
+        NotFoundError,
+      );
     });
   });
 
@@ -353,13 +377,18 @@ describe("UserController", () => {
         emailAddress: "secondary@example.com",
       };
 
-      mockUserRepository.findById = vi.fn().mockResolvedValue(userWithMultipleEmails);
+      mockUserRepository.findById = vi
+        .fn()
+        .mockResolvedValue(userWithMultipleEmails);
       mockUserRepository.setPrimaryEmail = vi.fn().mockResolvedValue(undefined);
 
       const context = createMockContext({ validatedBody: setPrimaryData });
       const response = await userController.setPrimaryEmail(context);
 
-      expect(mockUserRepository.setPrimaryEmail).toHaveBeenCalledWith("user-123", "secondary@example.com");
+      expect(mockUserRepository.setPrimaryEmail).toHaveBeenCalledWith(
+        "user-123",
+        "secondary@example.com",
+      );
       expect(response).toEqual({
         success: true,
         message: "Primary email updated successfully",
@@ -376,7 +405,9 @@ describe("UserController", () => {
 
       const context = createMockContext({ validatedBody: setPrimaryData });
 
-      await expect(userController.setPrimaryEmail(context)).rejects.toThrow(NotFoundError);
+      await expect(userController.setPrimaryEmail(context)).rejects.toThrow(
+        NotFoundError,
+      );
     });
 
     it("should throw error when email is not verified", async () => {
@@ -396,11 +427,15 @@ describe("UserController", () => {
         emailAddress: "unverified@example.com",
       };
 
-      mockUserRepository.findById = vi.fn().mockResolvedValue(userWithUnverifiedEmail);
+      mockUserRepository.findById = vi
+        .fn()
+        .mockResolvedValue(userWithUnverifiedEmail);
 
       const context = createMockContext({ validatedBody: setPrimaryData });
 
-      await expect(userController.setPrimaryEmail(context)).rejects.toThrow(BadRequestError);
+      await expect(userController.setPrimaryEmail(context)).rejects.toThrow(
+        BadRequestError,
+      );
     });
   });
 
@@ -425,18 +460,21 @@ describe("UserController", () => {
         expiresAt: new Date(),
       };
 
-      mockUserRepository.findById = vi.fn().mockResolvedValue(userWithUnverifiedEmail);
-      mockEmailVerificationService.resendVerificationEmail = vi.fn().mockResolvedValue(resendResult);
+      mockUserRepository.findById = vi
+        .fn()
+        .mockResolvedValue(userWithUnverifiedEmail);
+      mockEmailVerificationService.resendVerificationEmail = vi
+        .fn()
+        .mockResolvedValue(resendResult);
 
       const context = createMockContext({
         validatedParams: { emailAddress: "unverified@example.com" },
       });
       const response = await userController.resendEmailVerification(context);
 
-      expect(mockEmailVerificationService.resendVerificationEmail).toHaveBeenCalledWith(
-        "user-123",
-        "unverified@example.com",
-      );
+      expect(
+        mockEmailVerificationService.resendVerificationEmail,
+      ).toHaveBeenCalledWith("user-123", "unverified@example.com");
       expect(response).toMatchObject({
         success: true,
         message: resendResult.message,
@@ -451,7 +489,9 @@ describe("UserController", () => {
         validatedParams: { emailAddress: "john.doe@example.com" }, // Already verified
       });
 
-      await expect(userController.resendEmailVerification(context)).rejects.toThrow(BadRequestError);
+      await expect(
+        userController.resendEmailVerification(context),
+      ).rejects.toThrow(BadRequestError);
     });
   });
 
@@ -474,7 +514,9 @@ describe("UserController", () => {
         ],
       };
 
-      mockUserRepository.findById = vi.fn().mockResolvedValue(userWithMultipleEmails);
+      mockUserRepository.findById = vi
+        .fn()
+        .mockResolvedValue(userWithMultipleEmails);
 
       const context = createMockContext();
       const response = await userController.getEmails(context);
@@ -516,8 +558,10 @@ describe("UserController", () => {
 
       // Override the PasswordService constructor for this test
       const originalPasswordService = (userController as any).passwordService;
-      
-      mockUserRepository.findById = vi.fn().mockResolvedValue(userWithValidHash);
+
+      mockUserRepository.findById = vi
+        .fn()
+        .mockResolvedValue(userWithValidHash);
       mockUserRepository.delete = vi.fn().mockResolvedValue(undefined);
 
       // Directly mock the verifyPassword call by injecting the mock
@@ -532,12 +576,16 @@ describe("UserController", () => {
         const body = await c.req.json();
 
         if (!body.password) {
-          throw new BadRequestError("Password confirmation is required to delete account");
+          throw new BadRequestError(
+            "Password confirmation is required to delete account",
+          );
         }
 
         const user = await mockUserRepository.findById(userContext.userId);
         if (!user || !user.passwordHash) {
-          throw new NotFoundError("User not found or cannot delete social login account");
+          throw new NotFoundError(
+            "User not found or cannot delete social login account",
+          );
         }
 
         // Skip actual password verification in test
@@ -564,7 +612,9 @@ describe("UserController", () => {
     it("should throw error when password is missing", async () => {
       const context = createMockContext({ json: {} });
 
-      await expect(userController.deleteAccount(context)).rejects.toThrow(BadRequestError);
+      await expect(userController.deleteAccount(context)).rejects.toThrow(
+        BadRequestError,
+      );
     });
   });
 

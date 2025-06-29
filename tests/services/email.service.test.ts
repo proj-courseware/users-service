@@ -1,4 +1,12 @@
-import { describe, it, expect, beforeEach, vi, beforeAll, afterAll } from "vitest";
+import {
+  describe,
+  it,
+  expect,
+  beforeEach,
+  vi,
+  beforeAll,
+  afterAll,
+} from "vitest";
 import {
   EmailService,
   MockEmailService,
@@ -26,7 +34,7 @@ describe("EmailService", () => {
           "user123",
           "test@example.com",
           "verification-token-123",
-          "John"
+          "John",
         );
 
         expect(result.success).toBe(true);
@@ -48,7 +56,7 @@ describe("EmailService", () => {
         const result = await mockEmailService.sendVerificationEmail(
           "user123",
           "test@example.com",
-          "verification-token-123"
+          "verification-token-123",
         );
 
         expect(result.success).toBe(true);
@@ -64,7 +72,7 @@ describe("EmailService", () => {
       it("should generate correct verification URL", () => {
         const token = "test-token-123";
         const url = generateVerificationUrl(token);
-        
+
         expect(url).toContain("/verify-email");
         expect(url).toContain(`token=${encodeURIComponent(token)}`);
       });
@@ -76,7 +84,7 @@ describe("EmailService", () => {
           "user123",
           "test@example.com",
           "reset-token-456",
-          "Jane"
+          "Jane",
         );
 
         expect(result.success).toBe(true);
@@ -97,7 +105,7 @@ describe("EmailService", () => {
       it("should generate correct password reset URL", () => {
         const token = "reset-token-456";
         const url = generatePasswordResetUrl(token);
-        
+
         expect(url).toContain("/reset-password");
         expect(url).toContain(`token=${encodeURIComponent(token)}`);
       });
@@ -107,7 +115,7 @@ describe("EmailService", () => {
       it("should send welcome email successfully", async () => {
         const result = await mockEmailService.sendWelcomeEmail(
           "test@example.com",
-          "Bob"
+          "Bob",
         );
 
         expect(result.success).toBe(true);
@@ -158,8 +166,16 @@ describe("EmailService", () => {
     describe("testing utilities", () => {
       beforeEach(async () => {
         // Send a few test emails
-        await mockEmailService.sendVerificationEmail("user1", "test1@example.com", "token1");
-        await mockEmailService.sendPasswordResetEmail("user2", "test2@example.com", "token2");
+        await mockEmailService.sendVerificationEmail(
+          "user1",
+          "test1@example.com",
+          "token1",
+        );
+        await mockEmailService.sendPasswordResetEmail(
+          "user2",
+          "test2@example.com",
+          "token2",
+        );
         await mockEmailService.sendWelcomeEmail("test3@example.com");
       });
 
@@ -175,7 +191,8 @@ describe("EmailService", () => {
       });
 
       it("should filter emails by type", () => {
-        const verificationEmails = mockEmailService.getEmailsByType("verification");
+        const verificationEmails =
+          mockEmailService.getEmailsByType("verification");
         const resetEmails = mockEmailService.getEmailsByType("passwordReset");
         const welcomeEmails = mockEmailService.getEmailsByType("welcome");
 
@@ -190,9 +207,9 @@ describe("EmailService", () => {
 
       it("should clear sent emails", () => {
         expect(mockEmailService.getSentEmails()).toHaveLength(3);
-        
+
         mockEmailService.clearSentEmails();
-        
+
         expect(mockEmailService.getSentEmails()).toHaveLength(0);
       });
     });
@@ -227,7 +244,7 @@ describe("EmailService", () => {
       expect(config.port).toBe(587);
       expect(config.fromName).toBe("Custom Service");
       expect(config.maxRetries).toBe(5);
-      
+
       // Should keep defaults for unspecified values
       expect(config.secure).toBe(DEFAULT_EMAIL_CONFIG.secure);
       expect(config.retryDelayMs).toBe(DEFAULT_EMAIL_CONFIG.retryDelayMs);
@@ -268,17 +285,17 @@ describe("EmailService", () => {
         "user123",
         "test@example.com",
         "token123",
-        "Alice"
+        "Alice",
       );
 
       const email = mockEmailService.getLastEmail();
-      
+
       // Check that template placeholders are replaced
       expect(email.content).toContain("Hi Alice");
       expect(email.content).toContain("token123");
       expect(email.content).toContain("24 hours");
       expect(email.content).toContain("Verify Email Address");
-      
+
       // Check HTML structure
       expect(email.content).toContain("<h1");
       expect(email.content).toContain("<a href=");
@@ -290,11 +307,11 @@ describe("EmailService", () => {
         "user123",
         "test@example.com",
         "resetToken456",
-        "Bob"
+        "Bob",
       );
 
       const email = mockEmailService.getLastEmail();
-      
+
       expect(email.content).toContain("Hi Bob");
       expect(email.content).toContain("resetToken456");
       expect(email.content).toContain("1 hour");
@@ -306,7 +323,7 @@ describe("EmailService", () => {
       await mockEmailService.sendWelcomeEmail("test@example.com", "Charlie");
 
       const email = mockEmailService.getLastEmail();
-      
+
       expect(email.content).toContain("Hi Charlie");
       expect(email.content).toContain("Welcome to Authentication Service!");
       expect(email.content).toContain("successfully verified");
@@ -314,11 +331,19 @@ describe("EmailService", () => {
     });
 
     it("should handle missing first name gracefully", async () => {
-      await mockEmailService.sendVerificationEmail("user123", "test@example.com", "token123");
+      await mockEmailService.sendVerificationEmail(
+        "user123",
+        "test@example.com",
+        "token123",
+      );
       const verificationEmail = mockEmailService.getLastEmail();
       expect(verificationEmail.content).toContain("Hello,");
 
-      await mockEmailService.sendPasswordResetEmail("user123", "test@example.com", "token123");
+      await mockEmailService.sendPasswordResetEmail(
+        "user123",
+        "test@example.com",
+        "token123",
+      );
       const resetEmail = mockEmailService.getLastEmail();
       expect(resetEmail.content).toContain("Hello,");
 
@@ -332,11 +357,11 @@ describe("EmailService", () => {
     it("should handle email service errors gracefully in mock", async () => {
       // Mock email service doesn't actually fail, but test interface
       const mockEmailService = new MockEmailService();
-      
+
       const result = await mockEmailService.sendVerificationEmail(
         "user123",
         "invalid-email", // Mock service accepts any email format
-        "token123"
+        "token123",
       );
 
       expect(result.success).toBe(true);
@@ -362,7 +387,7 @@ describe("EmailService", () => {
         userId,
         email,
         token,
-        firstName
+        firstName,
       );
 
       expect(result.success).toBe(true);
@@ -385,7 +410,7 @@ describe("EmailService", () => {
         userId,
         email,
         resetToken,
-        firstName
+        firstName,
       );
 
       expect(result.success).toBe(true);
@@ -420,16 +445,28 @@ describe("EmailService", () => {
       const firstName = "Multi";
 
       // Send verification for primary email
-      await mockEmailService.sendVerificationEmail(userId, primaryEmail, "token1", firstName);
-      
+      await mockEmailService.sendVerificationEmail(
+        userId,
+        primaryEmail,
+        "token1",
+        firstName,
+      );
+
       // Send verification for secondary email
-      await mockEmailService.sendVerificationEmail(userId, secondaryEmail, "token2", firstName);
+      await mockEmailService.sendVerificationEmail(
+        userId,
+        secondaryEmail,
+        "token2",
+        firstName,
+      );
 
       const sentEmails = mockEmailService.getSentEmails();
       expect(sentEmails).toHaveLength(2);
 
-      const primaryEmailSent = sentEmails.find(e => e.to === primaryEmail);
-      const secondaryEmailSent = sentEmails.find(e => e.to === secondaryEmail);
+      const primaryEmailSent = sentEmails.find((e) => e.to === primaryEmail);
+      const secondaryEmailSent = sentEmails.find(
+        (e) => e.to === secondaryEmail,
+      );
 
       expect(primaryEmailSent).toBeDefined();
       expect(secondaryEmailSent).toBeDefined();
@@ -448,16 +485,16 @@ export function expectVerificationEmailSent(
   mockEmailService: MockEmailService,
   to: string,
   token: string,
-  firstName?: string
+  firstName?: string,
 ): void {
   const verificationEmails = mockEmailService.getEmailsByType("verification");
-  const targetEmail = verificationEmails.find(email => 
-    email.to === to && email.content.includes(token)
+  const targetEmail = verificationEmails.find(
+    (email) => email.to === to && email.content.includes(token),
   );
 
   expect(targetEmail).toBeDefined();
   expect(targetEmail?.subject).toBe("Verify your email address");
-  
+
   if (firstName) {
     expect(targetEmail?.content).toContain(`Hi ${firstName}`);
   } else {
@@ -469,16 +506,16 @@ export function expectPasswordResetEmailSent(
   mockEmailService: MockEmailService,
   to: string,
   token: string,
-  firstName?: string
+  firstName?: string,
 ): void {
   const resetEmails = mockEmailService.getEmailsByType("passwordReset");
-  const targetEmail = resetEmails.find(email => 
-    email.to === to && email.content.includes(token)
+  const targetEmail = resetEmails.find(
+    (email) => email.to === to && email.content.includes(token),
   );
 
   expect(targetEmail).toBeDefined();
   expect(targetEmail?.subject).toBe("Password Reset Request");
-  
+
   if (firstName) {
     expect(targetEmail?.content).toContain(`Hi ${firstName}`);
   } else {
@@ -489,14 +526,14 @@ export function expectPasswordResetEmailSent(
 export function expectWelcomeEmailSent(
   mockEmailService: MockEmailService,
   to: string,
-  firstName?: string
+  firstName?: string,
 ): void {
   const welcomeEmails = mockEmailService.getEmailsByType("welcome");
-  const targetEmail = welcomeEmails.find(email => email.to === to);
+  const targetEmail = welcomeEmails.find((email) => email.to === to);
 
   expect(targetEmail).toBeDefined();
   expect(targetEmail?.subject).toBe("Welcome to Authentication Service!");
-  
+
   if (firstName) {
     expect(targetEmail?.content).toContain(`Hi ${firstName}`);
   } else {

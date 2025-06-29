@@ -24,7 +24,7 @@ export class MongoDbAdminSettingRepository implements IAdminSettingRepository {
     if (!this.collection) {
       this.db = await getDatabase();
       this.collection = this.db.collection("adminSettings");
-      
+
       // Create indexes for better performance
       await this.collection.createIndex({ key: 1 }, { unique: true });
       await this.collection.createIndex({ updatedAt: 1 });
@@ -48,7 +48,9 @@ export class MongoDbAdminSettingRepository implements IAdminSettingRepository {
   /**
    * Convert domain entity to MongoDB document
    */
-  private entityToDocument(entity: Omit<AdminSettingType, "id">): Omit<MongoAdminSettingDocument, "_id"> {
+  private entityToDocument(
+    entity: Omit<AdminSettingType, "id">,
+  ): Omit<MongoAdminSettingDocument, "_id"> {
     return {
       key: entity.key,
       value: entity.value,
@@ -57,10 +59,12 @@ export class MongoDbAdminSettingRepository implements IAdminSettingRepository {
     };
   }
 
-  async create(data: Omit<AdminSettingType, "id" | "updatedAt">): Promise<AdminSettingType> {
+  async create(
+    data: Omit<AdminSettingType, "id" | "updatedAt">,
+  ): Promise<AdminSettingType> {
     try {
       const collection = await this.getCollection();
-      
+
       const docToInsert = {
         key: data.key,
         value: data.value,
@@ -69,18 +73,24 @@ export class MongoDbAdminSettingRepository implements IAdminSettingRepository {
       };
 
       const result = await collection.insertOne(docToInsert);
-      
+
       const insertedDoc = await collection.findOne({ _id: result.insertedId });
       if (!insertedDoc) {
-        throw new InternalServerError("Failed to retrieve created admin setting");
+        throw new InternalServerError(
+          "Failed to retrieve created admin setting",
+        );
       }
 
       return this.documentToEntity(insertedDoc);
     } catch (error) {
       if (error instanceof Error && error.message.includes("duplicate key")) {
-        throw new InternalServerError(`Admin setting with key '${data.key}' already exists`);
+        throw new InternalServerError(
+          `Admin setting with key '${data.key}' already exists`,
+        );
       }
-      throw new InternalServerError(`Failed to create admin setting: ${error instanceof Error ? error.message : "Unknown error"}`);
+      throw new InternalServerError(
+        `Failed to create admin setting: ${error instanceof Error ? error.message : "Unknown error"}`,
+      );
     }
   }
 
@@ -90,7 +100,9 @@ export class MongoDbAdminSettingRepository implements IAdminSettingRepository {
       const doc = await collection.findOne({ key });
       return doc ? this.documentToEntity(doc) : null;
     } catch (error) {
-      throw new InternalServerError(`Failed to find admin setting by key: ${error instanceof Error ? error.message : "Unknown error"}`);
+      throw new InternalServerError(
+        `Failed to find admin setting by key: ${error instanceof Error ? error.message : "Unknown error"}`,
+      );
     }
   }
 
@@ -98,27 +110,35 @@ export class MongoDbAdminSettingRepository implements IAdminSettingRepository {
     try {
       const collection = await this.getCollection();
       const docs = await collection.find({}).sort({ key: 1 }).toArray();
-      return docs.map(doc => this.documentToEntity(doc));
+      return docs.map((doc) => this.documentToEntity(doc));
     } catch (error) {
-      throw new InternalServerError(`Failed to find all admin settings: ${error instanceof Error ? error.message : "Unknown error"}`);
+      throw new InternalServerError(
+        `Failed to find all admin settings: ${error instanceof Error ? error.message : "Unknown error"}`,
+      );
     }
   }
 
-  async updateByKey(key: string, data: Partial<Omit<AdminSettingType, "id" | "key">>): Promise<AdminSettingType> {
+  async updateByKey(
+    key: string,
+    data: Partial<Omit<AdminSettingType, "id" | "key">>,
+  ): Promise<AdminSettingType> {
     try {
       const collection = await this.getCollection();
-      
-      const updateData: Partial<Omit<MongoAdminSettingDocument, "_id" | "key">> = {
+
+      const updateData: Partial<
+        Omit<MongoAdminSettingDocument, "_id" | "key">
+      > = {
         updatedAt: new Date(),
       };
 
       if (data.value !== undefined) updateData.value = data.value;
-      if (data.description !== undefined) updateData.description = data.description;
+      if (data.description !== undefined)
+        updateData.description = data.description;
 
       const result = await collection.findOneAndUpdate(
         { key },
         { $set: updateData },
-        { returnDocument: "after" }
+        { returnDocument: "after" },
       );
 
       if (!result) {
@@ -130,7 +150,9 @@ export class MongoDbAdminSettingRepository implements IAdminSettingRepository {
       if (error instanceof NotFoundError) {
         throw error;
       }
-      throw new InternalServerError(`Failed to update admin setting: ${error instanceof Error ? error.message : "Unknown error"}`);
+      throw new InternalServerError(
+        `Failed to update admin setting: ${error instanceof Error ? error.message : "Unknown error"}`,
+      );
     }
   }
 
@@ -140,7 +162,9 @@ export class MongoDbAdminSettingRepository implements IAdminSettingRepository {
       const result = await collection.deleteOne({ key });
       return result.deletedCount > 0;
     } catch (error) {
-      throw new InternalServerError(`Failed to delete admin setting: ${error instanceof Error ? error.message : "Unknown error"}`);
+      throw new InternalServerError(
+        `Failed to delete admin setting: ${error instanceof Error ? error.message : "Unknown error"}`,
+      );
     }
   }
 
@@ -150,14 +174,16 @@ export class MongoDbAdminSettingRepository implements IAdminSettingRepository {
       const count = await collection.countDocuments({ key }, { limit: 1 });
       return count > 0;
     } catch (error) {
-      throw new InternalServerError(`Failed to check admin setting existence: ${error instanceof Error ? error.message : "Unknown error"}`);
+      throw new InternalServerError(
+        `Failed to check admin setting existence: ${error instanceof Error ? error.message : "Unknown error"}`,
+      );
     }
   }
 
   async getValue<T = unknown>(key: string, defaultValue?: T): Promise<T> {
     try {
       const setting = await this.findByKey(key);
-      return setting?.value as T ?? defaultValue as T;
+      return (setting?.value as T) ?? (defaultValue as T);
     } catch (error) {
       if (defaultValue !== undefined) {
         return defaultValue;
@@ -166,17 +192,23 @@ export class MongoDbAdminSettingRepository implements IAdminSettingRepository {
     }
   }
 
-  async setValue(key: string, value: unknown, description?: string): Promise<AdminSettingType> {
+  async setValue(
+    key: string,
+    value: unknown,
+    description?: string,
+  ): Promise<AdminSettingType> {
     try {
       const existing = await this.findByKey(key);
-      
+
       if (existing) {
         return await this.updateByKey(key, { value, description });
       } else {
         return await this.create({ key, value, description });
       }
     } catch (error) {
-      throw new InternalServerError(`Failed to set admin setting value: ${error instanceof Error ? error.message : "Unknown error"}`);
+      throw new InternalServerError(
+        `Failed to set admin setting value: ${error instanceof Error ? error.message : "Unknown error"}`,
+      );
     }
   }
 
@@ -184,15 +216,17 @@ export class MongoDbAdminSettingRepository implements IAdminSettingRepository {
     try {
       const collection = await this.getCollection();
       const docs = await collection.find({ key: { $in: keys } }).toArray();
-      
+
       const result = new Map<string, unknown>();
-      docs.forEach(doc => {
+      docs.forEach((doc) => {
         result.set(doc.key, doc.value);
       });
-      
+
       return result;
     } catch (error) {
-      throw new InternalServerError(`Failed to get multiple admin settings: ${error instanceof Error ? error.message : "Unknown error"}`);
+      throw new InternalServerError(
+        `Failed to get multiple admin settings: ${error instanceof Error ? error.message : "Unknown error"}`,
+      );
     }
   }
 }

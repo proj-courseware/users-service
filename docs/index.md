@@ -8,42 +8,42 @@
 
 ## API Endpoints Quick Reference
 
-| Method | Path                              | Description                        | Auth Required |
-| ------ | --------------------------------- | ---------------------------------- | :-----------: |
-| GET    | /                                 | Root endpoint (hello)              |      No       |
-| GET    | /health                           | Health check                       |      No       |
-| POST   | /auth/register                    | Register new user                  |      No       |
-| POST   | /auth/login                       | Login with email/password          |      No       |
-| POST   | /auth/refresh                     | Refresh access token               |      No       |
-| POST   | /auth/verify-email                | Verify email address               |      No       |
-| POST   | /auth/resend-verification         | Resend email verification          |      No       |
-| GET    | /auth/me                          | Get current user info              |      Yes      |
-| POST   | /auth/logout                      | Logout (client-side)               |      No       |
-| GET    | /auth/oauth/providers             | Get enabled OAuth providers        |      No       |
-| GET    | /auth/oauth/:provider             | Initiate OAuth login               |      No       |
-| GET    | /auth/oauth/:provider/callback    | OAuth callback handler             |      No       |
-| DELETE | /auth/oauth/:provider             | Unlink OAuth provider              |      Yes      |
-| GET    | /me                               | Get user profile                   |      Yes      |
-| PUT    | /me                               | Update user profile                |      Yes      |
-| DELETE | /me                               | Delete user account                |      Yes      |
-| PUT    | /me/password                      | Change password                    |      Yes      |
-| GET    | /me/emails                        | Get user emails                    |      Yes      |
-| POST   | /me/emails                        | Add new email                      |      Yes      |
-| PUT    | /me/emails/primary                | Set primary email                  |      Yes      |
-| DELETE | /me/emails/:emailAddress          | Remove email                       |      Yes      |
-| GET    | /admin/users                      | List all users (admin)             |    Admin      |
-| POST   | /admin/users                      | Create user (admin)                |    Admin      |
-| GET    | /admin/users/:userId              | Get user by ID (admin)             |    Admin      |
-| PUT    | /admin/users/:userId              | Update user (admin)                |    Admin      |
-| DELETE | /admin/users/:userId              | Delete user (admin)                |    Admin      |
-| POST   | /admin/users/:userId/lock         | Lock user account                  |    Admin      |
-| POST   | /admin/users/:userId/unlock       | Unlock user account                |    Admin      |
-| GET    | /admin/stats                      | System statistics                  |    Admin      |
-| GET    | /admin/health                     | System health status               |    Admin      |
-| GET    | /admin/settings                   | Get all system settings            |    Admin      |
-| PUT    | /admin/settings/:key              | Set system setting                 |    Admin      |
-| DELETE | /admin/settings/:key              | Delete system setting              |    Admin      |
-| GET    | /events                           | Real-time events (SSE stream)      |      Yes      |
+| Method | Path                           | Description                   | Auth Required |
+| ------ | ------------------------------ | ----------------------------- | :-----------: |
+| GET    | /                              | Root endpoint (hello)         |      No       |
+| GET    | /health                        | Health check                  |      No       |
+| POST   | /auth/register                 | Register new user             |      No       |
+| POST   | /auth/login                    | Login with email/password     |      No       |
+| POST   | /auth/refresh                  | Refresh access token          |      No       |
+| POST   | /auth/verify-email             | Verify email address          |      No       |
+| POST   | /auth/resend-verification      | Resend email verification     |      No       |
+| GET    | /auth/me                       | Get current user info         |      Yes      |
+| POST   | /auth/logout                   | Logout (client-side)          |      No       |
+| GET    | /auth/oauth/providers          | Get enabled OAuth providers   |      No       |
+| GET    | /auth/oauth/:provider          | Initiate OAuth login          |      No       |
+| GET    | /auth/oauth/:provider/callback | OAuth callback handler        |      No       |
+| DELETE | /auth/oauth/:provider          | Unlink OAuth provider         |      Yes      |
+| GET    | /me                            | Get user profile              |      Yes      |
+| PUT    | /me                            | Update user profile           |      Yes      |
+| DELETE | /me                            | Delete user account           |      Yes      |
+| PUT    | /me/password                   | Change password               |      Yes      |
+| GET    | /me/emails                     | Get user emails               |      Yes      |
+| POST   | /me/emails                     | Add new email                 |      Yes      |
+| PUT    | /me/emails/primary             | Set primary email             |      Yes      |
+| DELETE | /me/emails/:emailAddress       | Remove email                  |      Yes      |
+| GET    | /admin/users                   | List all users (admin)        |     Admin     |
+| POST   | /admin/users                   | Create user (admin)           |     Admin     |
+| GET    | /admin/users/:userId           | Get user by ID (admin)        |     Admin     |
+| PUT    | /admin/users/:userId           | Update user (admin)           |     Admin     |
+| DELETE | /admin/users/:userId           | Delete user (admin)           |     Admin     |
+| POST   | /admin/users/:userId/lock      | Lock user account             |     Admin     |
+| POST   | /admin/users/:userId/unlock    | Unlock user account           |     Admin     |
+| GET    | /admin/stats                   | System statistics             |     Admin     |
+| GET    | /admin/health                  | System health status          |     Admin     |
+| GET    | /admin/settings                | Get all system settings       |     Admin     |
+| PUT    | /admin/settings/:key           | Set system setting            |     Admin     |
+| DELETE | /admin/settings/:key           | Delete system setting         |     Admin     |
+| GET    | /events                        | Real-time events (SSE stream) |      Yes      |
 
 ---
 
@@ -70,6 +70,7 @@
 - **POST /auth/register**  
   Register a new user account.  
   **Body:**
+
   ```json
   {
     "firstName": "John",
@@ -78,30 +79,36 @@
     "password": "SecurePassword123!"
   }
   ```
+
   **Response:** User object with access token
 
 - **POST /auth/login**  
   Login with email and password.  
   **Body:**
+
   ```json
   {
     "email": "john@example.com",
     "password": "SecurePassword123!"
   }
   ```
+
   **Response:** User object with access and refresh tokens
 
 - **POST /auth/refresh**  
   Refresh access token using refresh token.  
   **Body:**
+
   ```json
   { "refreshToken": "refresh_token_string" }
   ```
+
   **Response:** New access and refresh tokens
 
 - **POST /auth/verify-email**  
   Verify email address with token.  
   **Body:**
+
   ```json
   { "token": "verification_token" }
   ```
@@ -109,6 +116,7 @@
 - **POST /auth/resend-verification**  
   Resend email verification.  
   **Body:**
+
   ```json
   {
     "userId": "user-id",
@@ -152,6 +160,7 @@
 - **PUT /me**  
   Update user profile.  
   **Body:**
+
   ```json
   {
     "firstName": "Jane",
@@ -162,6 +171,7 @@
 - **DELETE /me**  
   Delete user account.  
   **Body:**
+
   ```json
   { "password": "current_password" }
   ```
@@ -185,6 +195,7 @@
 - **POST /me/emails**  
   Add new email address.  
   **Body:**
+
   ```json
   { "emailAddress": "new@example.com" }
   ```
@@ -192,6 +203,7 @@
 - **PUT /me/emails/primary**  
   Set primary email address.  
   **Body:**
+
   ```json
   { "emailAddress": "primary@example.com" }
   ```
@@ -209,6 +221,7 @@
 - **POST /admin/users**  
   Create new user (admin).  
   **Body:**
+
   ```json
   {
     "firstName": "John",
@@ -258,6 +271,7 @@
 - **PUT /admin/settings/:key**  
   Set system setting.  
   **Body:**
+
   ```json
   {
     "value": "setting_value",
@@ -283,14 +297,17 @@
 Most endpoints require authentication. There are two methods:
 
 ### Bearer Token (Recommended)
+
 ```http
 Authorization: Bearer <your-access-token>
 ```
 
 ### Session Cookies (Optional)
+
 Session-based authentication via HTTP-only cookies.
 
 ### User Roles
+
 - **admin**: Full system access, user management, system settings
 - **teacher**: Enhanced privileges (educational context)
 - **student**: Basic user privileges (default)
@@ -408,7 +425,7 @@ data: { "userId": "user-123", "email": "john@example.com", "timestamp": "2025-06
 
 ```js
 const es = new EventSource("/events", {
-  headers: { 'Authorization': 'Bearer your-token' }
+  headers: { Authorization: "Bearer your-token" },
 });
 
 es.addEventListener("authentication:login", (e) => {
@@ -427,11 +444,13 @@ es.addEventListener("security:account_locked", (e) => {
 ## Authorization & Security
 
 ### Access Control
+
 - **Public endpoints:** Registration, login, OAuth flows, health checks
 - **Authenticated endpoints:** User profile, email management, events
 - **Admin endpoints:** User management, system settings, statistics
 
 ### Security Features
+
 - **Progressive account lockout:** Exponential backoff after failed login attempts
 - **Rate limiting:** Per-endpoint and per-IP request limits
 - **Input validation:** Comprehensive validation with sanitization
@@ -439,6 +458,7 @@ es.addEventListener("security:account_locked", (e) => {
 - **Password security:** Argon2id hashing with configurable policies
 
 ### Social Login
+
 - **Supported providers:** Google, GitHub, LinkedIn
 - **Account linking:** Automatic linking based on verified email addresses
 - **Security:** OAuth2 with state validation and CSRF protection
@@ -458,16 +478,19 @@ es.addEventListener("security:account_locked", (e) => {
 ## Environment Variables
 
 Core configuration:
+
 - `PORT`, `NODE_ENV`, `MONGODB_URI`
 - `JWT_SECRET`, `JWT_EXPIRES_IN`, `REFRESH_TOKEN_EXPIRES_IN`
 - `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`
 
 OAuth providers:
+
 - `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`
 - `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET`
 - `LINKEDIN_CLIENT_ID`, `LINKEDIN_CLIENT_SECRET`
 
 Security settings:
+
 - `RATE_LIMIT_WINDOW`, `RATE_LIMIT_MAX_REQUESTS`
 - `PASSWORD_MIN_LENGTH`, `PASSWORD_REQUIRE_UPPERCASE`
 

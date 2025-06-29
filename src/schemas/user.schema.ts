@@ -142,7 +142,9 @@ export const emailVerificationRequestSchema = z.object({
   token: z.string().min(1, "Verification token is required"),
 });
 
-export type EmailVerificationRequestType = z.infer<typeof emailVerificationRequestSchema>;
+export type EmailVerificationRequestType = z.infer<
+  typeof emailVerificationRequestSchema
+>;
 
 // Resend verification request schema
 export const resendVerificationRequestSchema = z.object({
@@ -150,14 +152,18 @@ export const resendVerificationRequestSchema = z.object({
   emailAddress: z.string().email("Valid email address is required"),
 });
 
-export type ResendVerificationRequestType = z.infer<typeof resendVerificationRequestSchema>;
+export type ResendVerificationRequestType = z.infer<
+  typeof resendVerificationRequestSchema
+>;
 
 // Delete account request schema
 export const deleteAccountRequestSchema = z.object({
   password: z.string().min(1, "Password is required for account deletion"),
 });
 
-export type DeleteAccountRequestType = z.infer<typeof deleteAccountRequestSchema>;
+export type DeleteAccountRequestType = z.infer<
+  typeof deleteAccountRequestSchema
+>;
 
 // Email address parameter schema
 export const emailAddressParamSchema = z.object({

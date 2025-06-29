@@ -83,7 +83,10 @@ export interface IAuthenticationService {
 }
 
 // Main authentication service implementation
-export class AuthenticationService extends BaseService implements IAuthenticationService {
+export class AuthenticationService
+  extends BaseService
+  implements IAuthenticationService
+{
   private readonly config: AuthServiceConfig;
 
   constructor(
@@ -166,15 +169,19 @@ export class AuthenticationService extends BaseService implements IAuthenticatio
     const user = await this.userRepository.create(userData);
 
     // 7. Emit user registration event
-    this.emitEvent("registered", {
-      userId: user.id,
-      email: user.primaryEmail,
-      globalRole: user.globalRole,
-      firstName: user.firstName,
-      lastName: user.lastName,
-    }, {
-      user: { userId: user.id, email: user.primaryEmail }
-    });
+    this.emitEvent(
+      "registered",
+      {
+        userId: user.id,
+        email: user.primaryEmail,
+        globalRole: user.globalRole,
+        firstName: user.firstName,
+        lastName: user.lastName,
+      },
+      {
+        user: { userId: user.id, email: user.primaryEmail },
+      },
+    );
 
     // 8. TODO: Send verification email (will be implemented in Email Verification Service)
     const message = activeConfig.requireEmailVerification
@@ -207,23 +214,29 @@ export class AuthenticationService extends BaseService implements IAuthenticatio
     }
 
     // 2. Check account status - use time-aware lockout check
-    const isCurrentlyLocked = await this.userRepository.isAccountCurrentlyLocked(credentials.email);
+    const isCurrentlyLocked =
+      await this.userRepository.isAccountCurrentlyLocked(credentials.email);
     if (isCurrentlyLocked) {
-      let lockMessage = "Account is locked due to too many failed login attempts.";
-      
+      let lockMessage =
+        "Account is locked due to too many failed login attempts.";
+
       if (user.accountLockedUntil) {
         const lockUntilFormatted = user.accountLockedUntil.toLocaleString();
         lockMessage += ` Account will be unlocked at ${lockUntilFormatted}.`;
       } else {
         lockMessage += " Please contact support to unlock your account.";
       }
-      
+
       throw new AccountLockedError(lockMessage);
     }
 
     // 3. Auto-unlock account if lockout has expired
     if (user.isAccountLocked && !isCurrentlyLocked) {
-      await this.userRepository.updateLoginAttempts(credentials.email, 0, false);
+      await this.userRepository.updateLoginAttempts(
+        credentials.email,
+        0,
+        false,
+      );
     }
 
     // 4. Check email verification if required
@@ -275,14 +288,18 @@ export class AuthenticationService extends BaseService implements IAuthenticatio
     }
 
     // 9. Emit login event
-    this.emitEvent("login", {
-      userId: user.id,
-      email: user.primaryEmail,
-      sessionId: accessToken ? "jwt-" + uuidv4() : undefined,
-      tokenType: activeConfig.tokenMode ? "access" : undefined,
-    }, {
-      user: { userId: user.id, email: user.primaryEmail }
-    });
+    this.emitEvent(
+      "login",
+      {
+        userId: user.id,
+        email: user.primaryEmail,
+        sessionId: accessToken ? "jwt-" + uuidv4() : undefined,
+        tokenType: activeConfig.tokenMode ? "access" : undefined,
+      },
+      {
+        user: { userId: user.id, email: user.primaryEmail },
+      },
+    );
 
     return {
       user: this.sanitizeUserData(user),
@@ -323,13 +340,17 @@ export class AuthenticationService extends BaseService implements IAuthenticatio
     const newTokens = await this.jwtService.generateTokenPair(user);
 
     // 4. Emit token refresh event
-    this.emitEvent("token_refreshed", {
-      userId: user.id,
-      email: user.primaryEmail,
-      tokenType: "refresh",
-    }, {
-      user: { userId: user.id, email: user.primaryEmail }
-    });
+    this.emitEvent(
+      "token_refreshed",
+      {
+        userId: user.id,
+        email: user.primaryEmail,
+        tokenType: "refresh",
+      },
+      {
+        user: { userId: user.id, email: user.primaryEmail },
+      },
+    );
 
     return {
       accessToken: newTokens.accessToken,
@@ -429,12 +450,16 @@ export class AuthenticationService extends BaseService implements IAuthenticatio
     await this.userRepository.updatePassword(userId, newPasswordHash);
 
     // 5. Emit password change event
-    this.emitEvent("password_changed", {
-      userId: user.id,
-      email: user.primaryEmail,
-    }, {
-      user: { userId: user.id, email: user.primaryEmail }
-    });
+    this.emitEvent(
+      "password_changed",
+      {
+        userId: user.id,
+        email: user.primaryEmail,
+      },
+      {
+        user: { userId: user.id, email: user.primaryEmail },
+      },
+    );
   }
 
   /**
@@ -473,15 +498,19 @@ export class AuthenticationService extends BaseService implements IAuthenticatio
       );
 
       // Emit account locked event
-      this.emitEvent("account_locked", {
-        userId: user.id,
-        email: user.primaryEmail,
-        lockoutDuration,
-        failedAttempts: newAttempts,
-        reason: "Too many failed login attempts",
-      }, {
-        user: { userId: user.id, email: user.primaryEmail }
-      });
+      this.emitEvent(
+        "account_locked",
+        {
+          userId: user.id,
+          email: user.primaryEmail,
+          lockoutDuration,
+          failedAttempts: newAttempts,
+          reason: "Too many failed login attempts",
+        },
+        {
+          user: { userId: user.id, email: user.primaryEmail },
+        },
+      );
     } else if (shouldLockAccount) {
       // Standard lockout (fixed duration)
       const lockUntil = new Date(
@@ -496,15 +525,19 @@ export class AuthenticationService extends BaseService implements IAuthenticatio
       );
 
       // Emit account locked event
-      this.emitEvent("account_locked", {
-        userId: user.id,
-        email: user.primaryEmail,
-        lockoutDuration: config.lockoutDurationMinutes * 60 * 1000,
-        failedAttempts: newAttempts,
-        reason: "Too many failed login attempts",
-      }, {
-        user: { userId: user.id, email: user.primaryEmail }
-      });
+      this.emitEvent(
+        "account_locked",
+        {
+          userId: user.id,
+          email: user.primaryEmail,
+          lockoutDuration: config.lockoutDurationMinutes * 60 * 1000,
+          failedAttempts: newAttempts,
+          reason: "Too many failed login attempts",
+        },
+        {
+          user: { userId: user.id, email: user.primaryEmail },
+        },
+      );
     } else {
       // Just update failed attempts count
       await this.userRepository.updateLoginAttempts(
@@ -514,13 +547,17 @@ export class AuthenticationService extends BaseService implements IAuthenticatio
       );
 
       // Emit failed login attempt event
-      this.emitEvent("failed_login_attempt", {
-        userId: user.id,
-        email: user.primaryEmail,
-        failedAttempts: newAttempts,
-      }, {
-        user: { userId: user.id, email: user.primaryEmail }
-      });
+      this.emitEvent(
+        "failed_login_attempt",
+        {
+          userId: user.id,
+          email: user.primaryEmail,
+          failedAttempts: newAttempts,
+        },
+        {
+          user: { userId: user.id, email: user.primaryEmail },
+        },
+      );
     }
   }
 
@@ -537,7 +574,7 @@ export class AuthenticationService extends BaseService implements IAuthenticatio
   ): number {
     const baseAttempts = config.maxFailedAttempts;
     const excessAttempts = Math.max(0, attempts - baseAttempts);
-    
+
     // First lockout uses base duration, then exponential backoff
     // excessAttempts = 0 -> multiplier = 1 (base duration)
     // excessAttempts = 1 -> multiplier = 2 (double)
@@ -545,10 +582,10 @@ export class AuthenticationService extends BaseService implements IAuthenticatio
     const multiplier = Math.pow(2, excessAttempts);
     const baseDurationMs = config.lockoutDurationMinutes * 60 * 1000;
     const calculatedDuration = multiplier * baseDurationMs;
-    
+
     // Cap at maximum lockout duration
     const maxDurationMs = config.maxProgressiveLockoutHours * 60 * 60 * 1000;
-    
+
     return Math.min(calculatedDuration, maxDurationMs);
   }
 

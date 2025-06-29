@@ -43,9 +43,10 @@ export const createAuthMiddleware = (deps: AuthMiddlewareDeps) => {
 };
 
 // Create default services for the default auth middleware
-const userRepository = env.NODE_ENV === "test" 
-  ? new MockDbUserRepository() 
-  : new MongoDbUserRepository();
+const userRepository =
+  env.NODE_ENV === "test"
+    ? new MockDbUserRepository()
+    : new MongoDbUserRepository();
 const passwordService = new PasswordService();
 const jwtService = new JWTService();
 const defaultAuthenticationService = new AuthenticationService(

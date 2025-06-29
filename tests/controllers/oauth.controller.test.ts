@@ -9,7 +9,12 @@ import type { IJwtService } from "@/services/jwt.service";
 import type { IOAuthService } from "@/services/oauth.service";
 import type { IAuthenticationService } from "@/services/authentication.service";
 import type { UserType } from "@/schemas/user.schemas";
-import { ValidationError, ConflictError, NotFoundError, UnauthorizedError } from "@/errors";
+import {
+  ValidationError,
+  ConflictError,
+  NotFoundError,
+  UnauthorizedError,
+} from "@/errors";
 
 describe("OAuthController", () => {
   let controller: OAuthController;
@@ -154,7 +159,9 @@ describe("OAuthController", () => {
       });
 
       const redirectTo = "http://localhost:3001/dashboard";
-      const res = await app.request(`/oauth/google?redirectTo=${encodeURIComponent(redirectTo)}`);
+      const res = await app.request(
+        `/oauth/google?redirectTo=${encodeURIComponent(redirectTo)}`,
+      );
 
       expect(res.status).toBe(302);
       expect(mockOAuthService.generateAuthorizationUrl).toHaveBeenCalledWith(
@@ -184,7 +191,9 @@ describe("OAuthController", () => {
 
     beforeEach(() => {
       vi.mocked(mockOAuthService.isProviderEnabled).mockReturnValue(true);
-      vi.mocked(mockOAuthService.handleCallback).mockResolvedValue(mockOAuthUserInfo);
+      vi.mocked(mockOAuthService.handleCallback).mockResolvedValue(
+        mockOAuthUserInfo,
+      );
       vi.mocked(mockOAuthService.validateState).mockReturnValue({
         provider: "google",
         timestamp: Date.now(),
@@ -211,7 +220,9 @@ describe("OAuthController", () => {
       expect(data.tokens.refreshToken).toBe("refresh_token");
       expect(data.user.id).toBe("user123");
       expect(data.user.provider).toBe("google");
-      expect(mockUserRepository.findByEmail).toHaveBeenCalledWith("john@example.com");
+      expect(mockUserRepository.findByEmail).toHaveBeenCalledWith(
+        "john@example.com",
+      );
     });
 
     it("should link social identity for existing user without it", async () => {
@@ -229,21 +240,28 @@ describe("OAuthController", () => {
         ],
       };
 
-      vi.mocked(mockUserRepository.findByEmail).mockResolvedValue(userWithoutSocial);
-      vi.mocked(mockUserRepository.linkSocialIdentity).mockResolvedValue(userWithSocial);
+      vi.mocked(mockUserRepository.findByEmail).mockResolvedValue(
+        userWithoutSocial,
+      );
+      vi.mocked(mockUserRepository.linkSocialIdentity).mockResolvedValue(
+        userWithSocial,
+      );
 
       const res = await app.request(
         `/oauth/google/callback?code=${mockCode}&state=${mockState}`,
       );
 
       expect(res.status).toBe(200);
-      expect(mockUserRepository.linkSocialIdentity).toHaveBeenCalledWith("user123", {
-        provider: "google",
-        providerId: "google123",
-        email: "john@example.com",
-        displayName: "John Doe",
-        profileUrl: "https://example.com/avatar.jpg",
-      });
+      expect(mockUserRepository.linkSocialIdentity).toHaveBeenCalledWith(
+        "user123",
+        {
+          provider: "google",
+          providerId: "google123",
+          email: "john@example.com",
+          displayName: "John Doe",
+          profileUrl: "https://example.com/avatar.jpg",
+        },
+      );
     });
 
     it("should create new user for OAuth-only registration", async () => {
@@ -316,7 +334,9 @@ describe("OAuthController", () => {
         ],
       };
 
-      vi.mocked(mockUserRepository.findByEmail).mockResolvedValue(userWithDifferentSocial);
+      vi.mocked(mockUserRepository.findByEmail).mockResolvedValue(
+        userWithDifferentSocial,
+      );
 
       const res = await app.request(
         `/oauth/google/callback?code=${mockCode}&state=${mockState}`,
@@ -344,7 +364,9 @@ describe("OAuthController", () => {
     });
 
     it("should return 400 for missing code", async () => {
-      const res = await app.request(`/oauth/google/callback?state=${mockState}`);
+      const res = await app.request(
+        `/oauth/google/callback?state=${mockState}`,
+      );
 
       expect(res.status).toBe(400);
     });
@@ -389,8 +411,12 @@ describe("OAuthController", () => {
         ],
       };
 
-      vi.mocked(mockUserRepository.findById).mockResolvedValue(userWithMultipleSocial);
-      vi.mocked(mockUserRepository.unlinkSocialIdentity).mockResolvedValue(undefined);
+      vi.mocked(mockUserRepository.findById).mockResolvedValue(
+        userWithMultipleSocial,
+      );
+      vi.mocked(mockUserRepository.unlinkSocialIdentity).mockResolvedValue(
+        undefined,
+      );
 
       const res = await app.request("/oauth/google", { method: "DELETE" });
       const data = await res.json();
@@ -398,7 +424,10 @@ describe("OAuthController", () => {
       expect(res.status).toBe(200);
       expect(data.message).toBe("Google account unlinked successfully");
       expect(data.provider).toBe("google");
-      expect(mockUserRepository.unlinkSocialIdentity).toHaveBeenCalledWith("user123", "google");
+      expect(mockUserRepository.unlinkSocialIdentity).toHaveBeenCalledWith(
+        "user123",
+        "google",
+      );
     });
 
     it("should prevent unlinking the only authentication method", async () => {
@@ -415,7 +444,9 @@ describe("OAuthController", () => {
         ],
       };
 
-      vi.mocked(mockUserRepository.findById).mockResolvedValue(userWithOnlySocial);
+      vi.mocked(mockUserRepository.findById).mockResolvedValue(
+        userWithOnlySocial,
+      );
 
       const res = await app.request("/oauth/google", { method: "DELETE" });
 
@@ -435,7 +466,9 @@ describe("OAuthController", () => {
         ],
       };
 
-      vi.mocked(mockUserRepository.findById).mockResolvedValue(userWithoutGoogle);
+      vi.mocked(mockUserRepository.findById).mockResolvedValue(
+        userWithoutGoogle,
+      );
 
       const res = await app.request("/oauth/google", { method: "DELETE" });
 
@@ -446,7 +479,9 @@ describe("OAuthController", () => {
       const unauthenticatedApp = new Hono<AppEnv>();
       unauthenticatedApp.route("/oauth", createOAuthRouter(controller));
 
-      const res = await unauthenticatedApp.request("/oauth/google", { method: "DELETE" });
+      const res = await unauthenticatedApp.request("/oauth/google", {
+        method: "DELETE",
+      });
 
       expect(res.status).toBe(401);
     });
@@ -504,14 +539,18 @@ describe("OAuthController", () => {
         new Error("OAuth service error"),
       );
 
-      const res = await app.request("/oauth/google/callback?code=test&state=test");
+      const res = await app.request(
+        "/oauth/google/callback?code=test&state=test",
+      );
 
       expect(res.status).toBe(500);
     });
 
     it("should handle user repository errors", async () => {
       vi.mocked(mockOAuthService.isProviderEnabled).mockReturnValue(true);
-      vi.mocked(mockOAuthService.handleCallback).mockResolvedValue(mockOAuthUserInfo);
+      vi.mocked(mockOAuthService.handleCallback).mockResolvedValue(
+        mockOAuthUserInfo,
+      );
       vi.mocked(mockOAuthService.validateState).mockReturnValue({
         provider: "google",
         timestamp: Date.now(),
@@ -521,7 +560,9 @@ describe("OAuthController", () => {
         new Error("Database error"),
       );
 
-      const res = await app.request("/oauth/google/callback?code=test&state=test");
+      const res = await app.request(
+        "/oauth/google/callback?code=test&state=test",
+      );
 
       expect(res.status).toBe(500);
     });

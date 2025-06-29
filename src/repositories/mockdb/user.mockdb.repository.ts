@@ -402,7 +402,7 @@ export class MockDbUserRepository implements IUserRepository {
 
   async isAccountCurrentlyLocked(email: string): Promise<boolean> {
     const user = await this.findByEmail(email);
-    
+
     if (!user) {
       return false; // User doesn't exist, not locked
     }
@@ -465,7 +465,7 @@ export class MockDbUserRepository implements IUserRepository {
 
       // Handle date sorting
       if (aValue instanceof Date && bValue instanceof Date) {
-        return sortOrder === "asc" 
+        return sortOrder === "asc"
           ? aValue.getTime() - bValue.getTime()
           : bValue.getTime() - aValue.getTime();
       }

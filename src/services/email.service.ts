@@ -45,12 +45,13 @@ export const DEFAULT_EMAIL_CONFIG: EmailServiceConfig = {
   host: env.SMTP_HOST,
   port: env.SMTP_PORT,
   secure: env.SMTP_SECURE,
-  auth: env.SMTP_USER && env.SMTP_PASSWORD 
-    ? {
-        user: env.SMTP_USER,
-        pass: env.SMTP_PASSWORD,
-      }
-    : undefined,
+  auth:
+    env.SMTP_USER && env.SMTP_PASSWORD
+      ? {
+          user: env.SMTP_USER,
+          pass: env.SMTP_PASSWORD,
+        }
+      : undefined,
   fromAddress: env.SMTP_FROM_ADDRESS || env.SMTP_USER || "noreply@localhost",
   fromName: env.SMTP_FROM_NAME,
   maxRetries: env.EMAIL_MAX_RETRIES,
@@ -59,9 +60,22 @@ export const DEFAULT_EMAIL_CONFIG: EmailServiceConfig = {
 
 // Email service interface
 export interface IEmailService {
-  sendVerificationEmail(userId: string, emailAddress: string, token: string, firstName?: string): Promise<EmailSendResult>;
-  sendPasswordResetEmail(userId: string, emailAddress: string, token: string, firstName?: string): Promise<EmailSendResult>;
-  sendWelcomeEmail(emailAddress: string, firstName?: string): Promise<EmailSendResult>;
+  sendVerificationEmail(
+    userId: string,
+    emailAddress: string,
+    token: string,
+    firstName?: string,
+  ): Promise<EmailSendResult>;
+  sendPasswordResetEmail(
+    userId: string,
+    emailAddress: string,
+    token: string,
+    firstName?: string,
+  ): Promise<EmailSendResult>;
+  sendWelcomeEmail(
+    emailAddress: string,
+    firstName?: string,
+  ): Promise<EmailSendResult>;
   sendRawEmail(options: EmailSendOptions): Promise<EmailSendResult>;
   isHealthy(): Promise<boolean>;
 }
@@ -110,16 +124,16 @@ export class EmailService implements IEmailService {
     try {
       // Generate verification URL
       const verificationUrl = generateVerificationUrl(token);
-      
+
       // Create email template
       const emailData: VerificationEmailData = {
         firstName,
         verificationUrl,
         expiresInHours: 24, // Match default from email verification service
       };
-      
+
       const template = emailTemplates.verification(emailData);
-      
+
       // Send email
       const result = await this.sendEmailWithRetry({
         to: emailAddress,
@@ -127,23 +141,26 @@ export class EmailService implements IEmailService {
         html: template.html,
         text: template.text,
       });
-      
+
       // Log success for monitoring
       if (result.success) {
-        console.log(`Verification email sent to ${emailAddress} for user ${userId}`, {
-          messageId: result.messageId,
-          userId,
-          emailAddress,
-        });
+        console.log(
+          `Verification email sent to ${emailAddress} for user ${userId}`,
+          {
+            messageId: result.messageId,
+            userId,
+            emailAddress,
+          },
+        );
       }
-      
+
       return result;
     } catch (error) {
       console.error("Failed to send verification email:", error, {
         userId,
         emailAddress,
       });
-      
+
       return {
         success: false,
         error: error instanceof Error ? error.message : "Unknown error",
@@ -168,16 +185,16 @@ export class EmailService implements IEmailService {
     try {
       // Generate password reset URL
       const resetUrl = generatePasswordResetUrl(token);
-      
+
       // Create email template
       const emailData: PasswordResetEmailData = {
         firstName,
         resetUrl,
         expiresInHours: 1, // Password reset tokens typically expire faster
       };
-      
+
       const template = emailTemplates.passwordReset(emailData);
-      
+
       // Send email
       const result = await this.sendEmailWithRetry({
         to: emailAddress,
@@ -185,23 +202,26 @@ export class EmailService implements IEmailService {
         html: template.html,
         text: template.text,
       });
-      
+
       // Log success for monitoring
       if (result.success) {
-        console.log(`Password reset email sent to ${emailAddress} for user ${userId}`, {
-          messageId: result.messageId,
-          userId,
-          emailAddress,
-        });
+        console.log(
+          `Password reset email sent to ${emailAddress} for user ${userId}`,
+          {
+            messageId: result.messageId,
+            userId,
+            emailAddress,
+          },
+        );
       }
-      
+
       return result;
     } catch (error) {
       console.error("Failed to send password reset email:", error, {
         userId,
         emailAddress,
       });
-      
+
       return {
         success: false,
         error: error instanceof Error ? error.message : "Unknown error",
@@ -225,9 +245,9 @@ export class EmailService implements IEmailService {
         firstName,
         appName: "Authentication Service", // Could be made configurable
       };
-      
+
       const template = emailTemplates.welcome(emailData);
-      
+
       // Send email
       const result = await this.sendEmailWithRetry({
         to: emailAddress,
@@ -235,7 +255,7 @@ export class EmailService implements IEmailService {
         html: template.html,
         text: template.text,
       });
-      
+
       // Log success for monitoring
       if (result.success) {
         console.log(`Welcome email sent to ${emailAddress}`, {
@@ -243,13 +263,13 @@ export class EmailService implements IEmailService {
           emailAddress,
         });
       }
-      
+
       return result;
     } catch (error) {
       console.error("Failed to send welcome email:", error, {
         emailAddress,
       });
-      
+
       return {
         success: false,
         error: error instanceof Error ? error.message : "Unknown error",
@@ -270,7 +290,7 @@ export class EmailService implements IEmailService {
         to: options.to,
         subject: options.subject,
       });
-      
+
       return {
         success: false,
         error: error instanceof Error ? error.message : "Unknown error",
@@ -283,37 +303,46 @@ export class EmailService implements IEmailService {
    * @param options - Email sending options
    * @returns Email send result
    */
-  private async sendEmailWithRetry(options: EmailSendOptions): Promise<EmailSendResult> {
+  private async sendEmailWithRetry(
+    options: EmailSendOptions,
+  ): Promise<EmailSendResult> {
     let lastError: Error | undefined;
-    
+
     for (let attempt = 1; attempt <= this.config.maxRetries; attempt++) {
       try {
         const info = await this.transporter.sendMail({
-          from: options.from || `${this.config.fromName} <${this.config.fromAddress}>`,
+          from:
+            options.from ||
+            `${this.config.fromName} <${this.config.fromAddress}>`,
           to: options.to,
           subject: options.subject,
           html: options.html,
           text: options.text,
         });
-        
+
         return {
           success: true,
           messageId: info.messageId,
         };
       } catch (error) {
         lastError = error instanceof Error ? error : new Error(String(error));
-        
+
         if (attempt < this.config.maxRetries) {
           // Exponential backoff: 2^(attempt-1) * base delay
           const delay = Math.pow(2, attempt - 1) * this.config.retryDelayMs;
-          console.warn(`Email sending attempt ${attempt} failed, retrying in ${delay}ms:`, error);
+          console.warn(
+            `Email sending attempt ${attempt} failed, retrying in ${delay}ms:`,
+            error,
+          );
           await this.delay(delay);
         }
       }
     }
-    
+
     // All retries failed
-    throw lastError || new Error("Email sending failed after all retry attempts");
+    throw (
+      lastError || new Error("Email sending failed after all retry attempts")
+    );
   }
 
   /**
@@ -347,7 +376,7 @@ export class EmailService implements IEmailService {
    * @param ms - Milliseconds to delay
    */
   private delay(ms: number): Promise<void> {
-    return new Promise(resolve => setTimeout(resolve, ms));
+    return new Promise((resolve) => setTimeout(resolve, ms));
   }
 
   /**
@@ -484,7 +513,7 @@ export class MockEmailService implements IEmailService {
   }
 
   getEmailsByType(type: string) {
-    return this.sentEmails.filter(email => email.type === type);
+    return this.sentEmails.filter((email) => email.type === type);
   }
 
   clearSentEmails() {
