@@ -7,14 +7,14 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/madooei/backend-template.git"
+    "url": "https://github.com/proj-courseware/users-service.git"
   },
-  "homepage": "https://madooei.github.io/backend-template/",
+  "homepage": "https://proj-courseware.github.io/users-service/",
   "bugs": {
-    "url": "https://github.com/madooei/backend-template/issues"
+    "url": "https://github.com/proj-courseware/users-service/issues"
   },
   "scripts": {
-    "dev": "tsx watch scripts/mock-auth-server.ts & tsx watch src/server.ts",
+    "dev": "tsx watch src/server.ts",
     "build": "tsup",
     "start": "node dist/server.js",
     "lint": "eslint",
