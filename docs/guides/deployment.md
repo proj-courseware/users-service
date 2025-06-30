@@ -54,8 +54,8 @@ sudo reboot
 
 ```bash
 # Clone repository
-git clone <repository-url>
-cd users-api/backend-template
+git clone https://github.com/proj-courseware/users-service.git
+cd users-service
 
 # Create production environment file
 cp .env.example .env.production
@@ -97,8 +97,8 @@ services:
     ports:
       - "27017:27017"
     environment:
-      MONGO_INITDB_ROOT_USERNAME: ${MONGODB_ROOT_USERNAME}
-      MONGO_INITDB_ROOT_PASSWORD: ${MONGODB_ROOT_PASSWORD}
+      MONGO_INITDB_ROOT_USERNAME: ${MONGODB_USER}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGODB_PASSWORD}
       MONGO_INITDB_DATABASE: ${MONGODB_DATABASE}
     volumes:
       - mongodb_data:/data/db
@@ -323,12 +323,24 @@ docker push 123456789012.dkr.ecr.us-east-1.amazonaws.com/users-service:latest
       ],
       "secrets": [
         {
-          "name": "MONGODB_URI",
-          "valueFrom": "arn:aws:secretsmanager:us-east-1:123456789012:secret:users-service/mongodb-uri"
+          "name": "MONGODB_HOST",
+          "valueFrom": "arn:aws:secretsmanager:us-east-1:123456789012:secret:users-service/mongodb-host"
         },
         {
-          "name": "JWT_SECRET",
-          "valueFrom": "arn:aws:secretsmanager:us-east-1:123456789012:secret:users-service/jwt-secret"
+          "name": "MONGODB_USER",
+          "valueFrom": "arn:aws:secretsmanager:us-east-1:123456789012:secret:users-service/mongodb-user"
+        },
+        {
+          "name": "MONGODB_PASSWORD",
+          "valueFrom": "arn:aws:secretsmanager:us-east-1:123456789012:secret:users-service/mongodb-password"
+        },
+        {
+          "name": "JWT_ACCESS_SECRET",
+          "valueFrom": "arn:aws:secretsmanager:us-east-1:123456789012:secret:users-service/jwt-access-secret"
+        },
+        {
+          "name": "JWT_REFRESH_SECRET",
+          "valueFrom": "arn:aws:secretsmanager:us-east-1:123456789012:secret:users-service/jwt-refresh-secret"
         }
       ],
       "logConfiguration": {
@@ -364,8 +376,13 @@ provider:
   region: us-east-1
   environment:
     NODE_ENV: production
-    MONGODB_URI: ${ssm:/users-service/mongodb-uri}
-    JWT_SECRET: ${ssm:/users-service/jwt-secret}
+    MONGODB_HOST: ${ssm:/users-service/mongodb-host}
+    MONGODB_PORT: 27017
+    MONGODB_DATABASE: users-service
+    MONGODB_USER: ${ssm:/users-service/mongodb-user}
+    MONGODB_PASSWORD: ${ssm:/users-service/mongodb-password}
+    JWT_ACCESS_SECRET: ${ssm:/users-service/jwt-access-secret}
+    JWT_REFRESH_SECRET: ${ssm:/users-service/jwt-refresh-secret}
 
 functions:
   api:
@@ -462,19 +479,23 @@ NODE_ENV=production
 PORT=3000
 
 # Database
-MONGODB_URI=mongodb://username:password@host:port/database
+MONGODB_HOST=your-mongodb-host
+MONGODB_PORT=27017
+MONGODB_DATABASE=users-service
+MONGODB_USER=production_user
+MONGODB_PASSWORD=secure_password
 
 # JWT
-JWT_SECRET=your-super-secure-secret-key
-JWT_EXPIRES_IN=15m
-REFRESH_TOKEN_EXPIRES_IN=7d
+JWT_ACCESS_SECRET=your-super-secure-access-secret-key
+JWT_REFRESH_SECRET=your-super-secure-refresh-secret-key
+JWT_ACCESS_EXPIRY_MINUTES=15
+JWT_REFRESH_EXPIRY_DAYS=7
 
 # Email (Production SMTP)
 SMTP_HOST=smtp.gmail.com
 SMTP_PORT=587
 SMTP_USER=your-email@gmail.com
-SMTP_PASS=your-app-password
-EMAIL_FROM=noreply@yourdomain.com
+SMTP_PASSWORD=your-app-password
 
 # OAuth (if enabled)
 GOOGLE_CLIENT_ID=your-google-client-id
@@ -483,7 +504,7 @@ GITHUB_CLIENT_ID=your-github-client-id
 GITHUB_CLIENT_SECRET=your-github-client-secret
 
 # Security
-RATE_LIMIT_WINDOW=900000
+RATE_LIMIT_WINDOW_MINUTES=15
 RATE_LIMIT_MAX_REQUESTS=100
 ```
 
@@ -498,7 +519,8 @@ echo "your-jwt-secret" | docker secret create jwt_secret -
 **Using AWS Secrets Manager:**
 
 ```bash
-aws secretsmanager create-secret --name "users-service/jwt-secret" --secret-string "your-jwt-secret"
+aws secretsmanager create-secret --name "users-service/jwt-access-secret" --secret-string "your-jwt-access-secret"
+aws secretsmanager create-secret --name "users-service/jwt-refresh-secret" --secret-string "your-jwt-refresh-secret"
 ```
 
 **Using Environment Files:**
@@ -697,7 +719,7 @@ printenv | grep -E "(MONGODB|JWT|SMTP)"
 
 ```bash
 # Test MongoDB connection
-mongosh "$MONGODB_URI" --eval "db.adminCommand('ping')"
+mongosh "mongodb://$MONGODB_USER:$MONGODB_PASSWORD@$MONGODB_HOST:$MONGODB_PORT/$MONGODB_DATABASE" --eval "db.adminCommand('ping')"
 ```
 
 **SSL Certificate Issues:**

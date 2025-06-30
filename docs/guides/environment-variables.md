@@ -24,31 +24,39 @@ APP_URL=http://localhost:3000
 ### Database Configuration
 
 ```bash
-# MongoDB connection string
+# MongoDB connection components
 # Development example:
-MONGODB_URI=mongodb://localhost:27017/users-service
+MONGODB_HOST=localhost
+MONGODB_PORT=27017
+MONGODB_DATABASE=users-service
+MONGODB_USER=admin
+MONGODB_PASSWORD=admin
 
-# Production example with authentication:
-MONGODB_URI=mongodb://username:password@host:port/database?authSource=admin
+# Production example:
+MONGODB_HOST=your-mongodb-host.com
+MONGODB_PORT=27017
+MONGODB_DATABASE=users-service
+MONGODB_USER=production_user
+MONGODB_PASSWORD=secure_password
 
 # MongoDB Atlas example:
-MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/database?retryWrites=true&w=majority
+MONGODB_HOST=cluster.mongodb.net
+MONGODB_PORT=27017
+MONGODB_DATABASE=users-service
+MONGODB_USER=atlas_user
+MONGODB_PASSWORD=atlas_password
 ```
 
 ### JWT Configuration
 
 ```bash
-# JWT secret key (CRITICAL: Use strong, unique key in production)
-JWT_SECRET=your-super-secure-secret-key-minimum-32-characters
+# JWT secret keys (CRITICAL: Use strong, unique keys in production)
+JWT_ACCESS_SECRET=your-super-secret-access-key-change-in-production
+JWT_REFRESH_SECRET=your-super-secret-refresh-key-change-in-production
 
-# Access token expiry (recommended: 15m)
-JWT_EXPIRES_IN=15m
-
-# Refresh token expiry (recommended: 7d)
-REFRESH_TOKEN_EXPIRES_IN=7d
-
-# JWT algorithm (default: HS256, options: HS256, HS384, HS512, RS256, ES256)
-JWT_ALGORITHM=HS256
+# Token expiry settings
+JWT_ACCESS_EXPIRY_MINUTES=15
+JWT_REFRESH_EXPIRY_DAYS=7
 ```
 
 ### Email Configuration
@@ -59,9 +67,8 @@ JWT_ALGORITHM=HS256
 SMTP_HOST=localhost
 SMTP_PORT=1025
 SMTP_USER=
-SMTP_PASS=
+SMTP_PASSWORD=
 SMTP_SECURE=false
-EMAIL_FROM=noreply@localhost
 ```
 
 #### Production (Gmail)
@@ -70,9 +77,8 @@ EMAIL_FROM=noreply@localhost
 SMTP_HOST=smtp.gmail.com
 SMTP_PORT=587
 SMTP_USER=your-email@gmail.com
-SMTP_PASS=your-app-password
+SMTP_PASSWORD=your-app-password
 SMTP_SECURE=true
-EMAIL_FROM=noreply@yourdomain.com
 ```
 
 #### Production (SendGrid)
@@ -81,9 +87,8 @@ EMAIL_FROM=noreply@yourdomain.com
 SMTP_HOST=smtp.sendgrid.net
 SMTP_PORT=587
 SMTP_USER=apikey
-SMTP_PASS=your-sendgrid-api-key
+SMTP_PASSWORD=your-sendgrid-api-key
 SMTP_SECURE=true
-EMAIL_FROM=noreply@yourdomain.com
 ```
 
 #### Production (AWS SES)
@@ -92,9 +97,8 @@ EMAIL_FROM=noreply@yourdomain.com
 SMTP_HOST=email-smtp.us-east-1.amazonaws.com
 SMTP_PORT=587
 SMTP_USER=your-aws-access-key-id
-SMTP_PASS=your-aws-secret-access-key
+SMTP_PASSWORD=your-aws-secret-access-key
 SMTP_SECURE=true
-EMAIL_FROM=noreply@yourdomain.com
 ```
 
 ## OAuth Configuration
@@ -274,24 +278,27 @@ CORS_CREDENTIALS=true
 ```bash
 NODE_ENV=development
 PORT=3000
-APP_URL=http://localhost:3000
 
 # Local MongoDB
-MONGODB_URI=mongodb://localhost:27017/users-service
+MONGODB_HOST=localhost
+MONGODB_PORT=27017
+MONGODB_DATABASE=users-service
+MONGODB_USER=admin
+MONGODB_PASSWORD=admin
 
-# Weak secret for development (NEVER use in production)
-JWT_SECRET=development-secret-key-not-secure
+# Weak secrets for development (NEVER use in production)
+JWT_ACCESS_SECRET=development-access-secret-key-not-secure
+JWT_REFRESH_SECRET=development-refresh-secret-key-not-secure
 
 # Short expiry for testing
-JWT_EXPIRES_IN=15m
-REFRESH_TOKEN_EXPIRES_IN=1d
+JWT_ACCESS_EXPIRY_MINUTES=15
+JWT_REFRESH_EXPIRY_DAYS=1
 
 # MailHog for email testing
 SMTP_HOST=localhost
 SMTP_PORT=1025
 SMTP_USER=
-SMTP_PASS=
-EMAIL_FROM=noreply@localhost
+SMTP_PASSWORD=
 
 # Relaxed rate limiting
 RATE_LIMIT_MAX_REQUESTS=1000
@@ -314,22 +321,25 @@ DEBUG=true
 ```bash
 NODE_ENV=staging
 PORT=3000
-APP_URL=https://staging-api.yourdomain.com
 
 # Staging database
-MONGODB_URI=mongodb+srv://staging-user:password@staging-cluster.mongodb.net/users-service
+MONGODB_HOST=staging-cluster.mongodb.net
+MONGODB_PORT=27017
+MONGODB_DATABASE=users-service
+MONGODB_USER=staging-user
+MONGODB_PASSWORD=staging-password
 
 # Secure staging secrets
-JWT_SECRET=staging-secure-secret-key-32-characters-minimum
-JWT_EXPIRES_IN=15m
-REFRESH_TOKEN_EXPIRES_IN=7d
+JWT_ACCESS_SECRET=staging-secure-access-secret-key-32-characters-minimum
+JWT_REFRESH_SECRET=staging-secure-refresh-secret-key-32-characters-minimum
+JWT_ACCESS_EXPIRY_MINUTES=15
+JWT_REFRESH_EXPIRY_DAYS=7
 
 # Real SMTP for staging
 SMTP_HOST=smtp.gmail.com
 SMTP_PORT=587
 SMTP_USER=staging@yourdomain.com
-SMTP_PASS=staging-app-password
-EMAIL_FROM=noreply-staging@yourdomain.com
+SMTP_PASSWORD=staging-app-password
 
 # Moderate rate limiting
 RATE_LIMIT_MAX_REQUESTS=200
@@ -355,22 +365,25 @@ LOG_LEVEL=info
 ```bash
 NODE_ENV=production
 PORT=3000
-APP_URL=https://api.yourdomain.com
 
-# Production database with replica set
-MONGODB_URI=mongodb+srv://prod-user:secure-password@prod-cluster.mongodb.net/users-service?retryWrites=true&w=majority
+# Production database
+MONGODB_HOST=prod-cluster.mongodb.net
+MONGODB_PORT=27017
+MONGODB_DATABASE=users-service
+MONGODB_USER=prod-user
+MONGODB_PASSWORD=secure-password
 
 # Highly secure production secrets
-JWT_SECRET=production-super-secure-secret-key-64-characters-minimum-complexity
-JWT_EXPIRES_IN=15m
-REFRESH_TOKEN_EXPIRES_IN=7d
+JWT_ACCESS_SECRET=production-super-secure-access-secret-key-64-characters-minimum
+JWT_REFRESH_SECRET=production-super-secure-refresh-secret-key-64-characters-minimum
+JWT_ACCESS_EXPIRY_MINUTES=15
+JWT_REFRESH_EXPIRY_DAYS=7
 
 # Production SMTP
 SMTP_HOST=smtp.sendgrid.net
 SMTP_PORT=587
 SMTP_USER=apikey
-SMTP_PASS=your-sendgrid-api-key
-EMAIL_FROM=noreply@yourdomain.com
+SMTP_PASSWORD=your-sendgrid-api-key
 
 # Strict rate limiting
 RATE_LIMIT_MAX_REQUESTS=100
@@ -491,20 +504,29 @@ pnpm run test-email
 
 ```bash
 # ❌ Wrong (insecure)
-JWT_SECRET=short
+JWT_ACCESS_SECRET=short
+JWT_REFRESH_SECRET=short
 
 # ✅ Correct (minimum 32 characters)
-JWT_SECRET=this-is-a-secure-jwt-secret-key-32-chars-minimum
+JWT_ACCESS_SECRET=this-is-a-secure-jwt-access-secret-key-32-chars-minimum
+JWT_REFRESH_SECRET=this-is-a-secure-jwt-refresh-secret-key-32-chars-minimum
 ```
 
 ### MongoDB Connection Issues
 
 ```bash
 # ❌ Wrong (missing authentication)
-MONGODB_URI=mongodb://localhost:27017/users-service
+MONGODB_HOST=localhost
+MONGODB_PORT=27017
+MONGODB_DATABASE=users-service
+# Missing MONGODB_USER and MONGODB_PASSWORD
 
 # ✅ Correct (with authentication)
-MONGODB_URI=mongodb://username:password@localhost:27017/users-service?authSource=admin
+MONGODB_HOST=localhost
+MONGODB_PORT=27017
+MONGODB_DATABASE=users-service
+MONGODB_USER=username
+MONGODB_PASSWORD=password
 ```
 
 ### Email Configuration Issues
@@ -513,10 +535,12 @@ MONGODB_URI=mongodb://username:password@localhost:27017/users-service?authSource
 # ❌ Wrong (missing SMTP_SECURE for port 587)
 SMTP_PORT=587
 SMTP_SECURE=false
+SMTP_PASSWORD=wrong
 
 # ✅ Correct
 SMTP_PORT=587
 SMTP_SECURE=true
+SMTP_PASSWORD=correct-password
 ```
 
 ### OAuth Redirect URI Mismatch
@@ -537,22 +561,26 @@ GOOGLE_REDIRECT_URI=http://localhost:3000/auth/oauth/google/callback
 # Application
 NODE_ENV=development
 PORT=3000
-APP_URL=http://localhost:3000
 
-# Database
-MONGODB_URI=mongodb://localhost:27017/users-service
+# MongoDB Configuration
+MONGODB_HOST=localhost
+MONGODB_PORT=27017
+MONGODB_DATABASE=users-service
+MONGODB_USER=admin
+MONGODB_PASSWORD=admin
 
-# JWT
-JWT_SECRET=your-jwt-secret-key-here
-JWT_EXPIRES_IN=15m
-REFRESH_TOKEN_EXPIRES_IN=7d
+# JWT Configuration
+JWT_ACCESS_SECRET=your-super-secret-access-key-change-in-production
+JWT_REFRESH_SECRET=your-super-secret-refresh-key-change-in-production
+JWT_ACCESS_EXPIRY_MINUTES=15
+JWT_REFRESH_EXPIRY_DAYS=7
 
-# Email
-SMTP_HOST=localhost
+# Email Configuration (MailHog for development)
+SMTP_HOST=mailhog
 SMTP_PORT=1025
+SMTP_SECURE=false
 SMTP_USER=
-SMTP_PASS=
-EMAIL_FROM=noreply@localhost
+SMTP_PASSWORD=
 
 # OAuth (Optional)
 GOOGLE_CLIENT_ID=
@@ -563,6 +591,7 @@ LINKEDIN_CLIENT_ID=
 LINKEDIN_CLIENT_SECRET=
 
 # Security
+RATE_LIMIT_WINDOW_MINUTES=15
 RATE_LIMIT_MAX_REQUESTS=100
 PASSWORD_MIN_LENGTH=8
 MAX_LOGIN_ATTEMPTS=5
@@ -573,7 +602,7 @@ MAX_LOGIN_ATTEMPTS=5
 Before deploying to production:
 
 - [ ] All required variables are set
-- [ ] JWT_SECRET is at least 32 characters
+- [ ] JWT_ACCESS_SECRET and JWT_REFRESH_SECRET are at least 32 characters each
 - [ ] Database connection string is correct
 - [ ] Email SMTP configuration is tested
 - [ ] OAuth redirect URIs match provider settings

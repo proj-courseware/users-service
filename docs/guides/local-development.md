@@ -16,8 +16,8 @@ Before starting, ensure you have the following installed:
 ### 1. Clone and Setup
 
 ```bash
-git clone <repository-url>
-cd users-api/backend-template
+git clone https://github.com/proj-courseware/users-service.git
+cd users-service
 cp .env.example .env
 ```
 
@@ -29,19 +29,25 @@ Edit `.env` file with your settings (see [Environment Variables Guide](./environ
 # Required for basic functionality
 NODE_ENV=development
 PORT=3000
-MONGODB_URI=mongodb://localhost:27017/users-service
+
+# MongoDB Configuration
+MONGODB_HOST=localhost
+MONGODB_PORT=27017
+MONGODB_DATABASE=users-service
+MONGODB_USER=admin
+MONGODB_PASSWORD=admin
 
 # JWT Configuration
-JWT_SECRET=your-super-secret-jwt-key-here
-JWT_EXPIRES_IN=15m
-REFRESH_TOKEN_EXPIRES_IN=7d
+JWT_ACCESS_SECRET=your-super-secret-access-key-change-in-production
+JWT_REFRESH_SECRET=your-super-secret-refresh-key-change-in-production
+JWT_ACCESS_EXPIRY_MINUTES=15
+JWT_REFRESH_EXPIRY_DAYS=7
 
 # Email Configuration (MailHog for development)
 SMTP_HOST=localhost
 SMTP_PORT=1025
 SMTP_USER=
-SMTP_PASS=
-EMAIL_FROM=noreply@localhost
+SMTP_PASSWORD=
 ```
 
 ### 3. Start with Docker

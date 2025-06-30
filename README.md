@@ -46,8 +46,8 @@ The service follows a **6-layer architecture** pattern for maintainability and s
 
 ```bash
 # Clone the repository
-git clone <repository-url>
-cd users-api/backend-template
+git clone https://github.com/proj-courseware/users-service.git
+cd users-service
 
 # Setup environment
 cp .env.example .env
@@ -135,7 +135,7 @@ curl -H "Authorization: Bearer YOUR_JWT_TOKEN" \
 
 ```bash
 # 1. Clone and configure
-git clone <repository-url>
+git clone https://github.com/proj-courseware/users-service.git
 cd users-service
 cp .env.example .env.production
 # Edit .env.production with production settings
@@ -255,8 +255,8 @@ Pre-configured OAuth providers:
 
 ## 📁 Project Structure
 
-```
-backend-template/
+```plaintext
+users-service/
 ├── src/
 │   ├── schemas/          # Zod schemas and TypeScript types
 │   ├── repositories/     # Data access layer (MongoDB + MockDB)
@@ -267,8 +267,8 @@ backend-template/
 │   └── errors/           # Error definitions and handling
 ├── tests/                # Comprehensive test suite
 ├── docs/                 # Documentation and guides
-│   ├── guides/          # Setup and deployment guides
-│   └── memory-bank/     # Architecture and patterns
+│   ├── guides/           # Setup and deployment guides
+│   └── memory-bank/      # Architecture and patterns
 ├── docker/               # Docker configuration
 └── scripts/              # Utility scripts
 ```

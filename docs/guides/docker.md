@@ -6,7 +6,7 @@ In simple terms, Docker is a tool that allows you to run applications in contain
 
 In the root of the project, you will find a text file named `Dockerfile`. This file contains instructions on how to build a Docker image for the application. The image is a snapshot of the application and its dependencies at a specific point in time.
 
-```plain
+```plaintext
 # Dockerfile
 FROM node:24-bullseye-slim
 RUN npm install -g pnpm
