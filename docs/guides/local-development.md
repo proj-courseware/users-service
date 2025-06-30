@@ -38,8 +38,8 @@ MONGODB_USER=admin
 MONGODB_PASSWORD=admin
 
 # JWT Configuration
-JWT_ACCESS_SECRET=your-super-secret-access-key-change-in-production
-JWT_REFRESH_SECRET=your-super-secret-refresh-key-change-in-production
+JWT_ACCESS_SECRET=your-secret-access-key
+JWT_REFRESH_SECRET=your-secret-refresh-key
 JWT_ACCESS_EXPIRY_MINUTES=15
 JWT_REFRESH_EXPIRY_DAYS=7
 
@@ -80,8 +80,8 @@ The API will be available at `http://localhost:3000`
 ### 1. Install Dependencies
 
 ```bash
-git clone <repository-url>
-cd users-api/backend-template
+git clone https://github.com/proj-courseware/users-service.git
+cd users-service
 cp .env.example .env
 pnpm install
 ```

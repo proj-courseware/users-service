@@ -50,20 +50,20 @@ Here's a breakdown of the Dockerfile:
 We use the Dockerfile through the `docker-compose.yml` file. However, we can also build the image manually using the command:
 
 ```bash
-docker build -t backend-template-app .
+docker build -t users-service-api .
 ```
 
-This command builds the Docker image using the Dockerfile in the current directory (`.`) and tags it with the name `backend-template-app`. The `-t` flag is used to specify the name of the image.
+This command builds the Docker image using the Dockerfile in the current directory (`.`) and tags it with the name `users-service-api`. The `-t` flag is used to specify the name of the image.
 After building the image, we can run it using the command:
 
 ```bash
-docker run -p 3000:3000 backend-template-app
+docker run -p 3000:3000 users-service-api
 ```
 
-This command runs the Docker container from the `backend-template-app` image and maps port 3000 on the host to port 3000 in the container. This allows us to access the application at `http://localhost:3000`.
+This command runs the Docker container from the `users-service-api` image and maps port 3000 on the host to port 3000 in the container. This allows us to access the application at `http://localhost:3000`.
 
 > [!TIP]
-> You can have multiple Dockerfiles in the same project. For example, you might have a `Dockerfile.dev` for development and a `Dockerfile.prod` for production. You can specify which Dockerfile to use when building the image using the `-f` flag: `docker build -f Dockerfile.dev -t backend-template-app .`. This way, you can have different configurations for development and production environments. On that point, you can name your Dockerfile whatever you want, but it's a good practice to name it `Dockerfile` for the main one and use a suffix for others, like `Dockerfile.dev` or `Dockerfile.prod`. This way, you can easily identify which Dockerfile is for which environment.
+> You can have multiple Dockerfiles in the same project. For example, you might have a `Dockerfile.dev` for development and a `Dockerfile.prod` for production. You can specify which Dockerfile to use when building the image using the `-f` flag: `docker build -f Dockerfile.dev -t users-service-api .`. This way, you can have different configurations for development and production environments. On that point, you can name your Dockerfile whatever you want, but it's a good practice to name it `Dockerfile` for the main one and use a suffix for others, like `Dockerfile.dev` or `Dockerfile.prod`. This way, you can easily identify which Dockerfile is for which environment.
 
 ## `.dockerignore`
 
@@ -92,7 +92,7 @@ version: "3.8"
 
 services:
   app:
-    container_name: backend-template-app
+    container_name: users-service-api
     build:
       context: .
       dockerfile: Dockerfile
@@ -120,7 +120,7 @@ Here's a breakdown of the `docker-compose.yml` file:
 
 - `services`: This section defines the services (containers) that make up the application. In this case, we have a single service named `app`. But we can add more services if needed, such as a database or a cache.
 
-- `container_name: backend-template-app`: This line specifies the name of the container. If we don't specify a name, Docker will generate a random name for the container.
+- `container_name: users-service-api`: This line specifies the name of the container. If we don't specify a name, Docker will generate a random name for the container.
 
 - `build`: This section specifies how to build the Docker image for the service. The `context` is the directory where the Dockerfile is located, and the `dockerfile` is the name of the Dockerfile.
 
@@ -313,7 +313,7 @@ version: "3.8"
 
 services:
   app:
-    container_name: backend-template-app
+    container_name: users-service-api
     build:
       context: ../ # relative to this file
       dockerfile: docker/Dockerfile.prod # relative to the build context
@@ -363,7 +363,7 @@ version: "3.8"
 
 services:
   app:
-    container_name: backend-template-app # Rename as needed
+    container_name: users-service-api # Rename as needed
     build:
       context: ../ # relative to this file
       dockerfile: docker/Dockerfile.dev # relative to the build context

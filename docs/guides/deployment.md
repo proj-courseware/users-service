@@ -222,8 +222,8 @@ sudo systemctl enable mongod
 
 ```bash
 # Clone and build
-git clone <repository-url>
-cd users-api/backend-template
+git clone https://github.com/proj-courseware/users-service.git
+cd users-service
 cp .env.example .env
 pnpm install
 pnpm build
