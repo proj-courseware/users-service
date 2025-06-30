@@ -2,7 +2,7 @@ version: "3.8"
 
 services:
   app:
-    container_name: backend-template-app
+    container_name: users-service-api
     build:
       context: .
       dockerfile: Dockerfile
