@@ -12,7 +12,7 @@ const envSchema = z.object({
   MONGODB_PORT: z.coerce.number().default(27017),
   MONGODB_USER: z.string().optional(),
   MONGODB_PASSWORD: z.string().optional(),
-  MONGODB_DATABASE: z.string().default("backend-template"),
+  MONGODB_DATABASE: z.string().default("users-service"),
 });
 
 describe("envSchema", () => {
@@ -54,7 +54,7 @@ describe("envSchema", () => {
     const parsed = envSchema.parse({});
     expect(parsed.MONGODB_HOST).toBe("localhost");
     expect(parsed.MONGODB_PORT).toBe(27017);
-    expect(parsed.MONGODB_DATABASE).toBe("backend-template");
+    expect(parsed.MONGODB_DATABASE).toBe("users-service");
   });
 
   it("coerces MONGODB_PORT to number", () => {
