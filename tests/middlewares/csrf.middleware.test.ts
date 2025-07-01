@@ -333,13 +333,14 @@ describe("CSRF Middleware", () => {
     });
 
     it("should skip when CSRF protection is disabled", async () => {
-      // Mock environment variable
-      const originalEnv = process.env.ENABLE_CSRF_PROTECTION;
-      process.env.ENABLE_CSRF_PROTECTION = "false";
-
-      const middleware = createCSRFTokenMiddleware({
-        csrfService: mockCSRFService,
-      });
+      const middleware = createCSRFTokenMiddleware(
+        {
+          csrfService: mockCSRFService,
+        },
+        {
+          enabled: false,
+        }
+      );
 
       app.use("*", middleware);
       app.get("/token", (c) => {
@@ -352,9 +353,6 @@ describe("CSRF Middleware", () => {
 
       const body = await response.json();
       expect(body.csrfToken).toBeNull();
-
-      // Restore environment variable
-      process.env.ENABLE_CSRF_PROTECTION = originalEnv;
     });
   });
 

@@ -1,6 +1,6 @@
 import { createMiddleware } from "hono/factory";
 import type { Context } from "hono";
-import { getCookie } from "hono/cookie";
+import { getCookie, setCookie } from "hono/cookie";
 import type { AppEnv } from "@/schemas/app-env.schema";
 import type { ICSRFService, CSRFTokenData } from "@/services/csrf.service";
 import { CSRFService } from "@/services/csrf.service";
@@ -26,6 +26,10 @@ export interface CSRFConfig {
 
 export interface CSRFMiddlewareDeps {
   csrfService: ICSRFService;
+}
+
+export interface CSRFTokenMiddlewareConfig {
+  enabled?: boolean;
 }
 
 /**
@@ -105,20 +109,22 @@ async function generateCSRFToken(
   const tokenData: CSRFTokenData = csrfService.generateToken();
 
   // Set CSRF token in cookie (accessible to JavaScript)
-  c.header(
-    "Set-Cookie",
-    `${config.cookieName}=${tokenData.token}; Max-Age=${Math.floor(config.maxAgeMs / 1000)}; ` +
-      `Path=/; ${config.secure ? "Secure; " : ""}` +
-      `SameSite=${config.sameSite}; ${config.httpOnly ? "HttpOnly" : ""}`,
-  );
+  setCookie(c, config.cookieName, tokenData.token, {
+    maxAge: Math.floor(config.maxAgeMs / 1000),
+    path: "/",
+    secure: config.secure,
+    sameSite: config.sameSite,
+    httpOnly: config.httpOnly,
+  });
 
   // Set CSRF hash in a separate HTTP-only cookie (not accessible to JavaScript)
-  c.header(
-    "Set-Cookie",
-    `${config.cookieName}-hash=${tokenData.hash}; Max-Age=${Math.floor(config.maxAgeMs / 1000)}; ` +
-      `Path=/; ${config.secure ? "Secure; " : ""}` +
-      `SameSite=${config.sameSite}; HttpOnly`,
-  );
+  setCookie(c, `${config.cookieName}-hash`, tokenData.hash, {
+    maxAge: Math.floor(config.maxAgeMs / 1000),
+    path: "/",
+    secure: config.secure,
+    sameSite: config.sameSite,
+    httpOnly: true,
+  });
 
   // Expose token to the application
   c.set("csrfToken", tokenData.token);
@@ -179,11 +185,15 @@ async function validateCSRFToken(
  * Middleware to generate CSRF token for API responses
  * This can be used on routes that need to provide CSRF tokens to clients
  */
-export const createCSRFTokenMiddleware = (deps?: CSRFMiddlewareDeps) => {
+export const createCSRFTokenMiddleware = (
+  deps?: CSRFMiddlewareDeps,
+  config?: CSRFTokenMiddlewareConfig,
+) => {
   const csrfService = deps?.csrfService || new CSRFService();
+  const enabled = config?.enabled ?? env.ENABLE_CSRF_PROTECTION;
 
   return createMiddleware<AppEnv>(async (c, next) => {
-    if (!env.ENABLE_CSRF_PROTECTION) {
+    if (!enabled) {
       await next();
       return;
     }
