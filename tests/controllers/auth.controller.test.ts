@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 import { AuthController } from "@/controllers/auth.controller";
 import type { IAuthenticationService } from "@/services/authentication.service";
 import type { IEmailVerificationService } from "@/services/email-verification.service";
+import type { IEmailService } from "@/services/email.service";
 import type {
   RegisterUserType,
   LoginCredentialsType,
@@ -59,6 +60,7 @@ describe("AuthController", () => {
   let authController: AuthController;
   let mockAuthService: IAuthenticationService;
   let mockEmailVerificationService: IEmailVerificationService;
+  let mockEmailService: IEmailService;
 
   beforeEach(() => {
     // Create mock services
@@ -86,9 +88,18 @@ describe("AuthController", () => {
       cleanupExpiredTokens: vi.fn(),
     } as any;
 
+    mockEmailService = {
+      sendVerificationEmail: vi.fn(),
+      sendPasswordResetEmail: vi.fn(),
+      sendWelcomeEmail: vi.fn(),
+      sendRawEmail: vi.fn(),
+      isHealthy: vi.fn(),
+    } as any;
+
     authController = new AuthController({
       authenticationService: mockAuthService,
       emailVerificationService: mockEmailVerificationService,
+      emailService: mockEmailService,
     });
   });
 
@@ -145,6 +156,10 @@ describe("AuthController", () => {
       mockEmailVerificationService.generateVerificationToken = vi
         .fn()
         .mockResolvedValue(verificationResult);
+      mockEmailService.sendVerificationEmail = vi.fn().mockResolvedValue({
+        success: true,
+        messageId: "email_message_123",
+      });
 
       const context = createMockContext({ validatedBody: registerData });
       const response = await authController.register(context);
