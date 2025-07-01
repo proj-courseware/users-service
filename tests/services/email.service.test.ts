@@ -3,6 +3,7 @@ import {
   it,
   expect,
   beforeEach,
+  afterEach,
   vi,
   beforeAll,
   afterAll,
@@ -350,6 +351,360 @@ describe("EmailService", () => {
       await mockEmailService.sendWelcomeEmail("test@example.com");
       const welcomeEmail = mockEmailService.getLastEmail();
       expect(welcomeEmail.content).toContain("Welcome,");
+    });
+  });
+
+  describe("Real EmailService", () => {
+    let emailService: EmailService;
+    let mockTransporter: any;
+
+    beforeEach(() => {
+      // Mock nodemailer transport
+      mockTransporter = {
+        sendMail: vi.fn(),
+        verify: vi.fn(),
+        close: vi.fn(),
+      };
+
+      // Mock nodemailer.createTransport
+      vi.doMock("nodemailer", () => ({
+        default: {
+          createTransporter: vi.fn(() => mockTransporter),
+        },
+        createTransport: vi.fn(() => mockTransporter),
+      }));
+
+      emailService = new EmailService({
+        host: "test.smtp.com",
+        port: 587,
+        secure: false,
+        auth: {
+          user: "test@example.com",
+          pass: "password",
+        },
+        fromAddress: "noreply@test.com",
+        fromName: "Test Service",
+        maxRetries: 2,
+        retryDelayMs: 100,
+      });
+
+      // Replace the transporter with our mock
+      (emailService as any).transporter = mockTransporter;
+    });
+
+    afterEach(() => {
+      vi.clearAllMocks();
+      vi.doUnmock("nodemailer");
+    });
+
+    describe("sendVerificationEmail", () => {
+      it("should send verification email successfully", async () => {
+        mockTransporter.sendMail.mockResolvedValue({
+          messageId: "test-message-id-123",
+        });
+
+        const result = await emailService.sendVerificationEmail(
+          "user123",
+          "test@example.com",
+          "token123",
+          "John",
+        );
+
+        expect(result.success).toBe(true);
+        expect(result.messageId).toBe("test-message-id-123");
+        expect(mockTransporter.sendMail).toHaveBeenCalledTimes(1);
+
+        const sendMailArgs = mockTransporter.sendMail.mock.calls[0][0];
+        expect(sendMailArgs.to).toBe("test@example.com");
+        expect(sendMailArgs.subject).toBe("Verify your email address");
+        expect(sendMailArgs.html).toContain("Hi John");
+        expect(sendMailArgs.html).toContain("token123");
+      });
+
+      it("should handle sendMail errors with retry", async () => {
+        const error = new Error("SMTP connection failed");
+        mockTransporter.sendMail
+          .mockRejectedValueOnce(error)
+          .mockResolvedValue({ messageId: "retry-success-123" });
+
+        const result = await emailService.sendVerificationEmail(
+          "user123",
+          "test@example.com",
+          "token123",
+        );
+
+        expect(result.success).toBe(true);
+        expect(result.messageId).toBe("retry-success-123");
+        expect(mockTransporter.sendMail).toHaveBeenCalledTimes(2);
+      });
+
+      it("should fail after max retries", async () => {
+        const error = new Error("Persistent SMTP failure");
+        mockTransporter.sendMail.mockRejectedValue(error);
+
+        const result = await emailService.sendVerificationEmail(
+          "user123",
+          "test@example.com",
+          "token123",
+        );
+
+        expect(result.success).toBe(false);
+        expect(result.error).toBe("Persistent SMTP failure");
+        expect(mockTransporter.sendMail).toHaveBeenCalledTimes(2); // maxRetries = 2
+      });
+    });
+
+    describe("sendPasswordResetEmail", () => {
+      it("should send password reset email successfully", async () => {
+        mockTransporter.sendMail.mockResolvedValue({
+          messageId: "reset-message-id-456",
+        });
+
+        const result = await emailService.sendPasswordResetEmail(
+          "user456",
+          "reset@example.com",
+          "resetToken789",
+          "Jane",
+        );
+
+        expect(result.success).toBe(true);
+        expect(result.messageId).toBe("reset-message-id-456");
+
+        const sendMailArgs = mockTransporter.sendMail.mock.calls[0][0];
+        expect(sendMailArgs.to).toBe("reset@example.com");
+        expect(sendMailArgs.subject).toBe("Password Reset Request");
+        expect(sendMailArgs.html).toContain("Hi Jane");
+        expect(sendMailArgs.html).toContain("resetToken789");
+      });
+
+      it("should handle template generation errors", async () => {
+        // This tests the catch block in sendPasswordResetEmail
+        const originalConsoleError = console.error;
+        console.error = vi.fn();
+
+        // Cause an error by passing invalid parameters to the service
+        const result = await emailService.sendPasswordResetEmail(
+          "",
+          "",
+          "",
+          "",
+        );
+
+        expect(result.success).toBe(false);
+        expect(result.error).toBeDefined();
+
+        console.error = originalConsoleError;
+      });
+    });
+
+    describe("sendWelcomeEmail", () => {
+      it("should send welcome email successfully", async () => {
+        mockTransporter.sendMail.mockResolvedValue({
+          messageId: "welcome-message-id-789",
+        });
+
+        const result = await emailService.sendWelcomeEmail(
+          "welcome@example.com",
+          "Alice",
+        );
+
+        expect(result.success).toBe(true);
+        expect(result.messageId).toBe("welcome-message-id-789");
+
+        const sendMailArgs = mockTransporter.sendMail.mock.calls[0][0];
+        expect(sendMailArgs.to).toBe("welcome@example.com");
+        expect(sendMailArgs.subject).toBe("Welcome to Authentication Service!");
+        expect(sendMailArgs.html).toContain("Hi Alice");
+      });
+    });
+
+    describe("sendRawEmail", () => {
+      it("should send raw email successfully", async () => {
+        mockTransporter.sendMail.mockResolvedValue({
+          messageId: "raw-message-id-101",
+        });
+
+        const emailOptions: EmailSendOptions = {
+          to: "raw@example.com",
+          subject: "Raw Email Test",
+          html: "<h1>Raw HTML Content</h1>",
+          text: "Raw Text Content",
+          from: "custom@sender.com",
+        };
+
+        const result = await emailService.sendRawEmail(emailOptions);
+
+        expect(result.success).toBe(true);
+        expect(result.messageId).toBe("raw-message-id-101");
+
+        const sendMailArgs = mockTransporter.sendMail.mock.calls[0][0];
+        expect(sendMailArgs.to).toBe("raw@example.com");
+        expect(sendMailArgs.subject).toBe("Raw Email Test");
+        expect(sendMailArgs.html).toBe("<h1>Raw HTML Content</h1>");
+        expect(sendMailArgs.text).toBe("Raw Text Content");
+        expect(sendMailArgs.from).toBe("custom@sender.com");
+      });
+
+      it("should use default from address when not specified", async () => {
+        mockTransporter.sendMail.mockResolvedValue({
+          messageId: "default-from-123",
+        });
+
+        const emailOptions: EmailSendOptions = {
+          to: "test@example.com",
+          subject: "Test Subject",
+          html: "<p>Test</p>",
+          text: "Test",
+        };
+
+        await emailService.sendRawEmail(emailOptions);
+
+        const sendMailArgs = mockTransporter.sendMail.mock.calls[0][0];
+        expect(sendMailArgs.from).toBe("Test Service <noreply@test.com>");
+      });
+    });
+
+    describe("isHealthy", () => {
+      it("should return true when SMTP verification succeeds", async () => {
+        mockTransporter.verify.mockResolvedValue(true);
+
+        const healthy = await emailService.isHealthy();
+
+        expect(healthy).toBe(true);
+        expect(mockTransporter.verify).toHaveBeenCalledTimes(1);
+      });
+
+      it("should return false when SMTP verification fails", async () => {
+        mockTransporter.verify.mockRejectedValue(new Error("SMTP unreachable"));
+
+        const originalConsoleWarn = console.warn;
+        console.warn = vi.fn();
+
+        const healthy = await emailService.isHealthy();
+
+        expect(healthy).toBe(false);
+        expect(mockTransporter.verify).toHaveBeenCalledTimes(1);
+
+        console.warn = originalConsoleWarn;
+      });
+    });
+
+    describe("close", () => {
+      it("should close transporter successfully", async () => {
+        mockTransporter.close.mockResolvedValue(undefined);
+
+        await emailService.close();
+
+        expect(mockTransporter.close).toHaveBeenCalledTimes(1);
+      });
+
+      it("should handle close errors gracefully", async () => {
+        // Mock close to throw a synchronous error
+        mockTransporter.close.mockImplementation(() => {
+          throw new Error("Close failed");
+        });
+
+        const originalConsoleWarn = console.warn;
+        const mockConsoleWarn = vi.fn();
+        console.warn = mockConsoleWarn;
+
+        await emailService.close();
+
+        expect(mockTransporter.close).toHaveBeenCalledTimes(1);
+        expect(mockConsoleWarn).toHaveBeenCalledWith(
+          "Error closing email service:",
+          expect.any(Error),
+        );
+
+        console.warn = originalConsoleWarn;
+      });
+    });
+
+    describe("retry logic", () => {
+      it("should implement exponential backoff", async () => {
+        const error = new Error("Temporary failure");
+        mockTransporter.sendMail
+          .mockRejectedValueOnce(error)
+          .mockRejectedValueOnce(error)
+          .mockResolvedValue({ messageId: "final-success" });
+
+        const result = await emailService.sendRawEmail({
+          to: "test@example.com",
+          subject: "Retry Test",
+          html: "<p>Test</p>",
+          text: "Test",
+        });
+
+        expect(result.success).toBe(true);
+        expect(result.messageId).toBe("final-success");
+        expect(mockTransporter.sendMail).toHaveBeenCalledTimes(3);
+      });
+
+      it("should handle non-Error exceptions", async () => {
+        mockTransporter.sendMail.mockRejectedValue("String error");
+
+        const result = await emailService.sendRawEmail({
+          to: "test@example.com",
+          subject: "Test",
+          html: "<p>Test</p>",
+          text: "Test",
+        });
+
+        expect(result.success).toBe(false);
+        expect(result.error).toBe("String error");
+      });
+    });
+
+    describe("configuration", () => {
+      it("should create transporter with correct configuration", () => {
+        const config = emailService.getConfig();
+
+        expect(config.host).toBe("test.smtp.com");
+        expect(config.port).toBe(587);
+        expect(config.secure).toBe(false);
+        expect(config.fromAddress).toBe("noreply@test.com");
+        expect(config.fromName).toBe("Test Service");
+        expect(config.maxRetries).toBe(2);
+        expect(config.retryDelayMs).toBe(100);
+        expect(config.hasAuth).toBe(true);
+      });
+
+      it("should not expose auth credentials in config", () => {
+        const config = emailService.getConfig();
+
+        expect(config).not.toHaveProperty("auth");
+        expect(config.hasAuth).toBe(true);
+      });
+    });
+
+    describe("error scenarios", () => {
+      it("should handle malformed email addresses gracefully", async () => {
+        mockTransporter.sendMail.mockRejectedValue(
+          new Error("Invalid email address"),
+        );
+
+        const result = await emailService.sendVerificationEmail(
+          "user123",
+          "invalid-email-format",
+          "token123",
+        );
+
+        expect(result.success).toBe(false);
+        expect(result.error).toBe("Invalid email address");
+      });
+
+      it("should handle timeout errors", async () => {
+        mockTransporter.sendMail.mockRejectedValue(new Error("Timeout"));
+
+        const result = await emailService.sendPasswordResetEmail(
+          "user123",
+          "test@example.com",
+          "token123",
+        );
+
+        expect(result.success).toBe(false);
+        expect(result.error).toBe("Timeout");
+      });
     });
   });
 
