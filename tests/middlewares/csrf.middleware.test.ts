@@ -420,4 +420,191 @@ describe("CSRF Middleware", () => {
       expect(hasSameSiteCookie).toBe(true);
     });
   });
+
+  describe("CSRF token validation edge cases", () => {
+    it("should handle form data parsing as fallback for unknown content type", async () => {
+      const config: Partial<CSRFConfig> = {
+        enabled: true,
+        cookieName: "test-csrf",
+      };
+      const middleware = createCSRFMiddleware(config, {
+        csrfService: mockCSRFService,
+      });
+
+      app.use("*", middleware);
+      app.post("/test", (c) => c.json({ success: true }));
+
+      // Mock cookies for hash validation
+      vi.doMock("hono/cookie", () => ({
+        getCookie: (c: any, name: string) => {
+          if (name === "test-csrf-hash") return "test-hash";
+          return undefined;
+        },
+        setCookie: vi.fn(),
+      }));
+
+      mockCSRFService.validateToken = vi.fn().mockReturnValue(true);
+
+      // Create form data with CSRF token
+      const formData = new FormData();
+      formData.append("_csrf", "test-token");
+      formData.append("data", "test");
+
+      const response = await app.request("/test", {
+        method: "POST",
+        headers: {
+          "Content-Type": "unknown/type", // Unknown content type to trigger fallback
+        },
+        body: formData,
+      });
+
+      expect(response.status).toBe(200);
+      expect(mockCSRFService.validateToken).toHaveBeenCalledWith(
+        "test-token",
+        "test-hash",
+        3600000,
+      );
+    });
+
+    it("should handle JSON parsing as final fallback when form parsing fails", async () => {
+      const config: Partial<CSRFConfig> = {
+        enabled: true,
+        cookieName: "test-csrf",
+      };
+      const middleware = createCSRFMiddleware(config, {
+        csrfService: mockCSRFService,
+      });
+
+      app.use("*", middleware);
+      app.post("/test", (c) => c.json({ success: true }));
+
+      // Mock cookies for hash validation
+      vi.doMock("hono/cookie", () => ({
+        getCookie: (c: any, name: string) => {
+          if (name === "test-csrf-hash") return "test-hash";
+          return undefined;
+        },
+        setCookie: vi.fn(),
+      }));
+
+      mockCSRFService.validateToken = vi.fn().mockReturnValue(true);
+
+      const response = await app.request("/test", {
+        method: "POST",
+        headers: {
+          "Content-Type": "unknown/type",
+        },
+        body: JSON.stringify({ _csrf: "test-token", data: "test" }),
+      });
+
+      expect(response.status).toBe(200);
+      expect(mockCSRFService.validateToken).toHaveBeenCalledWith(
+        "test-token",
+        "test-hash",
+        3600000,
+      );
+    });
+
+    it("should throw error when no hash cookie is found", async () => {
+      const config: Partial<CSRFConfig> = {
+        enabled: true,
+        cookieName: "test-csrf",
+      };
+      const middleware = createCSRFMiddleware(config, {
+        csrfService: mockCSRFService,
+      });
+
+      app.use("*", middleware);
+      app.post("/test", (c) => c.json({ success: true }));
+
+      // Mock cookies to return no hash
+      vi.doMock("hono/cookie", () => ({
+        getCookie: (c: any, name: string) => {
+          return undefined; // No hash cookie found
+        },
+        setCookie: vi.fn(),
+      }));
+
+      const response = await app.request("/test", {
+        method: "POST",
+        headers: {
+          "X-CSRF-Token": "test-token",
+        },
+      });
+
+      expect(response.status).toBe(401);
+      const body = await response.json();
+      expect(body.error).toBe("CSRF token validation failed - no hash found");
+    });
+  });
+
+  describe("CSRF response middleware", () => {
+    it("should enhance JSON responses with CSRF token", async () => {
+      const responseMiddleware = createCSRFResponseMiddleware();
+
+      app.use("*", responseMiddleware);
+      app.get("/test", (c) => {
+        c.set("csrfToken", "test-csrf-token");
+        return c.json({ data: "test response" });
+      });
+
+      const response = await app.request("/test");
+      const body = await response.json();
+
+      expect(body).toEqual({
+        data: "test response",
+        csrfToken: "test-csrf-token",
+      });
+    });
+
+    it("should skip enhancement for non-JSON responses", async () => {
+      const responseMiddleware = createCSRFResponseMiddleware();
+
+      app.use("*", responseMiddleware);
+      app.get("/test", (c) => {
+        c.set("csrfToken", "test-csrf-token");
+        return c.text("plain text response");
+      });
+
+      const response = await app.request("/test");
+      const body = await response.text();
+
+      expect(body).toBe("plain text response");
+      expect(body).not.toContain("csrfToken");
+    });
+
+    it("should handle response parsing errors gracefully", async () => {
+      const responseMiddleware = createCSRFResponseMiddleware();
+
+      app.use("*", responseMiddleware);
+      app.get("/test", (c) => {
+        c.set("csrfToken", "test-csrf-token");
+        // Create a response that looks like JSON but isn't valid
+        return new Response("invalid json content", {
+          headers: { "content-type": "application/json" },
+        });
+      });
+
+      const response = await app.request("/test");
+      const body = await response.text();
+
+      expect(body).toBe("invalid json content");
+      expect(response.status).toBe(200);
+    });
+
+    it("should not enhance responses without CSRF token", async () => {
+      const responseMiddleware = createCSRFResponseMiddleware();
+
+      app.use("*", responseMiddleware);
+      app.get("/test", (c) => c.json({ data: "test response" }));
+
+      const response = await app.request("/test");
+      const body = await response.json();
+
+      expect(body).toEqual({
+        data: "test response",
+      });
+      expect(body.csrfToken).toBeUndefined();
+    });
+  });
 });
