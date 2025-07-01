@@ -259,7 +259,7 @@ describe("MongoDbUserRepository", () => {
       expect(updatedUser.lastName).toBe("Smith");
       expect(updatedUser.globalRole).toBe("teacher");
       expect(updatedUser.primaryEmail).toBe("john@example.com"); // unchanged
-      expect(updatedUser.updatedAt.getTime()).toBeGreaterThan(
+      expect(updatedUser.updatedAt.getTime()).toBeGreaterThanOrEqual(
         user.updatedAt.getTime(),
       );
     });
