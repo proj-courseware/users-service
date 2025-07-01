@@ -390,7 +390,7 @@ describe("EmailService", () => {
 
       // Replace the transporter with our mock
       (emailService as any).transporter = mockTransporter;
-      
+
       // Reset all mocks before each test
       vi.clearAllMocks();
     });
@@ -642,13 +642,14 @@ describe("EmailService", () => {
 
         const error = new Error("Temporary failure");
         const testMockTransporter = {
-          sendMail: vi.fn()
+          sendMail: vi
+            .fn()
             .mockRejectedValueOnce(error)
             .mockResolvedValue({ messageId: "final-success" }),
           verify: vi.fn(),
           close: vi.fn(),
         };
-        
+
         // Replace the transporter
         (testEmailService as any).transporter = testMockTransporter;
 

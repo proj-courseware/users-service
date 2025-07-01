@@ -438,9 +438,9 @@ describe("CSRF Middleware", () => {
       // First get a valid CSRF token
       const getResponse = await app.request("/test", { method: "GET" });
       const cookies = getResponse.headers.getSetCookie();
-      
+
       // Extract the CSRF cookie
-      const csrfCookie = cookies.find(cookie => cookie.includes("test-csrf"));
+      const csrfCookie = cookies.find((cookie) => cookie.includes("test-csrf"));
       expect(csrfCookie).toBeDefined();
 
       // Mock the service to return a valid token
@@ -455,7 +455,7 @@ describe("CSRF Middleware", () => {
         method: "POST",
         headers: {
           "Content-Type": "unknown/type", // Unknown content type to trigger fallback
-          "Cookie": csrfCookie || "",
+          Cookie: csrfCookie || "",
         },
         body: formData,
       });
@@ -480,9 +480,9 @@ describe("CSRF Middleware", () => {
       // First get a valid CSRF token
       const getResponse = await app.request("/test", { method: "GET" });
       const cookies = getResponse.headers.getSetCookie();
-      
+
       // Extract the CSRF cookie
-      const csrfCookie = cookies.find(cookie => cookie.includes("test-csrf"));
+      const csrfCookie = cookies.find((cookie) => cookie.includes("test-csrf"));
       expect(csrfCookie).toBeDefined();
 
       // Mock the service to return a valid token
@@ -492,7 +492,7 @@ describe("CSRF Middleware", () => {
         method: "POST",
         headers: {
           "Content-Type": "unknown/type",
-          "Cookie": csrfCookie || "",
+          Cookie: csrfCookie || "",
         },
         body: JSON.stringify({ _csrf: "test-token", data: "test" }),
       });
@@ -585,7 +585,9 @@ describe("CSRF Middleware", () => {
 
       expect(response.status).toBe(200);
       // Don't read the body since the middleware may have already consumed it
-      expect(response.headers.get("content-type")).toContain("application/json");
+      expect(response.headers.get("content-type")).toContain(
+        "application/json",
+      );
     });
 
     it("should not enhance responses without CSRF token", async () => {
