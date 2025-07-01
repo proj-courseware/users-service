@@ -142,17 +142,38 @@ async function validateCSRFToken(
   let csrfToken = c.req.header(config.headerName);
 
   if (!csrfToken) {
-    // Try to get from form data
-    try {
-      const formData = await c.req.formData();
-      csrfToken = formData.get("_csrf") as string;
-    } catch {
-      // If form parsing fails, try JSON body
+    // Check Content-Type to determine how to parse body
+    const contentType = c.req.header("Content-Type") || "";
+    
+    if (contentType.includes("application/json")) {
+      // Parse JSON body
       try {
         const body = await c.req.json();
         csrfToken = body._csrf;
       } catch {
-        // No CSRF token found
+        // JSON parsing failed
+      }
+    } else if (contentType.includes("multipart/form-data") || contentType.includes("application/x-www-form-urlencoded")) {
+      // Parse form data
+      try {
+        const formData = await c.req.formData();
+        csrfToken = formData.get("_csrf") as string;
+      } catch {
+        // Form parsing failed
+      }
+    } else {
+      // Try form data as fallback
+      try {
+        const formData = await c.req.formData();
+        csrfToken = formData.get("_csrf") as string;
+      } catch {
+        // Form parsing failed, try JSON as final fallback
+        try {
+          const body = await c.req.json();
+          csrfToken = body._csrf;
+        } catch {
+          // No CSRF token found
+        }
       }
     }
   }

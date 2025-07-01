@@ -415,7 +415,7 @@ describe("CSRF Middleware", () => {
       const setCookieHeaders = response.headers.getSetCookie();
 
       const hasSameSiteCookie = setCookieHeaders.some((header) =>
-        header.includes("SameSite=strict"),
+        header.includes("SameSite=Strict"),
       );
       expect(hasSameSiteCookie).toBe(true);
     });
