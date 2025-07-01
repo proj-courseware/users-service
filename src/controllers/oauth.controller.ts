@@ -81,6 +81,10 @@ export class OAuthController implements IOAuthController {
         );
       }
 
+      if (!query.code) {
+        throw new BadRequestError("Authorization code is required");
+      }
+
       const oauthUserInfo = await this.oauthService.handleCallback(
         provider,
         query.code,

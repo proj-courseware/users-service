@@ -20,7 +20,7 @@ export const oauthStateSchema = z.object({
 });
 
 export const oauthCallbackQuerySchema = z.object({
-  code: z.string().min(1, "Authorization code is required"),
+  code: z.string().min(1, "Authorization code is required").optional(),
   state: z.string().min(1, "State parameter is required"),
   error: z.string().optional(),
   error_description: z.string().optional(),

@@ -233,7 +233,22 @@ describe("OAuthController", () => {
     });
 
     it("should handle OAuth callback for existing user", async () => {
+      const userWithSocialIdentity = {
+        ...mockUser,
+        socialIdentities: [
+          {
+            provider: "google",
+            providerUserId: "google123",
+            email: "john@example.com",
+            name: "John Doe",
+            linkedAt: new Date(),
+          },
+        ],
+      };
+
       vi.mocked(mockUserRepository.findByEmail).mockResolvedValue(mockUser);
+      vi.mocked(mockUserRepository.linkSocialIdentity).mockResolvedValue(undefined);
+      vi.mocked(mockUserRepository.findById).mockResolvedValue(userWithSocialIdentity);
 
       const res = await app.request(
         `/oauth/google/callback?code=${mockCode}&state=${mockState}`,
@@ -258,10 +273,10 @@ describe("OAuthController", () => {
         socialIdentities: [
           {
             provider: "google",
-            providerId: "google123",
+            providerUserId: "google123",
             email: "john@example.com",
-            displayName: "John Doe",
-            profileUrl: "https://example.com/avatar.jpg",
+            name: "John Doe",
+            linkedAt: new Date(),
           },
         ],
       };
@@ -269,9 +284,8 @@ describe("OAuthController", () => {
       vi.mocked(mockUserRepository.findByEmail).mockResolvedValue(
         userWithoutSocial,
       );
-      vi.mocked(mockUserRepository.linkSocialIdentity).mockResolvedValue(
-        userWithSocial,
-      );
+      vi.mocked(mockUserRepository.linkSocialIdentity).mockResolvedValue(undefined);
+      vi.mocked(mockUserRepository.findById).mockResolvedValue(userWithSocial);
 
       const res = await app.request(
         `/oauth/google/callback?code=${mockCode}&state=${mockState}`,
@@ -282,10 +296,10 @@ describe("OAuthController", () => {
         "user123",
         {
           provider: "google",
-          providerId: "google123",
+          providerUserId: "google123",
           email: "john@example.com",
-          displayName: "John Doe",
-          profileUrl: "https://example.com/avatar.jpg",
+          name: "John Doe",
+          linkedAt: expect.any(Date),
         },
       );
     });
@@ -331,6 +345,19 @@ describe("OAuthController", () => {
 
     it("should handle OAuth callback with redirectTo", async () => {
       const redirectTo = "http://localhost:3001/dashboard";
+      const userWithSocialIdentity = {
+        ...mockUser,
+        socialIdentities: [
+          {
+            provider: "google",
+            providerUserId: "google123",
+            email: "john@example.com",
+            name: "John Doe",
+            linkedAt: new Date(),
+          },
+        ],
+      };
+
       vi.mocked(mockOAuthService.validateState).mockReturnValue({
         provider: "google",
         timestamp: Date.now(),
@@ -338,6 +365,8 @@ describe("OAuthController", () => {
         redirectTo,
       });
       vi.mocked(mockUserRepository.findByEmail).mockResolvedValue(mockUser);
+      vi.mocked(mockUserRepository.linkSocialIdentity).mockResolvedValue(undefined);
+      vi.mocked(mockUserRepository.findById).mockResolvedValue(userWithSocialIdentity);
 
       const res = await app.request(
         `/oauth/google/callback?code=${mockCode}&state=${mockState}`,
@@ -354,9 +383,10 @@ describe("OAuthController", () => {
         socialIdentities: [
           {
             provider: "google",
-            providerId: "different_id",
+            providerUserId: "different_id",
             email: "john@example.com",
-            displayName: "John Doe",
+            name: "John Doe",
+            linkedAt: new Date(),
           },
         ],
       };
@@ -373,6 +403,8 @@ describe("OAuthController", () => {
     });
 
     it("should return 401 for OAuth error", async () => {
+      vi.mocked(mockOAuthService.isProviderEnabled).mockReturnValue(true);
+      
       const res = await app.request(
         `/oauth/google/callback?error=access_denied&error_description=User denied access&state=${mockState}`,
       );
@@ -485,11 +517,22 @@ describe("OAuthController", () => {
         ],
       };
 
+      // Mock authentication
+      vi.mocked(mockAuthService.authenticateUserByToken).mockResolvedValue({
+        userId: "user123",
+        globalRole: "student",
+      });
+
       vi.mocked(mockUserRepository.findById).mockResolvedValue(
         userWithOnlySocial,
       );
 
-      const res = await app.request("/oauth/google", { method: "DELETE" });
+      const res = await app.request("/oauth/google", {
+        method: "DELETE",
+        headers: {
+          Authorization: "Bearer valid-token",
+        },
+      });
 
       expect(res.status).toBe(409);
     });
@@ -500,18 +543,30 @@ describe("OAuthController", () => {
         socialIdentities: [
           {
             provider: "github",
-            providerId: "github456",
+            providerUserId: "github456",
             email: "john@example.com",
-            displayName: "John Doe",
+            name: "John Doe",
+            linkedAt: new Date(),
           },
         ],
       };
+
+      // Mock authentication
+      vi.mocked(mockAuthService.authenticateUserByToken).mockResolvedValue({
+        userId: "user123",
+        globalRole: "student",
+      });
 
       vi.mocked(mockUserRepository.findById).mockResolvedValue(
         userWithoutGoogle,
       );
 
-      const res = await app.request("/oauth/google", { method: "DELETE" });
+      const res = await app.request("/oauth/google", {
+        method: "DELETE",
+        headers: {
+          Authorization: "Bearer valid-token",
+        },
+      });
 
       expect(res.status).toBe(404);
     });
@@ -528,15 +583,37 @@ describe("OAuthController", () => {
     });
 
     it("should return 404 for non-existent user", async () => {
+      // Mock authentication
+      vi.mocked(mockAuthService.authenticateUserByToken).mockResolvedValue({
+        userId: "user123",
+        globalRole: "student",
+      });
+
       vi.mocked(mockUserRepository.findById).mockResolvedValue(null);
 
-      const res = await app.request("/oauth/google", { method: "DELETE" });
+      const res = await app.request("/oauth/google", {
+        method: "DELETE",
+        headers: {
+          Authorization: "Bearer valid-token",
+        },
+      });
 
       expect(res.status).toBe(404);
     });
 
     it("should return 400 for invalid provider", async () => {
-      const res = await app.request("/oauth/invalid", { method: "DELETE" });
+      // Mock authentication
+      vi.mocked(mockAuthService.authenticateUserByToken).mockResolvedValue({
+        userId: "user123",
+        globalRole: "student",
+      });
+
+      const res = await app.request("/oauth/invalid", {
+        method: "DELETE",
+        headers: {
+          Authorization: "Bearer valid-token",
+        },
+      });
 
       expect(res.status).toBe(400);
     });
