@@ -2,7 +2,7 @@ import type { Context } from "hono";
 import { z } from "zod";
 import type { AppEnv } from "@/schemas/app-env.schema";
 import type { IUserRepository } from "@/repositories/user.repository";
-import type { IJwtService } from "@/services/jwt.service";
+import type { IJWTService } from "@/services/jwt.service";
 import type { IOAuthService } from "@/services/oauth.service";
 import type { IAuthenticationService } from "@/services/authentication.service";
 import {
@@ -10,14 +10,12 @@ import {
   oauthCallbackQuerySchema,
   type OAuthProvider,
 } from "@/schemas/oauth.schema";
+import type { AuthenticatedUserContextType } from "@/schemas/user.schemas";
+import { createUserSchema, type CreateUserType } from "@/schemas/user.schema";
 import {
-  createUserSchema,
-  type CreateUserType,
-  type AuthenticatedUserContextType,
-} from "@/schemas/user.schemas";
-import {
-  ValidationError,
-  ConflictError,
+  BadRequestError,
+  UserAlreadyExistsError,
+  InternalServerError,
   NotFoundError,
   UnauthorizedError,
 } from "@/errors";
@@ -40,7 +38,7 @@ export interface IOAuthController {
 export class OAuthController implements IOAuthController {
   constructor(
     private userRepository: IUserRepository,
-    private jwtService: IJwtService,
+    private jwtService: IJWTService,
     private oauthService: IOAuthService,
     private authService: IAuthenticationService,
   ) {}
@@ -62,7 +60,7 @@ export class OAuthController implements IOAuthController {
       return c.redirect(url, 302);
     } catch (error) {
       if (error instanceof z.ZodError) {
-        throw new ValidationError("Invalid request parameters", error.errors);
+        throw new BadRequestError("Invalid request parameters");
       }
       throw error;
     }
@@ -99,20 +97,22 @@ export class OAuthController implements IOAuthController {
         );
 
         if (!socialIdentity) {
-          user = await this.userRepository.linkSocialIdentity(user.id, {
+          await this.userRepository.linkSocialIdentity(user.id, {
             provider,
-            providerId: oauthUserInfo.id,
+            providerUserId: oauthUserInfo.id,
             email: oauthUserInfo.email,
-            displayName: oauthUserInfo.name,
-            profileUrl: oauthUserInfo.picture,
+            name: oauthUserInfo.name,
+            linkedAt: new Date(),
           });
-        } else if (socialIdentity.providerId !== oauthUserInfo.id) {
-          throw new ConflictError(
+          // Refetch user with updated social identities
+          user = await this.userRepository.findById(user.id);
+        } else if (socialIdentity.providerUserId !== oauthUserInfo.id) {
+          throw new UserAlreadyExistsError(
             "This email is associated with a different account on this provider",
           );
         }
       } else {
-        const newUser: CreateUserType = {
+        const userData: CreateUserType = {
           firstName:
             oauthUserInfo.firstName || oauthUserInfo.name.split(" ")[0] || "",
           lastName:
@@ -122,31 +122,33 @@ export class OAuthController implements IOAuthController {
           primaryEmail: oauthUserInfo.email,
           emails: [
             {
-              email: oauthUserInfo.email,
+              emailAddress: oauthUserInfo.email,
               isVerified: true,
-              isPrimary: true,
+              addedAt: new Date(),
             },
           ],
           globalRole: "student",
-          accountStatus: "active",
+          isAccountLocked: false,
+          failedLoginAttempts: 0,
           socialIdentities: [
             {
               provider,
-              providerId: oauthUserInfo.id,
+              providerUserId: oauthUserInfo.id,
               email: oauthUserInfo.email,
-              displayName: oauthUserInfo.name,
-              profileUrl: oauthUserInfo.picture,
+              name: oauthUserInfo.name,
+              linkedAt: new Date(),
             },
           ],
         };
 
-        user = await this.userRepository.create(newUser);
+        user = await this.userRepository.create(userData);
       }
 
-      const tokens = await this.jwtService.generateTokenPair(
-        user.id,
-        user.globalRole,
-      );
+      if (!user) {
+        throw new InternalServerError("Failed to create or retrieve user");
+      }
+
+      const tokens = await this.jwtService.generateTokenPair(user);
 
       const responseData = {
         message: "OAuth authentication successful",
@@ -160,7 +162,6 @@ export class OAuthController implements IOAuthController {
           lastName: user.lastName,
           primaryEmail: user.primaryEmail,
           globalRole: user.globalRole,
-          accountStatus: user.accountStatus,
           provider,
         },
         redirectTo: stateData.redirectTo,
@@ -169,7 +170,7 @@ export class OAuthController implements IOAuthController {
       return c.json(responseData, 200);
     } catch (error) {
       if (error instanceof z.ZodError) {
-        throw new ValidationError("Invalid callback parameters", error.errors);
+        throw new BadRequestError("Invalid callback parameters");
       }
       throw error;
     }
@@ -209,7 +210,7 @@ export class OAuthController implements IOAuthController {
       const hasOtherSocialIdentities = socialIdentities.length > 1;
 
       if (!hasPassword && !hasOtherSocialIdentities) {
-        throw new ConflictError(
+        throw new UserAlreadyExistsError(
           "Cannot unlink the only authentication method. Set a password first.",
         );
       }
@@ -224,7 +225,7 @@ export class OAuthController implements IOAuthController {
         );
       }
 
-      await this.userRepository.unlinkSocialIdentity(currentUser.id, provider);
+      await this.userRepository.unlinkSocialIdentity(currentUser.id, provider, socialIdentity.providerUserId);
 
       return c.json({
         message: `${this.getProviderDisplayName(provider)} account unlinked successfully`,
@@ -232,7 +233,7 @@ export class OAuthController implements IOAuthController {
       });
     } catch (error) {
       if (error instanceof z.ZodError) {
-        throw new ValidationError("Invalid request parameters", error.errors);
+        throw new BadRequestError("Invalid request parameters");
       }
       throw error;
     }

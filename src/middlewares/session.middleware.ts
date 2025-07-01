@@ -1,5 +1,6 @@
 import { createMiddleware } from "hono/factory";
 import { sign, verify } from "hono/jwt";
+import { getCookie } from "hono/cookie";
 import type { AppEnv } from "@/schemas/app-env.schema";
 import type { UserType } from "@/schemas/user.schema";
 import { UnauthenticatedError } from "@/errors";
@@ -11,6 +12,7 @@ export interface SessionData {
   role: string;
   issuedAt: number;
   expiresAt: number;
+  [key: string]: any; // Add index signature for JWT compatibility
 }
 
 export interface SessionConfig {
@@ -29,6 +31,7 @@ export interface ISessionService {
   validateSession(sessionToken: string): Promise<SessionData | null>;
   destroySession(sessionToken: string): Promise<void>;
   refreshSession(sessionToken: string): Promise<string>;
+  getCookieName(): string;
 }
 
 export class SessionService implements ISessionService {
@@ -75,7 +78,7 @@ export class SessionService implements ISessionService {
       const payload = (await verify(
         sessionToken,
         this.config.secret,
-      )) as SessionData;
+      )) as unknown as SessionData;
 
       // Check if session has expired
       if (payload.expiresAt < Date.now()) {
@@ -164,7 +167,7 @@ export const createSessionMiddleware = (deps?: SessionMiddlewareDeps) => {
   const sessionService = deps?.sessionService || new SessionService();
 
   return createMiddleware<AppEnv>(async (c, next) => {
-    const sessionToken = c.req.cookie(sessionService.getCookieName());
+    const sessionToken = getCookie(c, sessionService.getCookieName());
 
     if (sessionToken) {
       const sessionData = await sessionService.validateSession(sessionToken);
@@ -189,7 +192,7 @@ export const createSessionAuthMiddleware = (deps?: SessionMiddlewareDeps) => {
   const sessionService = deps?.sessionService || new SessionService();
 
   return createMiddleware<AppEnv>(async (c, next) => {
-    const sessionToken = c.req.cookie(sessionService.getCookieName());
+    const sessionToken = getCookie(c, sessionService.getCookieName());
 
     if (!sessionToken) {
       throw new UnauthenticatedError("No session found");

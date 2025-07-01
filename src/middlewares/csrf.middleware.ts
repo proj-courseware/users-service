@@ -1,5 +1,6 @@
 import { createMiddleware } from "hono/factory";
 import type { Context } from "hono";
+import { getCookie } from "hono/cookie";
 import type { AppEnv } from "@/schemas/app-env.schema";
 import type { ICSRFService, CSRFTokenData } from "@/services/csrf.service";
 import { CSRFService } from "@/services/csrf.service";
@@ -83,8 +84,8 @@ async function generateCSRFToken(
   config: CSRFConfig,
 ): Promise<void> {
   // Check if a valid token already exists
-  const existingToken = c.req.cookie(config.cookieName);
-  const existingHash = c.req.cookie(`${config.cookieName}-hash`);
+  const existingToken = getCookie(c, config.cookieName);
+  const existingHash = getCookie(c, `${config.cookieName}-hash`);
 
   if (existingToken && existingHash) {
     // Validate existing token
@@ -155,7 +156,7 @@ async function validateCSRFToken(
   }
 
   // Get CSRF hash from cookie
-  const csrfHash = c.req.cookie(`${config.cookieName}-hash`);
+  const csrfHash = getCookie(c, `${config.cookieName}-hash`);
   if (!csrfHash) {
     throw new CSRFError("CSRF token validation failed - no hash found");
   }

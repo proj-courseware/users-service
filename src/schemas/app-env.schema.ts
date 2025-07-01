@@ -8,6 +8,12 @@ export interface AppEnv extends Env {
     validatedQuery?: unknown;
     validatedBody?: unknown;
     validatedParams?: unknown;
+    jwtPayload?: any;
+    csrfToken?: string;
+    csrfTokenData?: any;
+    session?: any;
+    userId?: string;
+    sessionService?: any;
     // You can add other custom c.var properties here if needed elsewhere
   };
   Bindings: Record<string, unknown>;

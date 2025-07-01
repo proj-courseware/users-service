@@ -470,16 +470,20 @@ export class MongoDbUserRepository implements IUserRepository {
         updateData.accountLockedUntil = lockUntil;
       }
     } else {
-      // Clear lockout timestamps when unlocking
-      updateData.accountLockedAt = null;
-      updateData.accountLockedUntil = null;
+      // Clear lockout timestamps when unlocking - we'll use $unset for these
+    }
+
+    const updateOperations: any = { $set: updateData };
+    if (!lockAccount) {
+      updateOperations.$unset = {
+        accountLockedAt: "",
+        accountLockedUntil: ""
+      };
     }
 
     await collection.updateOne(
       { primaryEmail: email },
-      {
-        $set: updateData,
-      },
+      updateOperations,
     );
   }
 
@@ -495,9 +499,11 @@ export class MongoDbUserRepository implements IUserRepository {
         $set: {
           isAccountLocked: false,
           failedLoginAttempts: 0,
-          accountLockedAt: null,
-          accountLockedUntil: null,
           updatedAt: new Date(),
+        },
+        $unset: {
+          accountLockedAt: "",
+          accountLockedUntil: ""
         },
       },
     );
