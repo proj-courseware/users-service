@@ -42,7 +42,7 @@ describe("Events Router (E2E Style with Mock Dependencies)", () => {
 
     // Mock AuthorizationService methods
     mockAuthorizationService = {
-      canReceiveNoteEvent: vi.fn().mockResolvedValue(true), // Default allow
+      canReceiveAuthEvent: vi.fn().mockResolvedValue(true), // Default allow
       isAdmin: vi.fn().mockReturnValue(false),
     } as any;
 
@@ -134,7 +134,7 @@ describe("Events Router (E2E Style with Mock Dependencies)", () => {
 
       // Decode the initial connection message
       const text = new TextDecoder().decode(value);
-      expect(text).toContain('data: {"type":"connected"}');
+      expect(text).toContain('data: {"type":"connected","message":"Authentication events stream ready"}');
 
       // Clean up
       reader.releaseLock();
@@ -144,18 +144,18 @@ describe("Events Router (E2E Style with Mock Dependencies)", () => {
   it("should handle note events through event emitter", async () => {
     // Set up event spy
     const eventSpy = vi.fn();
-    appEvents.on("notes:created", eventSpy);
+    appEvents.on("users:registered", eventSpy);
 
     const testEvent = {
       id: "event-1",
-      action: "created" as const,
-      data: { id: "1", content: "Test note", createdBy: testUser.userId },
-      resourceType: "notes",
+      action: "registered" as const,
+      data: { userId: testUser.userId, id: "1", content: "Test user data" },
+      resourceType: "users",
       timestamp: new Date(),
     };
 
     // Emit event and verify it's received
-    appEvents.emitServiceEvent("notes", testEvent);
+    appEvents.emitServiceEvent("users", testEvent);
     expect(eventSpy).toHaveBeenCalledWith(testEvent);
   });
 
@@ -165,21 +165,21 @@ describe("Events Router (E2E Style with Mock Dependencies)", () => {
     const updatedSpy = vi.fn();
     const deletedSpy = vi.fn();
 
-    appEvents.on("notes:created", createdSpy);
-    appEvents.on("notes:updated", updatedSpy);
-    appEvents.on("notes:deleted", deletedSpy);
+    appEvents.on("users:registered", createdSpy);
+    appEvents.on("users:updated", updatedSpy);
+    appEvents.on("users:deleted", deletedSpy);
 
     const baseEvent = {
       id: "event-1",
-      data: { id: "1", content: "Test note", createdBy: testUser.userId },
-      resourceType: "notes",
+      data: { userId: testUser.userId, id: "1", content: "Test user data" },
+      resourceType: "users",
       timestamp: new Date(),
     };
 
     // Emit different event types
-    appEvents.emitServiceEvent("notes", { ...baseEvent, action: "created" });
-    appEvents.emitServiceEvent("notes", { ...baseEvent, action: "updated" });
-    appEvents.emitServiceEvent("notes", { ...baseEvent, action: "deleted" });
+    appEvents.emitServiceEvent("users", { ...baseEvent, action: "registered" });
+    appEvents.emitServiceEvent("users", { ...baseEvent, action: "updated" });
+    appEvents.emitServiceEvent("users", { ...baseEvent, action: "deleted" });
 
     expect(createdSpy).toHaveBeenCalledTimes(1);
     expect(updatedSpy).toHaveBeenCalledTimes(1);
@@ -189,40 +189,40 @@ describe("Events Router (E2E Style with Mock Dependencies)", () => {
   it("should properly format SSE event names", async () => {
     const testEvent = {
       id: "event-1",
-      action: "created" as const,
-      data: { id: "1", content: "Test note", createdBy: testUser.userId },
-      resourceType: "notes",
+      action: "registered" as const,
+      data: { userId: testUser.userId, id: "1", content: "Test user data" },
+      resourceType: "users",
       timestamp: new Date(),
     };
 
     // Test that the event listeners are set up with correct names
     const eventSpy = vi.fn();
-    appEvents.on("notes:created", eventSpy);
+    appEvents.on("users:registered", eventSpy);
 
-    appEvents.emitServiceEvent("notes", testEvent);
+    appEvents.emitServiceEvent("users", testEvent);
     expect(eventSpy).toHaveBeenCalledWith(testEvent);
   });
 
   describe("Event Authorization and Filtering", () => {
     it("should filter events based on user permissions - user can receive own events", async () => {
       setupRoutes();
-      mockAuthorizationService.canReceiveNoteEvent.mockResolvedValue(true);
+      mockAuthorizationService.canReceiveAuthEvent.mockResolvedValue(true);
 
       const response = await app.request("/events", { method: "GET" });
       expect(response.status).toBe(200);
 
       const testEvent: ServiceEventType = {
         id: "event-1",
-        action: "created",
-        data: { id: "1", content: "Test note", createdBy: testUser.userId },
-        resourceType: "notes",
+        action: "registered",
+        data: { userId: testUser.userId, id: "1", content: "Test user data" },
+        resourceType: "users",
         timestamp: new Date(),
       };
 
       // Simulate event emission
-      appEvents.emitServiceEvent("notes", testEvent);
+      appEvents.emitServiceEvent("users", testEvent);
 
-      expect(mockAuthorizationService.canReceiveNoteEvent).toHaveBeenCalledWith(
+      expect(mockAuthorizationService.canReceiveAuthEvent).toHaveBeenCalledWith(
         testUser,
         testEvent.data,
       );
@@ -230,27 +230,27 @@ describe("Events Router (E2E Style with Mock Dependencies)", () => {
 
     it("should block events when user lacks permissions", async () => {
       setupRoutes();
-      mockAuthorizationService.canReceiveNoteEvent.mockResolvedValue(false);
+      mockAuthorizationService.canReceiveAuthEvent.mockResolvedValue(false);
 
       const response = await app.request("/events", { method: "GET" });
       expect(response.status).toBe(200);
 
       const testEvent: ServiceEventType = {
         id: "event-1",
-        action: "created",
+        action: "registered",
         data: {
+          userId: otherUser.userId,
           id: "1",
-          content: "Other user note",
-          createdBy: otherUser.userId,
+          content: "Other user data",
         },
-        resourceType: "notes",
+        resourceType: "users",
         timestamp: new Date(),
       };
 
       // Simulate event emission
-      appEvents.emitServiceEvent("notes", testEvent);
+      appEvents.emitServiceEvent("users", testEvent);
 
-      expect(mockAuthorizationService.canReceiveNoteEvent).toHaveBeenCalledWith(
+      expect(mockAuthorizationService.canReceiveAuthEvent).toHaveBeenCalledWith(
         testUser,
         testEvent.data,
       );
@@ -263,26 +263,26 @@ describe("Events Router (E2E Style with Mock Dependencies)", () => {
       });
 
       setupRoutes();
-      mockAuthorizationService.canReceiveNoteEvent.mockResolvedValue(true);
+      mockAuthorizationService.canReceiveAuthEvent.mockResolvedValue(true);
 
       const response = await app.request("/events", { method: "GET" });
       expect(response.status).toBe(200);
 
       const testEvent: ServiceEventType = {
         id: "event-1",
-        action: "created",
+        action: "registered",
         data: {
+          userId: otherUser.userId,
           id: "1",
-          content: "Any user note",
-          createdBy: otherUser.userId,
+          content: "Any user data",
         },
-        resourceType: "notes",
+        resourceType: "users",
         timestamp: new Date(),
       };
 
-      appEvents.emitServiceEvent("notes", testEvent);
+      appEvents.emitServiceEvent("users", testEvent);
 
-      expect(mockAuthorizationService.canReceiveNoteEvent).toHaveBeenCalledWith(
+      expect(mockAuthorizationService.canReceiveAuthEvent).toHaveBeenCalledWith(
         adminUser,
         testEvent.data,
       );
@@ -296,7 +296,7 @@ describe("Events Router (E2E Style with Mock Dependencies)", () => {
 
       const testEvent: ServiceEventType = {
         id: "event-1",
-        action: "created",
+        action: "registered",
         data: { id: "1", content: "Unknown resource" },
         resourceType: "unknown" as any,
         timestamp: new Date(),
@@ -307,7 +307,7 @@ describe("Events Router (E2E Style with Mock Dependencies)", () => {
 
       // Authorization service should not be called for unknown resource types
       expect(
-        mockAuthorizationService.canReceiveNoteEvent,
+        mockAuthorizationService.canReceiveAuthEvent,
       ).not.toHaveBeenCalled();
     });
 
@@ -319,17 +319,17 @@ describe("Events Router (E2E Style with Mock Dependencies)", () => {
 
       const testEvent: ServiceEventType = {
         id: "event-1",
-        action: "created",
+        action: "registered",
         data: { id: "1", content: "Note without createdBy" }, // Missing createdBy
-        resourceType: "notes",
+        resourceType: "users",
         timestamp: new Date(),
       };
 
-      appEvents.emitServiceEvent("notes", testEvent);
+      appEvents.emitServiceEvent("users", testEvent);
 
       // Authorization service should not be called for malformed data
       expect(
-        mockAuthorizationService.canReceiveNoteEvent,
+        mockAuthorizationService.canReceiveAuthEvent,
       ).not.toHaveBeenCalled();
     });
 
@@ -338,7 +338,7 @@ describe("Events Router (E2E Style with Mock Dependencies)", () => {
       const consoleSpy = vi
         .spyOn(console, "error")
         .mockImplementation(() => {});
-      mockAuthorizationService.canReceiveNoteEvent.mockRejectedValue(
+      mockAuthorizationService.canReceiveAuthEvent.mockRejectedValue(
         new Error("Authorization service unavailable"),
       );
 
@@ -347,21 +347,21 @@ describe("Events Router (E2E Style with Mock Dependencies)", () => {
 
       const testEvent: ServiceEventType = {
         id: "event-1",
-        action: "created",
-        data: { id: "1", content: "Test note", createdBy: testUser.userId },
-        resourceType: "notes",
+        action: "registered",
+        data: { userId: testUser.userId, id: "1", content: "Test user data" },
+        resourceType: "users",
         timestamp: new Date(),
       };
 
       // Give the SSE connection time to set up event listeners
       await new Promise((resolve) => setTimeout(resolve, 10));
 
-      appEvents.emitServiceEvent("notes", testEvent);
+      appEvents.emitServiceEvent("users", testEvent);
 
       // Give the async error handler time to execute
       await new Promise((resolve) => setTimeout(resolve, 10));
 
-      expect(mockAuthorizationService.canReceiveNoteEvent).toHaveBeenCalled();
+      expect(mockAuthorizationService.canReceiveAuthEvent).toHaveBeenCalled();
       expect(consoleSpy).toHaveBeenCalledWith(
         "Error in event handler:",
         "Authorization service unavailable",
@@ -378,49 +378,49 @@ describe("Events Router (E2E Style with Mock Dependencies)", () => {
 
     it("should handle note created events", async () => {
       const eventSpy = vi.fn();
-      appEvents.on("notes:created", eventSpy);
+      appEvents.on("users:registered", eventSpy);
 
       const testEvent: ServiceEventType = {
         id: "event-1",
-        action: "created",
-        data: { id: "1", content: "New note", createdBy: testUser.userId },
-        resourceType: "notes",
+        action: "registered",
+        data: { userId: testUser.userId, id: "1", content: "New user data" },
+        resourceType: "users",
         timestamp: new Date(),
       };
 
-      appEvents.emitServiceEvent("notes", testEvent);
+      appEvents.emitServiceEvent("users", testEvent);
       expect(eventSpy).toHaveBeenCalledWith(testEvent);
     });
 
     it("should handle note updated events", async () => {
       const eventSpy = vi.fn();
-      appEvents.on("notes:updated", eventSpy);
+      appEvents.on("users:updated", eventSpy);
 
       const testEvent: ServiceEventType = {
         id: "event-1",
         action: "updated",
-        data: { id: "1", content: "Updated note", createdBy: testUser.userId },
-        resourceType: "notes",
+        data: { userId: testUser.userId, id: "1", content: "Updated user data" },
+        resourceType: "users",
         timestamp: new Date(),
       };
 
-      appEvents.emitServiceEvent("notes", testEvent);
+      appEvents.emitServiceEvent("users", testEvent);
       expect(eventSpy).toHaveBeenCalledWith(testEvent);
     });
 
     it("should handle note deleted events", async () => {
       const eventSpy = vi.fn();
-      appEvents.on("notes:deleted", eventSpy);
+      appEvents.on("users:deleted", eventSpy);
 
       const testEvent: ServiceEventType = {
         id: "event-1",
         action: "deleted",
-        data: { id: "1", content: "Deleted note", createdBy: testUser.userId },
-        resourceType: "notes",
+        data: { userId: testUser.userId, id: "1", content: "Deleted user data" },
+        resourceType: "users",
         timestamp: new Date(),
       };
 
-      appEvents.emitServiceEvent("notes", testEvent);
+      appEvents.emitServiceEvent("users", testEvent);
       expect(eventSpy).toHaveBeenCalledWith(testEvent);
     });
   });
@@ -433,17 +433,29 @@ describe("Events Router (E2E Style with Mock Dependencies)", () => {
       const response = await app.request("/events", { method: "GET" });
       expect(response.status).toBe(200);
 
-      // Verify all required event listeners are set up
+      // Verify some of the authentication event listeners are set up
       expect(listenerSpy).toHaveBeenCalledWith(
-        "notes:created",
+        "users:registered",
         expect.any(Function),
       );
       expect(listenerSpy).toHaveBeenCalledWith(
-        "notes:updated",
+        "users:updated",
         expect.any(Function),
       );
       expect(listenerSpy).toHaveBeenCalledWith(
-        "notes:deleted",
+        "users:deleted",
+        expect.any(Function),
+      );
+      expect(listenerSpy).toHaveBeenCalledWith(
+        "authentication:login",
+        expect.any(Function),
+      );
+      expect(listenerSpy).toHaveBeenCalledWith(
+        "email:email_verified",
+        expect.any(Function),
+      );
+      expect(listenerSpy).toHaveBeenCalledWith(
+        "security:failed_login_attempt",
         expect.any(Function),
       );
 
