@@ -102,16 +102,26 @@ describe("OAuthService", () => {
       expect(stateData.redirectTo).toBe(redirectTo);
     });
 
-    it("should throw error for disabled provider", () => {
+    it("should throw error for disabled provider", async () => {
+      vi.resetModules();
       vi.doMock("@/env", () => ({
         env: {
-          GOOGLE_CLIENT_ID: undefined,
-          GOOGLE_CLIENT_SECRET: undefined,
-          GOOGLE_REDIRECT_URI: undefined,
+          GOOGLE_CLIENT_ID: "",
+          GOOGLE_CLIENT_SECRET: "",
+          GOOGLE_REDIRECT_URI: "",
+          GITHUB_CLIENT_ID: "github_client_id",
+          GITHUB_CLIENT_SECRET: "github_client_secret",
+          GITHUB_REDIRECT_URI: "http://localhost:3000/auth/github/callback",
+          LINKEDIN_CLIENT_ID: "linkedin_client_id",
+          LINKEDIN_CLIENT_SECRET: "linkedin_client_secret",
+          LINKEDIN_REDIRECT_URI: "http://localhost:3000/auth/linkedin/callback",
         },
       }));
 
-      const mockServiceWithoutGoogle = new OAuthService();
+      const { OAuthService: MockOAuthService } = await import(
+        "@/services/oauth.service"
+      );
+      const mockServiceWithoutGoogle = new MockOAuthService();
 
       expect(() => {
         mockServiceWithoutGoogle.generateAuthorizationUrl("google");
@@ -446,11 +456,18 @@ describe("OAuthService", () => {
     });
 
     it("should throw error for disabled provider in callback", async () => {
+      vi.resetModules();
       vi.doMock("@/env", () => ({
         env: {
-          GOOGLE_CLIENT_ID: undefined,
-          GOOGLE_CLIENT_SECRET: undefined,
-          GOOGLE_REDIRECT_URI: undefined,
+          GOOGLE_CLIENT_ID: "",
+          GOOGLE_CLIENT_SECRET: "",
+          GOOGLE_REDIRECT_URI: "",
+          GITHUB_CLIENT_ID: "github_client_id",
+          GITHUB_CLIENT_SECRET: "github_client_secret",
+          GITHUB_REDIRECT_URI: "http://localhost:3000/auth/github/callback",
+          LINKEDIN_CLIENT_ID: "linkedin_client_id",
+          LINKEDIN_CLIENT_SECRET: "linkedin_client_secret",
+          LINKEDIN_REDIRECT_URI: "http://localhost:3000/auth/linkedin/callback",
         },
       }));
 
