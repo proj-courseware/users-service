@@ -3,12 +3,13 @@ import { Hono } from "hono";
 import type { AppEnv } from "@/schemas/app-env.schema";
 import { OAuthController } from "@/controllers/oauth.controller";
 import { createOAuthRouter } from "@/routes/oauth.router";
+import { createAuthMiddleware } from "@/middlewares/auth.middleware";
 import { globalErrorHandler } from "@/errors";
 import type { IUserRepository } from "@/repositories/user.repository";
-import type { IJwtService } from "@/services/jwt.service";
+import type { IJWTService } from "@/services/jwt.service";
 import type { IOAuthService } from "@/services/oauth.service";
 import type { IAuthenticationService } from "@/services/authentication.service";
-import type { UserType } from "@/schemas/user.schemas";
+import type { UserType } from "@/schemas/user.schema";
 import {
   ValidationError,
   ConflictError,
@@ -20,7 +21,7 @@ describe("OAuthController", () => {
   let controller: OAuthController;
   let app: Hono<AppEnv>;
   let mockUserRepository: IUserRepository;
-  let mockJwtService: IJwtService;
+  let mockJwtService: IJWTService;
   let mockOAuthService: IOAuthService;
   let mockAuthService: IAuthenticationService;
 
@@ -31,20 +32,16 @@ describe("OAuthController", () => {
     primaryEmail: "john@example.com",
     emails: [
       {
-        email: "john@example.com",
+        emailAddress: "john@example.com",
         isVerified: true,
-        isPrimary: true,
+        addedAt: new Date(),
       },
     ],
     passwordHash: "hashed_password",
     globalRole: "student",
-    accountStatus: "active",
     socialIdentities: [],
-    loginAttempts: {
-      count: 0,
-      lastAttempt: null,
-      isLocked: false,
-    },
+    isAccountLocked: false,
+    failedLoginAttempts: 0,
     createdAt: new Date(),
     updatedAt: new Date(),
   };
@@ -58,6 +55,33 @@ describe("OAuthController", () => {
     picture: "https://example.com/avatar.jpg",
     provider: "google" as const,
   };
+
+  // Helper function to create a custom OAuth router with mocked auth middleware
+  function createTestOAuthRouter(oauthController: OAuthController) {
+    const router = new Hono<AppEnv>();
+    const mockAuthMiddleware = createAuthMiddleware({
+      authenticationService: mockAuthService,
+    });
+
+    router.get("/providers", async (c) => {
+      return oauthController.getEnabledProviders(c);
+    });
+
+    router.get("/:provider", async (c) => {
+      return oauthController.initiateOAuth(c);
+    });
+
+    router.get("/:provider/callback", async (c) => {
+      return oauthController.handleOAuthCallback(c);
+    });
+
+    router.delete("/:provider", mockAuthMiddleware, async (c) => {
+      return oauthController.unlinkOAuthProvider(c);
+    });
+
+    router.onError(globalErrorHandler);
+    return router;
+  }
 
   beforeEach(() => {
     mockUserRepository = {
@@ -80,7 +104,9 @@ describe("OAuthController", () => {
       getEnabledProviders: vi.fn(),
     } as any;
 
-    mockAuthService = {} as any;
+    mockAuthService = {
+      authenticateUserByToken: vi.fn(),
+    } as any;
 
     controller = new OAuthController(
       mockUserRepository,
@@ -90,7 +116,7 @@ describe("OAuthController", () => {
     );
 
     app = new Hono<AppEnv>();
-    app.route("/oauth", createOAuthRouter(controller));
+    app.route("/oauth", createTestOAuthRouter(controller));
     app.onError(globalErrorHandler);
   });
 
@@ -283,20 +309,21 @@ describe("OAuthController", () => {
         primaryEmail: "john@example.com",
         emails: [
           {
-            email: "john@example.com",
+            emailAddress: "john@example.com",
             isVerified: true,
-            isPrimary: true,
+            addedAt: expect.any(Date),
           },
         ],
         globalRole: "student",
-        accountStatus: "active",
+        failedLoginAttempts: 0,
+        isAccountLocked: false,
         socialIdentities: [
           {
             provider: "google",
-            providerId: "google123",
+            providerUserId: "google123",
             email: "john@example.com",
-            displayName: "John Doe",
-            profileUrl: "https://example.com/avatar.jpg",
+            name: "John Doe",
+            linkedAt: expect.any(Date),
           },
         ],
       });
@@ -398,18 +425,26 @@ describe("OAuthController", () => {
         socialIdentities: [
           {
             provider: "google",
-            providerId: "google123",
+            providerUserId: "google123",
             email: "john@example.com",
-            displayName: "John Doe",
+            name: "John Doe",
+            linkedAt: new Date(),
           },
           {
             provider: "github",
-            providerId: "github456",
+            providerUserId: "github456",
             email: "john@example.com",
-            displayName: "John Doe",
+            name: "John Doe",
+            linkedAt: new Date(),
           },
         ],
       };
+
+      // Mock authentication
+      vi.mocked(mockAuthService.authenticateUserByToken).mockResolvedValue({
+        userId: "user123",
+        globalRole: "student",
+      });
 
       vi.mocked(mockUserRepository.findById).mockResolvedValue(
         userWithMultipleSocial,
@@ -418,7 +453,12 @@ describe("OAuthController", () => {
         undefined,
       );
 
-      const res = await app.request("/oauth/google", { method: "DELETE" });
+      const res = await app.request("/oauth/google", {
+        method: "DELETE",
+        headers: {
+          Authorization: "Bearer valid-token",
+        },
+      });
       const data = await res.json();
 
       expect(res.status).toBe(200);
@@ -427,6 +467,7 @@ describe("OAuthController", () => {
       expect(mockUserRepository.unlinkSocialIdentity).toHaveBeenCalledWith(
         "user123",
         "google",
+        "google123",
       );
     });
 
