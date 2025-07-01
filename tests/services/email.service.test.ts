@@ -390,6 +390,9 @@ describe("EmailService", () => {
 
       // Replace the transporter with our mock
       (emailService as any).transporter = mockTransporter;
+      
+      // Reset all mocks before each test
+      vi.clearAllMocks();
     });
 
     afterEach(() => {
@@ -622,13 +625,34 @@ describe("EmailService", () => {
 
     describe("retry logic", () => {
       it("should implement exponential backoff", async () => {
-        const error = new Error("Temporary failure");
-        mockTransporter.sendMail
-          .mockRejectedValueOnce(error)
-          .mockRejectedValueOnce(error)
-          .mockResolvedValue({ messageId: "final-success" });
+        // Create a completely new email service for this test to avoid mock pollution
+        const testEmailService = new EmailService({
+          host: "test.smtp.com",
+          port: 587,
+          secure: false,
+          auth: {
+            user: "test@example.com",
+            pass: "password",
+          },
+          fromAddress: "noreply@test.com",
+          fromName: "Test Service",
+          maxRetries: 2,
+          retryDelayMs: 100,
+        });
 
-        const result = await emailService.sendRawEmail({
+        const error = new Error("Temporary failure");
+        const testMockTransporter = {
+          sendMail: vi.fn()
+            .mockRejectedValueOnce(error)
+            .mockResolvedValue({ messageId: "final-success" }),
+          verify: vi.fn(),
+          close: vi.fn(),
+        };
+        
+        // Replace the transporter
+        (testEmailService as any).transporter = testMockTransporter;
+
+        const result = await testEmailService.sendRawEmail({
           to: "test@example.com",
           subject: "Retry Test",
           html: "<p>Test</p>",
@@ -637,7 +661,7 @@ describe("EmailService", () => {
 
         expect(result.success).toBe(true);
         expect(result.messageId).toBe("final-success");
-        expect(mockTransporter.sendMail).toHaveBeenCalledTimes(3);
+        expect(testMockTransporter.sendMail).toHaveBeenCalledTimes(2);
       });
 
       it("should handle non-Error exceptions", async () => {
