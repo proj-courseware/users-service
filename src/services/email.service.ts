@@ -4,7 +4,6 @@ import {
   emailTemplates,
   generateVerificationUrl,
   generatePasswordResetUrl,
-  type EmailTemplate,
   type VerificationEmailData,
   type PasswordResetEmailData,
   type WelcomeEmailData,

@@ -24,7 +24,7 @@ export interface WelcomeEmailData {
 }
 
 // Template rendering utility
-function renderTemplate(template: string, data: Record<string, any>): string {
+function renderTemplate(template: string, data: Record<string, unknown>): string {
   return template.replace(/\{\{(\w+)\}\}/g, (match, key) => {
     return data[key] !== undefined ? String(data[key]) : match;
   });

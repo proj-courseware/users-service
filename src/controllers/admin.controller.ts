@@ -15,7 +15,6 @@ import type {
   PasswordPolicyType,
 } from "@/services/password.service";
 import type { IAdminSettingRepository } from "@/repositories/admin-setting.repository";
-import type { AdminSettingType } from "@/schemas/user.schema";
 import { MongoDbUserRepository } from "@/repositories/mongodb/user.mongodb.repository";
 import { MockDbUserRepository } from "@/repositories/mockdb/user.mockdb.repository";
 import { AuthenticationService } from "@/services/authentication.service";
@@ -552,10 +551,10 @@ export class AdminController {
             results.failed++;
             results.errors.push(`Unknown operation: ${operation}`);
         }
-      } catch (error) {
+      } catch (_error) {
         results.failed++;
         results.errors.push(
-          `Failed to ${operation} user ${userId}: ${(error as Error).message}`,
+          `Failed to ${operation} user ${userId}: ${(_error as Error).message}`,
         );
       }
     }
@@ -702,7 +701,7 @@ export class AdminController {
         status: dbTime < 1000 ? "healthy" : "slow",
         responseTime: dbTime,
       };
-    } catch (error) {
+    } catch {
       healthChecks.checks.database = {
         status: "unhealthy",
         responseTime: 0,
@@ -717,7 +716,7 @@ export class AdminController {
         status: "healthy",
         count: settings.length,
       };
-    } catch (error) {
+    } catch {
       healthChecks.checks.settings = {
         status: "unhealthy",
         count: 0,

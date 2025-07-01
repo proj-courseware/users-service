@@ -1,5 +1,6 @@
 import type { Env } from "hono";
 import type { AuthenticatedUserContextType } from "@/schemas/user.schemas";
+import type { JWTPayload } from "hono/jwt";
 
 // Define the application-wide Environment type for Hono
 export interface AppEnv extends Env {
@@ -8,12 +9,12 @@ export interface AppEnv extends Env {
     validatedQuery?: unknown;
     validatedBody?: unknown;
     validatedParams?: unknown;
-    jwtPayload?: any;
+    jwtPayload?: JWTPayload;
     csrfToken?: string;
-    csrfTokenData?: any;
-    session?: any;
+    csrfTokenData?: Record<string, unknown>;
+    session?: Record<string, unknown>;
     userId?: string;
-    sessionService?: any;
+    sessionService?: Record<string, unknown>;
     // You can add other custom c.var properties here if needed elsewhere
   };
   Bindings: Record<string, unknown>;

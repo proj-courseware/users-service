@@ -12,7 +12,7 @@ export interface SessionData {
   role: string;
   issuedAt: number;
   expiresAt: number;
-  [key: string]: any; // Add index signature for JWT compatibility
+  [key: string]: unknown; // Add index signature for JWT compatibility
 }
 
 export interface SessionConfig {

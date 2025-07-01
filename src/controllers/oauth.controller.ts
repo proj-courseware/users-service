@@ -11,7 +11,7 @@ import {
   type OAuthProvider,
 } from "@/schemas/oauth.schema";
 import type { AuthenticatedUserContextType } from "@/schemas/user.schemas";
-import { createUserSchema, type CreateUserType } from "@/schemas/user.schema";
+import type { CreateUserType } from "@/schemas/user.schema";
 import {
   BadRequestError,
   UserAlreadyExistsError,

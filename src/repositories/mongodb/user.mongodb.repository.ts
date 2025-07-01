@@ -473,7 +473,7 @@ export class MongoDbUserRepository implements IUserRepository {
       // Clear lockout timestamps when unlocking - we'll use $unset for these
     }
 
-    const updateOperations: any = { $set: updateData };
+    const updateOperations: Record<string, unknown> = { $set: updateData };
     if (!lockAccount) {
       updateOperations.$unset = {
         accountLockedAt: "",

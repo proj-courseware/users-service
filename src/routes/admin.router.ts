@@ -10,7 +10,6 @@ import {
 } from "@/schemas/user.schema";
 import { globalRoleSchema } from "@/schemas/roles.schemas";
 import { passwordPolicySchema } from "@/services/password.service";
-import { adminSettingSchema } from "@/schemas/user.schema";
 import { z } from "zod";
 
 // Create admin router
