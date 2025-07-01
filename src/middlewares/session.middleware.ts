@@ -26,7 +26,7 @@ export interface SessionConfig {
   path: string;
 }
 
-export interface ISessionService {
+export interface ISessionService extends Record<string, unknown> {
   createSession(user: UserType): Promise<string>;
   validateSession(sessionToken: string): Promise<SessionData | null>;
   destroySession(sessionToken: string): Promise<void>;
@@ -36,6 +36,7 @@ export interface ISessionService {
 
 export class SessionService implements ISessionService {
   private readonly config: SessionConfig;
+  [key: string]: unknown;
 
   constructor(config?: Partial<SessionConfig>) {
     this.config = {

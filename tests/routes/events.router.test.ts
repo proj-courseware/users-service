@@ -134,7 +134,9 @@ describe("Events Router (E2E Style with Mock Dependencies)", () => {
 
       // Decode the initial connection message
       const text = new TextDecoder().decode(value);
-      expect(text).toContain('data: {"type":"connected","message":"Authentication events stream ready"}');
+      expect(text).toContain(
+        'data: {"type":"connected","message":"Authentication events stream ready"}',
+      );
 
       // Clean up
       reader.releaseLock();
@@ -399,7 +401,11 @@ describe("Events Router (E2E Style with Mock Dependencies)", () => {
       const testEvent: ServiceEventType = {
         id: "event-1",
         action: "updated",
-        data: { userId: testUser.userId, id: "1", content: "Updated user data" },
+        data: {
+          userId: testUser.userId,
+          id: "1",
+          content: "Updated user data",
+        },
         resourceType: "users",
         timestamp: new Date(),
       };
@@ -415,7 +421,11 @@ describe("Events Router (E2E Style with Mock Dependencies)", () => {
       const testEvent: ServiceEventType = {
         id: "event-1",
         action: "deleted",
-        data: { userId: testUser.userId, id: "1", content: "Deleted user data" },
+        data: {
+          userId: testUser.userId,
+          id: "1",
+          content: "Deleted user data",
+        },
         resourceType: "users",
         timestamp: new Date(),
       };

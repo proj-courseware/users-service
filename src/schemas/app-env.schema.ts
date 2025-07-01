@@ -1,6 +1,6 @@
 import type { Env } from "hono";
 import type { AuthenticatedUserContextType } from "@/schemas/user.schemas";
-import type { JWTPayload } from "hono/jwt";
+import type { JWTPayload } from "hono/utils/jwt/types";
 
 // Define the application-wide Environment type for Hono
 export interface AppEnv extends Env {

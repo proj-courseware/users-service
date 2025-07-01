@@ -339,7 +339,7 @@ describe("CSRF Middleware", () => {
         },
         {
           enabled: false,
-        }
+        },
       );
 
       app.use("*", middleware);

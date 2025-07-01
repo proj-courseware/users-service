@@ -7,7 +7,7 @@ export interface CSRFConfig {
   saltLength: number;
 }
 
-export interface CSRFTokenData {
+export interface CSRFTokenData extends Record<string, unknown> {
   token: string;
   hash: string;
   timestamp: number;

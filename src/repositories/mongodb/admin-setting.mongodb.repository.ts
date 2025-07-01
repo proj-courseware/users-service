@@ -67,14 +67,16 @@ export class MongoDbAdminSettingRepository implements IAdminSettingRepository {
     try {
       const collection = await this.getCollection();
 
-      const docToInsert = {
+      const docToInsert: Omit<MongoAdminSettingDocument, "_id"> = {
         key: data.key,
         value: data.value,
         description: data.description,
         updatedAt: new Date(),
       };
 
-      const result = await collection.insertOne(docToInsert);
+      const result = await collection.insertOne(
+        docToInsert as MongoAdminSettingDocument,
+      );
 
       const insertedDoc = await collection.findOne({ _id: result.insertedId });
       if (!insertedDoc) {

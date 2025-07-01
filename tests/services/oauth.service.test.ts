@@ -477,11 +477,13 @@ describe("OAuthService", () => {
       const disabledService = new MockOAuthService();
 
       // Generate a valid state to avoid state validation errors before the provider check
-      const validState = Buffer.from(JSON.stringify({
-        provider: "google",
-        timestamp: Date.now(),
-        nonce: "test-nonce"
-      })).toString("base64url");
+      const validState = Buffer.from(
+        JSON.stringify({
+          provider: "google",
+          timestamp: Date.now(),
+          nonce: "test-nonce",
+        }),
+      ).toString("base64url");
 
       await expect(
         disabledService.handleCallback("google", "code", validState),

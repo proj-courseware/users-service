@@ -144,7 +144,7 @@ async function validateCSRFToken(
   if (!csrfToken) {
     // Check Content-Type to determine how to parse body
     const contentType = c.req.header("Content-Type") || "";
-    
+
     if (contentType.includes("application/json")) {
       // Parse JSON body
       try {
@@ -153,7 +153,10 @@ async function validateCSRFToken(
       } catch {
         // JSON parsing failed
       }
-    } else if (contentType.includes("multipart/form-data") || contentType.includes("application/x-www-form-urlencoded")) {
+    } else if (
+      contentType.includes("multipart/form-data") ||
+      contentType.includes("application/x-www-form-urlencoded")
+    ) {
       // Parse form data
       try {
         const formData = await c.req.formData();

@@ -247,8 +247,12 @@ describe("OAuthController", () => {
       };
 
       vi.mocked(mockUserRepository.findByEmail).mockResolvedValue(mockUser);
-      vi.mocked(mockUserRepository.linkSocialIdentity).mockResolvedValue(undefined);
-      vi.mocked(mockUserRepository.findById).mockResolvedValue(userWithSocialIdentity);
+      vi.mocked(mockUserRepository.linkSocialIdentity).mockResolvedValue(
+        undefined,
+      );
+      vi.mocked(mockUserRepository.findById).mockResolvedValue(
+        userWithSocialIdentity,
+      );
 
       const res = await app.request(
         `/oauth/google/callback?code=${mockCode}&state=${mockState}`,
@@ -284,7 +288,9 @@ describe("OAuthController", () => {
       vi.mocked(mockUserRepository.findByEmail).mockResolvedValue(
         userWithoutSocial,
       );
-      vi.mocked(mockUserRepository.linkSocialIdentity).mockResolvedValue(undefined);
+      vi.mocked(mockUserRepository.linkSocialIdentity).mockResolvedValue(
+        undefined,
+      );
       vi.mocked(mockUserRepository.findById).mockResolvedValue(userWithSocial);
 
       const res = await app.request(
@@ -365,8 +371,12 @@ describe("OAuthController", () => {
         redirectTo,
       });
       vi.mocked(mockUserRepository.findByEmail).mockResolvedValue(mockUser);
-      vi.mocked(mockUserRepository.linkSocialIdentity).mockResolvedValue(undefined);
-      vi.mocked(mockUserRepository.findById).mockResolvedValue(userWithSocialIdentity);
+      vi.mocked(mockUserRepository.linkSocialIdentity).mockResolvedValue(
+        undefined,
+      );
+      vi.mocked(mockUserRepository.findById).mockResolvedValue(
+        userWithSocialIdentity,
+      );
 
       const res = await app.request(
         `/oauth/google/callback?code=${mockCode}&state=${mockState}`,
@@ -404,7 +414,7 @@ describe("OAuthController", () => {
 
     it("should return 401 for OAuth error", async () => {
       vi.mocked(mockOAuthService.isProviderEnabled).mockReturnValue(true);
-      
+
       const res = await app.request(
         `/oauth/google/callback?error=access_denied&error_description=User denied access&state=${mockState}`,
       );
