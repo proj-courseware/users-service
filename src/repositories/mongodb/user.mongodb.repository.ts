@@ -477,14 +477,11 @@ export class MongoDbUserRepository implements IUserRepository {
     if (!lockAccount) {
       updateOperations.$unset = {
         accountLockedAt: "",
-        accountLockedUntil: ""
+        accountLockedUntil: "",
       };
     }
 
-    await collection.updateOne(
-      { primaryEmail: email },
-      updateOperations,
-    );
+    await collection.updateOne({ primaryEmail: email }, updateOperations);
   }
 
   async unlockAccount(id: string): Promise<void> {
@@ -503,7 +500,7 @@ export class MongoDbUserRepository implements IUserRepository {
         },
         $unset: {
           accountLockedAt: "",
-          accountLockedUntil: ""
+          accountLockedUntil: "",
         },
       },
     );

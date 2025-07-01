@@ -20,7 +20,9 @@ export class MongoDbAdminSettingRepository implements IAdminSettingRepository {
   private db: Db | null = null;
   private collection: Collection<MongoAdminSettingDocument> | null = null;
 
-  private async getCollection(): Promise<Collection<MongoAdminSettingDocument>> {
+  private async getCollection(): Promise<
+    Collection<MongoAdminSettingDocument>
+  > {
     if (!this.collection) {
       this.db = await getDatabase();
       this.collection = this.db.collection("adminSettings");

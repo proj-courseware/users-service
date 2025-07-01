@@ -225,7 +225,11 @@ export class OAuthController implements IOAuthController {
         );
       }
 
-      await this.userRepository.unlinkSocialIdentity(currentUser.id, provider, socialIdentity.providerUserId);
+      await this.userRepository.unlinkSocialIdentity(
+        currentUser.id,
+        provider,
+        socialIdentity.providerUserId,
+      );
 
       return c.json({
         message: `${this.getProviderDisplayName(provider)} account unlinked successfully`,

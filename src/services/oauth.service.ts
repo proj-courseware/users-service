@@ -203,7 +203,8 @@ class GitHubOAuthProvider implements IOAuthProvider {
     const emailsData = await emailsResponse.json();
 
     const primaryEmail = emailsData.find(
-      (email: { primary?: boolean; verified?: boolean; email?: string }) => email.primary && email.verified,
+      (email: { primary?: boolean; verified?: boolean; email?: string }) =>
+        email.primary && email.verified,
     );
 
     if (!primaryEmail) {
