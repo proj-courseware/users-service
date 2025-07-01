@@ -42,7 +42,7 @@ export class MongoDbAdminSettingRepository implements IAdminSettingRepository {
       id: doc._id.toHexString(),
       key: doc.key,
       value: doc.value,
-      description: doc.description,
+      description: doc.description ?? undefined,
       updatedAt: doc.updatedAt,
     };
   }

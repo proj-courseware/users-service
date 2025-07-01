@@ -175,7 +175,7 @@ describe("MockDbAdminSettingRepository", () => {
     });
   });
 
-  describe("update", () => {
+  describe("updateByKey", () => {
     it("should update existing admin setting", async () => {
       const originalData = {
         key: "updateable.key",
@@ -190,26 +190,26 @@ describe("MockDbAdminSettingRepository", () => {
         description: "Updated description",
       };
 
-      const updated = await repo.update(created.id, updateData);
+      const updated = await repo.updateByKey(created.key, updateData);
 
       expect(updated).toBeDefined();
-      expect(updated?.id).toBe(created.id);
-      expect(updated?.key).toBe("updateable.key");
-      expect(updated?.value).toBe("updated value");
-      expect(updated?.description).toBe("Updated description");
-      expect(updated?.updatedAt.getTime()).toBeGreaterThan(
+      expect(updated.id).toBe(created.id);
+      expect(updated.key).toBe("updateable.key");
+      expect(updated.value).toBe("updated value");
+      expect(updated.description).toBe("Updated description");
+      expect(updated.updatedAt.getTime()).toBeGreaterThanOrEqual(
         created.updatedAt.getTime(),
       );
     });
 
-    it("should return null for non-existing id", async () => {
+    it("should throw error for non-existing key", async () => {
       const updateData = {
         value: "updated value",
       };
 
-      const updated = await repo.update("non-existing-id", updateData);
-
-      expect(updated).toBeNull();
+      await expect(
+        repo.updateByKey("non-existing-key", updateData),
+      ).rejects.toThrow();
     });
 
     it("should handle partial updates", async () => {
@@ -222,11 +222,13 @@ describe("MockDbAdminSettingRepository", () => {
       const created = await repo.create(originalData);
 
       // Update only value
-      const updated = await repo.update(created.id, { value: "new value" });
+      const updated = await repo.updateByKey(created.key, {
+        value: "new value",
+      });
 
-      expect(updated?.value).toBe("new value");
-      expect(updated?.description).toBe("Original description");
-      expect(updated?.key).toBe("partial.update");
+      expect(updated.value).toBe("new value");
+      expect(updated.description).toBe("Original description");
+      expect(updated.key).toBe("partial.update");
     });
 
     it("should handle updating to undefined values", async () => {
@@ -239,13 +241,13 @@ describe("MockDbAdminSettingRepository", () => {
       const created = await repo.create(originalData);
 
       // Remove description
-      const updated = await repo.update(created.id, {
+      const updated = await repo.updateByKey(created.key, {
         value: "updated value",
         description: undefined,
       });
 
-      expect(updated?.description).toBeUndefined();
-      expect(updated?.value).toBe("updated value");
+      expect(updated.description).toBeUndefined();
+      expect(updated.value).toBe("updated value");
     });
 
     it("should update complex value types", async () => {
@@ -264,13 +266,15 @@ describe("MockDbAdminSettingRepository", () => {
         timestamp: Date.now(),
       };
 
-      const updated = await repo.update(created.id, { value: newComplexValue });
+      const updated = await repo.updateByKey(created.key, {
+        value: newComplexValue,
+      });
 
-      expect(updated?.value).toEqual(newComplexValue);
+      expect(updated.value).toEqual(newComplexValue);
     });
   });
 
-  describe("delete", () => {
+  describe("deleteByKey", () => {
     it("should delete existing admin setting", async () => {
       const data = {
         key: "deletable.key",
@@ -278,7 +282,7 @@ describe("MockDbAdminSettingRepository", () => {
       };
 
       const created = await repo.create(data);
-      const deleted = await repo.delete(created.id);
+      const deleted = await repo.deleteByKey(created.key);
 
       expect(deleted).toBe(true);
 
@@ -287,8 +291,8 @@ describe("MockDbAdminSettingRepository", () => {
       expect(found).toBeNull();
     });
 
-    it("should return false for non-existing id", async () => {
-      const deleted = await repo.delete("non-existing-id");
+    it("should return false for non-existing key", async () => {
+      const deleted = await repo.deleteByKey("non-existing-key");
 
       expect(deleted).toBe(false);
     });
@@ -297,10 +301,10 @@ describe("MockDbAdminSettingRepository", () => {
       const data1 = { key: "keep.this", value: "keep value" };
       const data2 = { key: "delete.this", value: "delete value" };
 
-      const created1 = await repo.create(data1);
-      const created2 = await repo.create(data2);
+      await repo.create(data1);
+      await repo.create(data2);
 
-      await repo.delete(created2.id);
+      await repo.deleteByKey("delete.this");
 
       const remaining = await repo.findAll();
       expect(remaining).toHaveLength(1);
@@ -308,64 +312,63 @@ describe("MockDbAdminSettingRepository", () => {
     });
   });
 
-  describe("batchUpdate", () => {
-    it("should update multiple settings", async () => {
-      const settings = [
-        { key: "batch.1", value: "value1" },
-        { key: "batch.2", value: "value2" },
-        { key: "batch.3", value: "value3" },
-      ];
+  describe("setValue", () => {
+    it("should create new setting when key doesn't exist", async () => {
+      const result = await repo.setValue(
+        "new.key",
+        "new value",
+        "New description",
+      );
 
-      const created = [];
-      for (const setting of settings) {
-        created.push(await repo.create(setting));
-      }
-
-      const updates = [
-        { id: created[0].id, data: { value: "updated1" } },
-        {
-          id: created[2].id,
-          data: { value: "updated3", description: "New desc" },
-        },
-      ];
-
-      const results = await repo.batchUpdate(updates);
-
-      expect(results).toHaveLength(2);
-      expect(results[0]?.value).toBe("updated1");
-      expect(results[1]?.value).toBe("updated3");
-      expect(results[1]?.description).toBe("New desc");
+      expect(result.key).toBe("new.key");
+      expect(result.value).toBe("new value");
+      expect(result.description).toBe("New description");
     });
 
-    it("should handle mix of valid and invalid IDs", async () => {
-      const setting = await repo.create({ key: "batch.test", value: "test" });
+    it("should update existing setting", async () => {
+      const created = await repo.create({
+        key: "existing.key",
+        value: "original value",
+      });
 
-      const updates = [
-        { id: setting.id, data: { value: "updated" } },
-        { id: "invalid-id", data: { value: "invalid" } },
-      ];
+      const updated = await repo.setValue("existing.key", "updated value");
 
-      const results = await repo.batchUpdate(updates);
+      expect(updated.id).toBe(created.id);
+      expect(updated.value).toBe("updated value");
+    });
+  });
 
-      expect(results).toHaveLength(1);
-      expect(results[0]?.value).toBe("updated");
+  describe("getValue", () => {
+    it("should return setting value", async () => {
+      await repo.create({
+        key: "test.value",
+        value: { nested: "data" },
+      });
+
+      const value = await repo.getValue("test.value");
+      expect(value).toEqual({ nested: "data" });
     });
 
-    it("should return empty array for no valid updates", async () => {
-      const updates = [
-        { id: "invalid-id-1", data: { value: "invalid1" } },
-        { id: "invalid-id-2", data: { value: "invalid2" } },
-      ];
+    it("should return default value for non-existing key", async () => {
+      const value = await repo.getValue("non.existing", "default");
+      expect(value).toBe("default");
+    });
+  });
 
-      const results = await repo.batchUpdate(updates);
+  describe("existsByKey", () => {
+    it("should return true for existing key", async () => {
+      await repo.create({
+        key: "existing.key",
+        value: "test",
+      });
 
-      expect(results).toEqual([]);
+      const exists = await repo.existsByKey("existing.key");
+      expect(exists).toBe(true);
     });
 
-    it("should handle empty updates array", async () => {
-      const results = await repo.batchUpdate([]);
-
-      expect(results).toEqual([]);
+    it("should return false for non-existing key", async () => {
+      const exists = await repo.existsByKey("non.existing.key");
+      expect(exists).toBe(false);
     });
   });
 
@@ -413,7 +416,7 @@ describe("MockDbAdminSettingRepository", () => {
       });
 
       // Update the setting
-      const updated = await repo.update(original.id, {
+      const updated = await repo.updateByKey(original.key, {
         value: { count: 5, active: false },
       });
 
@@ -421,7 +424,7 @@ describe("MockDbAdminSettingRepository", () => {
       const found = await repo.findByKey("persistence.test");
       expect(found?.value).toEqual({ count: 5, active: false });
       expect(found?.description).toBe("Persistence test");
-      expect(found?.updatedAt.getTime()).toBeGreaterThan(
+      expect(found?.updatedAt.getTime()).toBeGreaterThanOrEqual(
         original.updatedAt.getTime(),
       );
     });

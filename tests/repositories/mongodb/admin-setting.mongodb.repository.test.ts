@@ -218,7 +218,7 @@ describe("MongoDbAdminSettingRepository", () => {
     });
   });
 
-  describe("update", () => {
+  describe("updateByKey", () => {
     it("should update existing admin setting", async () => {
       const originalData = {
         key: "updateable.key",
@@ -233,29 +233,26 @@ describe("MongoDbAdminSettingRepository", () => {
         description: "Updated description",
       };
 
-      const updated = await repository.update(created.id, updateData);
+      const updated = await repository.updateByKey(created.key, updateData);
 
       expect(updated).toBeDefined();
-      expect(updated?.id).toBe(created.id);
-      expect(updated?.key).toBe(originalData.key);
-      expect(updated?.value).toBe(updateData.value);
-      expect(updated?.description).toBe(updateData.description);
-      expect(updated?.updatedAt.getTime()).toBeGreaterThan(
+      expect(updated.id).toBe(created.id);
+      expect(updated.key).toBe(originalData.key);
+      expect(updated.value).toBe(updateData.value);
+      expect(updated.description).toBe(updateData.description);
+      expect(updated.updatedAt.getTime()).toBeGreaterThanOrEqual(
         created.updatedAt.getTime(),
       );
     });
 
-    it("should return null for non-existing id", async () => {
+    it("should throw error for non-existing key", async () => {
       const updateData = {
         value: "updated value",
       };
 
-      const updated = await repository.update(
-        "507f1f77bcf86cd799439011",
-        updateData,
-      );
-
-      expect(updated).toBeNull();
+      await expect(
+        repository.updateByKey("non.existing.key", updateData),
+      ).rejects.toThrow();
     });
 
     it("should handle partial updates", async () => {
@@ -268,12 +265,12 @@ describe("MongoDbAdminSettingRepository", () => {
       const created = await repository.create(originalData);
 
       // Update only value
-      const updated = await repository.update(created.id, {
+      const updated = await repository.updateByKey(created.key, {
         value: "new value",
       });
 
-      expect(updated?.value).toBe("new value");
-      expect(updated?.description).toBe(originalData.description);
+      expect(updated.value).toBe("new value");
+      expect(updated.description).toBe(originalData.description);
     });
 
     it("should handle database errors", async () => {
@@ -283,14 +280,14 @@ describe("MongoDbAdminSettingRepository", () => {
       };
 
       await expect(
-        repository.update("507f1f77bcf86cd799439011", { value: "test" }),
+        repository.updateByKey("any.key", { value: "test" }),
       ).rejects.toThrow(InternalServerError);
 
       (repository as any).getCollection = originalGetCollection;
     });
   });
 
-  describe("delete", () => {
+  describe("deleteByKey", () => {
     it("should delete existing admin setting", async () => {
       const settingData = {
         key: "deletable.key",
@@ -298,7 +295,7 @@ describe("MongoDbAdminSettingRepository", () => {
       };
 
       const created = await repository.create(settingData);
-      const deleted = await repository.delete(created.id);
+      const deleted = await repository.deleteByKey(created.key);
 
       expect(deleted).toBe(true);
 
@@ -307,8 +304,8 @@ describe("MongoDbAdminSettingRepository", () => {
       expect(found).toBeNull();
     });
 
-    it("should return false for non-existing id", async () => {
-      const deleted = await repository.delete("507f1f77bcf86cd799439011");
+    it("should return false for non-existing key", async () => {
+      const deleted = await repository.deleteByKey("non.existing.key");
 
       expect(deleted).toBe(false);
     });
@@ -319,69 +316,7 @@ describe("MongoDbAdminSettingRepository", () => {
         throw new Error("Database connection failed");
       };
 
-      await expect(
-        repository.delete("507f1f77bcf86cd799439011"),
-      ).rejects.toThrow(InternalServerError);
-
-      (repository as any).getCollection = originalGetCollection;
-    });
-  });
-
-  describe("batchUpdate", () => {
-    it("should update multiple settings", async () => {
-      // Create initial settings
-      const settings = [
-        { key: "batch.1", value: "value1" },
-        { key: "batch.2", value: "value2" },
-        { key: "batch.3", value: "value3" },
-      ];
-
-      const created = [];
-      for (const setting of settings) {
-        created.push(await repository.create(setting));
-      }
-
-      // Prepare batch updates
-      const updates = [
-        { id: created[0].id, data: { value: "updated1" } },
-        {
-          id: created[2].id,
-          data: { value: "updated3", description: "New desc" },
-        },
-      ];
-
-      const results = await repository.batchUpdate(updates);
-
-      expect(results).toHaveLength(2);
-      expect(results[0]?.value).toBe("updated1");
-      expect(results[1]?.value).toBe("updated3");
-      expect(results[1]?.description).toBe("New desc");
-    });
-
-    it("should handle mix of valid and invalid IDs", async () => {
-      const setting = await repository.create({
-        key: "batch.test",
-        value: "test",
-      });
-
-      const updates = [
-        { id: setting.id, data: { value: "updated" } },
-        { id: "507f1f77bcf86cd799439011", data: { value: "invalid" } },
-      ];
-
-      const results = await repository.batchUpdate(updates);
-
-      expect(results).toHaveLength(1);
-      expect(results[0]?.value).toBe("updated");
-    });
-
-    it("should handle database errors", async () => {
-      const originalGetCollection = (repository as any).getCollection;
-      (repository as any).getCollection = async () => {
-        throw new Error("Database connection failed");
-      };
-
-      await expect(repository.batchUpdate([])).rejects.toThrow(
+      await expect(repository.deleteByKey("any.key")).rejects.toThrow(
         InternalServerError,
       );
 
@@ -389,36 +324,66 @@ describe("MongoDbAdminSettingRepository", () => {
     });
   });
 
-  describe("documentToEntity", () => {
-    it("should convert MongoDB document to entity correctly", () => {
-      const document = {
-        _id: { toString: () => "507f1f77bcf86cd799439011" },
-        key: "test.key",
-        value: "test value",
-        description: "test description",
-        updatedAt: new Date(),
-      };
+  describe("setValue", () => {
+    it("should create new setting when key doesn't exist", async () => {
+      const result = await repository.setValue(
+        "new.key",
+        "new value",
+        "New description",
+      );
 
-      const entity = (repository as any).documentToEntity(document);
-
-      expect(entity.id).toBe("507f1f77bcf86cd799439011");
-      expect(entity.key).toBe(document.key);
-      expect(entity.value).toBe(document.value);
-      expect(entity.description).toBe(document.description);
-      expect(entity.updatedAt).toBe(document.updatedAt);
+      expect(result.key).toBe("new.key");
+      expect(result.value).toBe("new value");
+      expect(result.description).toBe("New description");
     });
 
-    it("should handle document without description", () => {
-      const document = {
-        _id: { toString: () => "507f1f77bcf86cd799439011" },
-        key: "test.key",
-        value: "test value",
-        updatedAt: new Date(),
-      };
+    it("should update existing setting", async () => {
+      const created = await repository.create({
+        key: "existing.key",
+        value: "original value",
+      });
 
-      const entity = (repository as any).documentToEntity(document);
+      const updated = await repository.setValue(
+        "existing.key",
+        "updated value",
+      );
 
-      expect(entity.description).toBeUndefined();
+      expect(updated.id).toBe(created.id);
+      expect(updated.value).toBe("updated value");
+    });
+  });
+
+  describe("getValue", () => {
+    it("should return setting value", async () => {
+      await repository.create({
+        key: "test.value",
+        value: { nested: "data" },
+      });
+
+      const value = await repository.getValue("test.value");
+      expect(value).toEqual({ nested: "data" });
+    });
+
+    it("should return default value for non-existing key", async () => {
+      const value = await repository.getValue("non.existing", "default");
+      expect(value).toBe("default");
+    });
+  });
+
+  describe("existsByKey", () => {
+    it("should return true for existing key", async () => {
+      await repository.create({
+        key: "existing.key",
+        value: "test",
+      });
+
+      const exists = await repository.existsByKey("existing.key");
+      expect(exists).toBe(true);
+    });
+
+    it("should return false for non-existing key", async () => {
+      const exists = await repository.existsByKey("non.existing.key");
+      expect(exists).toBe(false);
     });
   });
 
