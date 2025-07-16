@@ -28,7 +28,8 @@
     "test:ui": "vitest --ui",
     "validate": "pnpm type-check && pnpm lint:fix && pnpm format:fix && pnpm test",
     "clean": "rm -rf dist coverage",
-    "clean:all": "rm -rf dist coverage node_modules"
+    "clean:all": "rm -rf dist coverage node_modules",
+    "mock-frontend": "tsx scripts/mock-frontend.ts"
   },
   "dependencies": {
     "@hono/node-server": "^1.14.2",
