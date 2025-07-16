@@ -8,8 +8,6 @@ dotenv.config();
 const envSchema = z.object({
   NODE_ENV: z.string().default("development"),
   PORT: z.coerce.number().default(3000),
-  // Optional Auth Service URL (Keep this until we are done with refactoring)
-  AUTH_SERVICE_URL: z.string().url().optional(),
   // MongoDB URI Configuration
   MONGODB_HOST: z.string().default("localhost"),
   MONGODB_PORT: z.coerce.number().default(27017),
@@ -83,7 +81,6 @@ const envSchema = z.object({
 const mappedEnv = {
   NODE_ENV: process.env.NODE_ENV,
   PORT: process.env.PORT,
-  AUTH_SERVICE_URL: process.env.AUTH_SERVICE_URL, // keep until refactoring is done
   MONGODB_HOST: process.env.MONGODB_HOST,
   MONGODB_PORT: process.env.MONGODB_PORT,
   MONGODB_USER: process.env.MONGODB_USER,
