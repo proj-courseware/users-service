@@ -1,10 +1,10 @@
-import { Hono } from 'hono';
-import { serve } from '@hono/node-server';
+import { Hono } from "hono";
+import { serve } from "@hono/node-server";
 
 const app = new Hono();
 
 // Serve the /verify-email page
-app.get('/verify-email', (c) => {
+app.get("/verify-email", (c) => {
   // Serve a minimal HTML page with JS to call the backend
   return c.html(`
     <!DOCTYPE html>
@@ -52,22 +52,20 @@ app.get('/verify-email', (c) => {
           }
         }
         function showSuccess(message, user) {
-          document.getElementById('content').innerHTML = `
-            <h1>✅ Email Verified Successfully!</h1>
-            <div class="success">
-              <p>${message}</p>
-              <p><strong>Welcome, ${user?.firstName || ''} ${user?.lastName || ''}!</strong></p>
-              <p>Your email ${user?.primaryEmail || ''} has been verified.</p>
-            </div>
-          `;
+          document.getElementById('content').innerHTML =
+            '<h1>✅ Email Verified Successfully!</h1>' +
+            '<div class="success">' +
+              '<p>' + message + '</p>' +
+              '<p><strong>Welcome, ' + (user?.firstName || '') + ' ' + (user?.lastName || '') + '!</strong></p>' +
+              '<p>Your email ' + (user?.primaryEmail || '') + ' has been verified.</p>' +
+            '</div>';
         }
         function showError(message) {
-          document.getElementById('content').innerHTML = `
-            <h1>❌ Verification Failed</h1>
-            <div class="error">
-              <p>${message}</p>
-            </div>
-          `;
+          document.getElementById('content').innerHTML =
+            '<h1>❌ Verification Failed</h1>' +
+            '<div class="error">' +
+              '<p>' + message + '</p>' +
+            '</div>';
         }
         verifyEmail();
       </script>
@@ -79,8 +77,12 @@ app.get('/verify-email', (c) => {
 // Optionally, serve a root page with a link for convenience
 defaultRoot();
 function defaultRoot() {
-  app.get('/', (c) => c.html('<h2>Mock Frontend Running</h2><p>Use <code>/verify-email?token=...</code> to test email verification.</p>'));
+  app.get("/", (c) =>
+    c.html(
+      "<h2>Mock Frontend Running</h2><p>Use <code>/verify-email?token=...</code> to test email verification.</p>"
+    )
+  );
 }
 
 serve({ fetch: app.fetch, port: 3001 });
-console.log('Mock frontend running on http://localhost:3001'); 
+console.log("Mock frontend running on http://localhost:3001");
