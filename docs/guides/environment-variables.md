@@ -61,7 +61,7 @@ JWT_REFRESH_EXPIRY_DAYS=7
 
 ### Email Configuration
 
-#### Development (MailHog)
+#### Development (Mailpit)
 
 ```bash
 SMTP_HOST=localhost
@@ -294,7 +294,7 @@ JWT_REFRESH_SECRET=development-refresh-secret-key-not-secure
 JWT_ACCESS_EXPIRY_MINUTES=15
 JWT_REFRESH_EXPIRY_DAYS=1
 
-# MailHog for email testing
+# Mailpit for email testing
 SMTP_HOST=localhost
 SMTP_PORT=1025
 SMTP_USER=

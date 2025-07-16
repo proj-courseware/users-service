@@ -470,7 +470,7 @@ es.addEventListener("security:account_locked", (e) => {
 - **Base URL:** Environment-dependent (see top of document)
 - **Database:** Uses MongoDB (production/dev) or in-memory (test)
 - **CORS:** Enabled for all origins in development
-- **Email service:** MailHog for development, SMTP for production
+- **Email service:** Mailpit for development, SMTP for production
 - **Environment:** Docker-based development with hot reload
 
 ---

@@ -43,7 +43,7 @@ JWT_REFRESH_SECRET=your-secret-refresh-key
 JWT_ACCESS_EXPIRY_MINUTES=15
 JWT_REFRESH_EXPIRY_DAYS=7
 
-# Email Configuration (MailHog for development)
+# Email Configuration (Mailpit for development)
 SMTP_HOST=localhost
 SMTP_PORT=1025
 SMTP_USER=
@@ -98,13 +98,13 @@ docker run -d -p 27017:27017 --name mongodb mongo:latest
 # Follow instructions at: https://docs.mongodb.com/manual/installation/
 ```
 
-### 3. Start MailHog (Email Testing)
+### 3. Start Mailpit (Email Testing)
 
 ```bash
 # Using Docker
-docker run -d -p 1025:1025 -p 8025:8025 --name mailhog mailhog/mailhog
+docker run -d -p 1025:1025 -p 8025:8025 --name mailpit axllent/mailpit
 
-# Or download binary from: https://github.com/mailhog/MailHog
+# Or download binary from: https://github.com/axllent/mailpit
 ```
 
 ### 4. Start Development Server
@@ -144,10 +144,10 @@ Install MongoDB Compass for a visual interface:
 
 ### Email Testing
 
-MailHog provides a web interface for testing emails:
+Mailpit provides a web interface for testing emails:
 
 - Web UI: http://localhost:8025
-- All emails sent by the service will appear here
+- All emails go to Mailpit during development
 
 ### API Testing
 
@@ -307,7 +307,7 @@ Once your local environment is running:
 
 ### Email Testing
 
-- All emails go to MailHog during development
+- All emails go to Mailpit during development
 - No real emails are sent
 - Test email templates in web interface
 

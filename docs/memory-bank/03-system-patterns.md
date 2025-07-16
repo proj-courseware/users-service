@@ -187,7 +187,7 @@ export class AuthenticationService {
   constructor(
     private userRepository: IUserRepository,
     private refreshTokenRepository: IRefreshTokenRepository,
-    private emailService: IEmailService,
+    private emailService: IEmailService
   ) {}
 
   async register(data: RegisterUserType): Promise<UserType> {
@@ -202,7 +202,7 @@ export class AuthenticationService {
 
   async loginWithPassword(
     email: string,
-    password: string,
+    password: string
   ): Promise<{
     user: UserType;
     accessToken?: string;
@@ -255,7 +255,7 @@ export class AuthController {
           message: "User registered successfully. Please verify your email.",
           user: this.sanitizeUserResponse(user),
         },
-        201,
+        201
       );
     } catch (error) {
       // Error mapping to HTTP responses
@@ -275,7 +275,7 @@ export class AuthController {
       // Set HTTP-only session cookie
       c.res.headers.set(
         "Set-Cookie",
-        `session=${result.sessionToken}; HttpOnly; Secure; SameSite=Strict; Path=/`,
+        `session=${result.sessionToken}; HttpOnly; Secure; SameSite=Strict; Path=/`
       );
 
       return c.json({
@@ -417,7 +417,7 @@ export function createAuthRoutes({
     "/register",
     rateLimitMiddleware(5, 15 * 60 * 1000), // 5 attempts per 15 minutes
     validateBody(registerUserSchema),
-    (c) => authController.register(c),
+    (c) => authController.register(c)
   );
 
   // Session-based login
@@ -425,7 +425,7 @@ export function createAuthRoutes({
     "/login/session",
     rateLimitMiddleware(5, 15 * 60 * 1000),
     validateBody(loginCredentialsSchema),
-    (c) => authController.loginSession(c),
+    (c) => authController.loginSession(c)
   );
 
   // Token-based login
@@ -433,7 +433,7 @@ export function createAuthRoutes({
     "/login/token",
     rateLimitMiddleware(5, 15 * 60 * 1000),
     validateBody(loginCredentialsSchema),
-    (c) => authController.loginToken(c),
+    (c) => authController.loginToken(c)
   );
 
   // Token refresh
@@ -441,7 +441,7 @@ export function createAuthRoutes({
     "/token/refresh",
     rateLimitMiddleware(10, 5 * 60 * 1000), // 10 attempts per 5 minutes
     validateBody(refreshTokenSchema),
-    (c) => authController.refreshToken(c),
+    (c) => authController.refreshToken(c)
   );
 
   // Social login routes
@@ -467,20 +467,20 @@ export function createUserRoutes({
 
   router.get("/", (c) => userController.getProfile(c));
   router.put("/", validateBody(updateUserSchema), (c) =>
-    userController.updateProfile(c),
+    userController.updateProfile(c)
   );
   router.put("/password", validateBody(changePasswordSchema), (c) =>
-    userController.changePassword(c),
+    userController.changePassword(c)
   );
 
   // Email management
   router.get("/emails", (c) => userController.getEmails(c));
   router.post("/emails", validateBody(addEmailSchema), (c) =>
-    userController.addEmail(c),
+    userController.addEmail(c)
   );
   router.delete("/emails/:email", (c) => userController.removeEmail(c));
   router.post("/emails/set-primary", validateBody(setPrimaryEmailSchema), (c) =>
-    userController.setPrimaryEmail(c),
+    userController.setPrimaryEmail(c)
   );
 
   return router;
@@ -514,7 +514,7 @@ export class PasswordService {
 
   validatePasswordStrength(
     password: string,
-    policy: PasswordPolicyType,
+    policy: PasswordPolicyType
   ): boolean {
     // Implement password policy validation
     if (password.length < policy.minLength) return false;
@@ -614,7 +614,7 @@ export const userSchema = z.object({
 class AuthenticationService {
   private calculateProgressiveLockoutDuration(
     attempts: number,
-    config: AuthServiceConfig,
+    config: AuthServiceConfig
   ): number {
     const baseAttempts = config.maxFailedAttempts;
     const excessAttempts = Math.max(0, attempts - baseAttempts);
@@ -696,7 +696,7 @@ async loginWithPassword(credentials: LoginCredentialsType): Promise<AuthResult> 
 export class OAuthService {
   async handleGoogleCallback(
     code: string,
-    state: string,
+    state: string
   ): Promise<{
     user: UserType;
     isNewUser: boolean;
@@ -709,7 +709,7 @@ export class OAuthService {
     // 2. Get user info from Google
     const googleUser = await this.getUserInfo(
       "google",
-      googleTokens.access_token,
+      googleTokens.access_token
     );
 
     // 3. Find existing user by email or social identity
@@ -779,7 +779,7 @@ export class EmailVerificationService {
       user.userId,
       email,
       verificationToken,
-      expiresAt,
+      expiresAt
     );
 
     // 3. Send email with verification link
@@ -788,7 +788,7 @@ export class EmailVerificationService {
   }
 
   async verifyEmail(
-    token: string,
+    token: string
   ): Promise<{ success: boolean; message: string }> {
     // 1. Find user by verification token
     const user = await this.userRepository.findByVerificationToken(token);
@@ -799,7 +799,7 @@ export class EmailVerificationService {
 
     // 2. Check token expiry
     const emailToVerify = user.emails.find(
-      (e) => e.verificationToken === token,
+      (e) => e.verificationToken === token
     );
     if (
       !emailToVerify ||
@@ -811,7 +811,7 @@ export class EmailVerificationService {
     // 3. Mark email as verified
     await this.userRepository.verifyEmail(
       user.userId,
-      emailToVerify.emailAddress,
+      emailToVerify.emailAddress
     );
 
     return { success: true, message: "Email verified successfully" };
@@ -875,8 +875,8 @@ services:
   mongo_db: # Database services end with _db
     container_name: users-service-mongodb
 
-  mailhog: # Third-party services use original name
-    container_name: users-service-mailhog
+  mailpit: # Third-party services use original name
+    container_name: users-service-mailpit
 
   redis_cache: # Cache services end with _cache
     container_name: users-service-redis
@@ -1020,16 +1020,16 @@ export class MongoDbUserRepository implements IUserRepository {
 
   // createIndex is idempotent, so we can safely call it multiple times
   private async createIndexes(
-    collection: Collection<MongoUserDocument>,
+    collection: Collection<MongoUserDocument>
   ): Promise<void> {
     await Promise.all([
       collection.createIndex(
         { userId: 1 },
-        { unique: true, name: "users_userId" },
+        { unique: true, name: "users_userId" }
       ),
       collection.createIndex(
         { primaryEmail: 1 },
-        { unique: true, name: "users_primaryEmail" },
+        { unique: true, name: "users_primaryEmail" }
       ),
       // ... more indexes
     ]);
@@ -1152,8 +1152,8 @@ SMTP_HOST=...                   # Email configuration
 SMTP_PORT=...
 SMTP_SECURE=...
 
-MAILHOG_SMTP_PORT=...          # MailHog Docker service configuration
-MAILHOG_WEB_PORT=...
+MAILPIT_SMTP_PORT=...          # MailHog Docker service configuration
+MAILPIT_WEB_PORT=...
 
 REDIS_HOST=...                 # Redis configuration
 REDIS_PORT=...
@@ -1286,12 +1286,12 @@ export interface IOAuthProvider {
 export interface IOAuthService {
   generateAuthorizationUrl(
     provider: OAuthProvider,
-    redirectTo?: string,
+    redirectTo?: string
   ): OAuthAuthorizationURL;
   handleCallback(
     provider: OAuthProvider,
     code: string,
-    state: string,
+    state: string
   ): Promise<OAuthUserInfo>;
   validateState(stateString: string): OAuthState;
   isProviderEnabled(provider: OAuthProvider): boolean;
@@ -1324,7 +1324,7 @@ let user = await this.userRepository.findByEmail(oauthUserInfo.email);
 if (user) {
   // Link OAuth account to existing user
   const socialIdentity = user.socialIdentities?.find(
-    (identity) => identity.provider === provider,
+    (identity) => identity.provider === provider
   );
 
   if (!socialIdentity) {

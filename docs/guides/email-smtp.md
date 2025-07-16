@@ -1,12 +1,12 @@
 # Email & SMTP Development Guide
 
-This guide explains why authentication services need email functionality, how SMTP works in production, and why MailHog is essential for local development testing.
+This guide explains why authentication services need email functionality, how SMTP works in production, and why Mailpit is essential for local development testing.
 
 ## Table of Contents
 
 - [Why Authentication Services Need Email](#why-authentication-services-need-email)
 - [SMTP in Production vs Development](#smtp-in-production-vs-development)
-- [MailHog for Development](#mailhog-for-development)
+- [Mailpit for Development](#mailpit-for-development)
 - [Configuration Patterns](#configuration-patterns)
 - [Testing Email Functionality](#testing-email-functionality)
 - [Production Email Setup](#production-email-setup)
@@ -32,7 +32,7 @@ During development, you need to test these email flows without:
 - Accidentally triggering spam filters
 - Exposing email credentials in development environments
 
-This is where MailHog becomes essential.
+This is where Mailpit becomes essential.
 
 ## SMTP in Production vs Development
 
@@ -74,33 +74,33 @@ const problems = [
 ];
 ```
 
-## MailHog for Development
+## Mailpit for Development
 
-### What is MailHog?
+### What is Mailpit?
 
-MailHog is a development email server that:
+Mailpit is a development email server that:
 
 - **Captures** all outgoing emails instead of sending them
 - **Provides** a web interface to view captured emails
 - **Simulates** real SMTP behavior without external dependencies
 - **Enables** testing of email functionality in complete isolation
 
-### MailHog Architecture
+### Mailpit Architecture
 
 ```
-Your App → MailHog SMTP (port 1025) → MailHog Storage
+Your App → Mailpit SMTP (port 1025) → Mailpit Storage
                      ↓
                 Web UI (port 8025) → View Emails
 ```
 
-### Why MailHog is Perfect for Development
+### Why Mailpit is Perfect for Development
 
 #### 1. **Zero Configuration**
 
 ```yaml
 # docker-compose.yml
-mailhog:
-  image: mailhog/mailhog:latest
+mailpit:
+  image: axllent/mailpit:latest
   ports:
     - "1025:1025" # SMTP port
     - "8025:8025" # Web interface
@@ -146,7 +146,7 @@ Your application should use the same SMTP configuration interface for both devel
 import { env } from "@/env";
 
 export const emailConfig = {
-  host: env.SMTP_HOST, // 'mailhog' in dev, 'smtp.gmail.com' in prod
+  host: env.SMTP_HOST, // 'mailpit' in dev, 'smtp.gmail.com' in prod
   port: env.SMTP_PORT, // 1025 in dev, 465 in prod
   secure: env.SMTP_SECURE, // false in dev, true in prod
   auth: env.SMTP_USER
@@ -162,15 +162,15 @@ export const emailConfig = {
 
 ```bash
 # .env (development)
-SMTP_HOST=mailhog                    # Docker service name
-SMTP_PORT=1025                       # MailHog SMTP port
+SMTP_HOST=mailpit                    # Docker service name
+SMTP_PORT=1025                       # Mailpit SMTP port
 SMTP_SECURE=false                    # No TLS needed for local testing
-SMTP_USER=                           # Empty - MailHog doesn't need auth
-SMTP_PASSWORD=                       # Empty - MailHog doesn't need auth
+SMTP_USER=                           # Empty - Mailpit doesn't need auth
+SMTP_PASSWORD=                       # Empty - Mailpit doesn't need auth
 
-# MailHog Docker Service Configuration
-MAILHOG_SMTP_PORT=1025               # Host port mapping for SMTP
-MAILHOG_WEB_PORT=8025                # Host port mapping for web interface
+# Mailpit Docker Service Configuration
+MAILPIT_SMTP_PORT=1025               # Host port mapping for SMTP
+MAILPIT_WEB_PORT=8025                # Host port mapping for web interface
 ```
 
 ### Production Environment Configuration
@@ -183,14 +183,14 @@ SMTP_SECURE=true                     # Enable TLS encryption
 SMTP_USER=noreply@yourdomain.com     # Service account email
 SMTP_PASSWORD=app-specific-password   # App password from email provider
 
-# MailHog variables (not used in production)
-MAILHOG_SMTP_PORT=1025
-MAILHOG_WEB_PORT=8025
+# Mailpit variables (not used in production)
+MAILPIT_SMTP_PORT=1025
+MAILPIT_WEB_PORT=8025
 ```
 
 ## Testing Email Functionality
 
-### Integration Testing with MailHog
+### Integration Testing with Mailpit
 
 ```typescript
 // tests/integration/email.test.ts
@@ -199,8 +199,8 @@ import { emailService } from "@/services/email.service";
 
 describe("Email Integration Tests", () => {
   beforeAll(async () => {
-    // Wait for MailHog to be ready
-    await waitForMailHog("http://localhost:8025");
+    // Wait for Mailpit to be ready
+    await waitForMailpit("http://localhost:8025");
   });
 
   it("should send verification email", async () => {
@@ -210,12 +210,12 @@ describe("Email Integration Tests", () => {
       verificationToken: "test-token-123",
     });
 
-    // Check MailHog for the email
-    const emails = await getMailHogEmails();
+    // Check Mailpit for the email
+    const emails = await getMailpitEmails();
     const verificationEmail = emails.find(
       (email) =>
         email.To[0].Mailbox === "test" &&
-        email.Content.Headers.Subject[0].includes("Verify"),
+        email.Content.Headers.Subject[0].includes("Verify")
     );
 
     expect(verificationEmail).toBeDefined();
@@ -228,9 +228,9 @@ describe("Email Integration Tests", () => {
       resetToken: "reset-token-456",
     });
 
-    const emails = await getMailHogEmails();
+    const emails = await getMailpitEmails();
     const resetEmail = emails.find((email) =>
-      email.Content.Headers.Subject[0].includes("Password Reset"),
+      email.Content.Headers.Subject[0].includes("Password Reset")
     );
 
     expect(resetEmail).toBeDefined();
@@ -253,7 +253,7 @@ describe("Email Integration Tests", () => {
    - Request password reset
    - Trigger any email-sending feature
 
-3. **View Email in MailHog**
+3. **View Email in Mailpit**
 
    - Open http://localhost:8025
    - Find your email in the inbox
@@ -394,7 +394,7 @@ export const emailTemplates = {
 
 Understanding email in authentication services requires balancing development convenience with production reliability:
 
-- **MailHog** provides a complete email testing environment without external dependencies
+- **Mailpit** provides a complete email testing environment without external dependencies
 - **Environment-based configuration** allows the same code to work in development and production
 - **Proper testing** ensures email functionality works correctly before deployment
 - **Production considerations** include security, reliability, and proper error handling
