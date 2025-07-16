@@ -30,16 +30,16 @@ JWT_REFRESH_SECRET=your-super-secret-refresh-key-change-in-production
 JWT_ACCESS_EXPIRY_MINUTES=15
 JWT_REFRESH_EXPIRY_DAYS=7
 
-# Email Configuration (MailHog for development)
-SMTP_HOST=mailhog
+# Email Configuration (Mailpit for development)
+SMTP_HOST=mailpit
 SMTP_PORT=1025
 SMTP_SECURE=false
 SMTP_USER=
 SMTP_PASSWORD=
 
-# MailHog Docker Service Configuration
-MAILHOG_SMTP_PORT=1025
-MAILHOG_WEB_PORT=8025
+# Mailpit Docker Service Configuration
+MAILPIT_SMTP_PORT=1025
+MAILPIT_WEB_PORT=8025
 
 # Redis Configuration
 REDIS_HOST=localhost
@@ -62,7 +62,7 @@ From the project root, run:
 docker compose --env-file docker/.env -f docker/docker-compose.dev.yml up --build
 ```
 
-- This will build the development image using `Dockerfile.dev` and start the app along with MongoDB, MailHog, and Redis containers.
+- This will build the development image using `Dockerfile.dev` and start the app along with MongoDB, Mailpit, and Redis containers.
 - The app source code is mounted as a volume for live reload.
 - The app will be available at `http://localhost:${PORT}` (default: 3000).
 

@@ -24,14 +24,14 @@ services:
       - REDIS_HOST=redis_cache # Use service name instead of localhost
       - REDIS_PORT=${REDIS_PORT}
       - REDIS_PASSWORD=${REDIS_PASSWORD}
-      - SMTP_HOST=mailhog # Use service name
+      - SMTP_HOST=mailpit # Use service name
       - SMTP_PORT=1025
     depends_on:
       mongo_db:
         condition: service_healthy
       redis_cache:
         condition: service_healthy
-      mailhog:
+      mailpit:
         condition: service_healthy
     command: /bin/sh -c "npm run start"
     user: node
@@ -90,13 +90,13 @@ services:
     networks:
       - app-network
 
-  mailhog:
-    image: mailhog/mailhog:latest
+  mailpit:
+    image: axllent/mailpit:latest
     env_file:
       - .env
     ports:
-      - "${MAILHOG_SMTP_PORT}:1025" # SMTP port
-      - "${MAILHOG_WEB_PORT}:8025" # Web UI port
+      - "${MAILPIT_SMTP_PORT}:1025" # SMTP port
+      - "${MAILPIT_WEB_PORT}:8025" # Web UI port
     healthcheck:
       test:
         [
