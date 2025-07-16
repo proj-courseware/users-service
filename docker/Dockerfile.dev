@@ -1,7 +1,7 @@
 FROM node:24-bullseye-slim
 RUN npm install -g pnpm
 RUN apt-get update && \
-    apt-get install -y python3 make g++ && \
+    apt-get install -y python3 make g++ git && \
     ln -sf python3 /usr/bin/python && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 WORKDIR /app 
