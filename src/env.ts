@@ -26,7 +26,14 @@ const envSchema = z.object({
   // Email Configuration
   SMTP_HOST: z.string().default("mailpit"),
   SMTP_PORT: z.coerce.number().default(1025),
-  SMTP_SECURE: z.coerce.boolean().default(false),
+  SMTP_SECURE: z
+    .any()
+    .transform((val) => {
+      if (val === true || val === "true" || val === 1 || val === "1")
+        return true;
+      return false;
+    })
+    .default(false),
   SMTP_USER: z.string().optional(),
   SMTP_PASSWORD: z.string().optional(),
   SMTP_FROM_ADDRESS: z.string().email().optional(),

@@ -28,6 +28,7 @@ services:
       - SMTP_SECURE=${SMTP_SECURE}
       - SMTP_USER=${SMTP_USER}
       - SMTP_PASSWORD=${SMTP_PASSWORD}
+      - SMTP_FROM_ADDRESS=${SMTP_FROM_ADDRESS}
       - MAILPIT_SMTP_PORT=${MAILPIT_SMTP_PORT}
       - MAILPIT_WEB_PORT=${MAILPIT_WEB_PORT}
       - REDIS_HOST=redis_cache # Use service name instead of localhost
