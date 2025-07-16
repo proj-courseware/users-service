@@ -74,7 +74,7 @@ curl -X POST http://localhost:3000/auth/register \
   -H "Content-Type: application/json" \
   -d '{"firstName":"Test","lastName":"User","email":"test@example.com","password":"SecurePass123!"}'
 
-# Check verification email at http://localhost:8025 (MailHog)
+# Check verification email at http://localhost:8025 (Mailpit)
 ```
 
 **🎉 You're ready!** The API is running at `http://localhost:3000`

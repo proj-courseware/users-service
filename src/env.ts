@@ -26,7 +26,7 @@ const envSchema = z.object({
   JWT_ACCESS_EXPIRY_MINUTES: z.coerce.number().default(15),
   JWT_REFRESH_EXPIRY_DAYS: z.coerce.number().default(7),
   // Email Configuration
-  SMTP_HOST: z.string().default("mailhog"),
+  SMTP_HOST: z.string().default("mailpit"),
   SMTP_PORT: z.coerce.number().default(1025),
   SMTP_SECURE: z.coerce.boolean().default(false),
   SMTP_USER: z.string().optional(),
@@ -37,9 +37,9 @@ const envSchema = z.object({
   EMAIL_RETRY_DELAY_MS: z.coerce.number().default(1000),
   // Frontend Configuration
   FRONTEND_URL: z.string().url().default("http://localhost:3001"),
-  // MailHog Configuration
-  MAILHOG_SMTP_PORT: z.coerce.number().default(1025),
-  MAILHOG_WEB_PORT: z.coerce.number().default(8025),
+  // Mailpit Configuration
+  MAILPIT_SMTP_PORT: z.coerce.number().default(1025),
+  MAILPIT_WEB_PORT: z.coerce.number().default(8025),
   // Redis Configuration
   REDIS_HOST: z.string().default("localhost"),
   REDIS_PORT: z.coerce.number().default(6379),
@@ -103,8 +103,8 @@ const mappedEnv = {
   EMAIL_MAX_RETRIES: process.env.EMAIL_MAX_RETRIES,
   EMAIL_RETRY_DELAY_MS: process.env.EMAIL_RETRY_DELAY_MS,
   FRONTEND_URL: process.env.FRONTEND_URL,
-  MAILHOG_SMTP_PORT: process.env.MAILHOG_SMTP_PORT,
-  MAILHOG_WEB_PORT: process.env.MAILHOG_WEB_PORT,
+  MAILPIT_SMTP_PORT: process.env.MAILPIT_SMTP_PORT,
+  MAILPIT_WEB_PORT: process.env.MAILPIT_WEB_PORT,
   REDIS_HOST: process.env.REDIS_HOST,
   REDIS_PORT: process.env.REDIS_PORT,
   REDIS_PASSWORD: process.env.REDIS_PASSWORD,
@@ -142,7 +142,7 @@ const _env = envSchema.safeParse(mappedEnv);
 if (!_env.success) {
   console.error(
     "❌ Invalid environment variables after mapping:",
-    _env.error.format(),
+    _env.error.format()
   );
   // Log the mappedEnv for easier debugging of what Zod received
   console.error("Mapped environment data passed to Zod:", mappedEnv);
