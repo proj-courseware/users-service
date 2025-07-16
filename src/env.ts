@@ -5,7 +5,7 @@ import { z } from "zod";
 dotenv.config();
 
 // Define the schema to validate the environment variables
-const envSchema = z.object({
+export const envSchema = z.object({
   NODE_ENV: z.string().default("development"),
   PORT: z.coerce.number().default(3000),
   // MongoDB URI Configuration

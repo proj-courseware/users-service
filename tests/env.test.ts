@@ -1,72 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { z } from "zod";
-
-// Expanded envSchema as in src/env.ts for comprehensive testing
-const envSchema = z.object({
-  NODE_ENV: z.string().default("development"),
-  PORT: z.coerce.number().default(3000),
-  // MongoDB URI Configuration
-  MONGODB_HOST: z.string().default("localhost"),
-  MONGODB_PORT: z.coerce.number().default(27017),
-  MONGODB_USER: z.string().optional(),
-  MONGODB_PASSWORD: z.string().optional(),
-  MONGODB_DATABASE: z.string().default("users-service"),
-  // JWT Configuration
-  JWT_ACCESS_SECRET: z.string().min(32),
-  JWT_REFRESH_SECRET: z.string().min(32),
-  JWT_ACCESS_EXPIRY_MINUTES: z.coerce.number().default(15),
-  JWT_REFRESH_EXPIRY_DAYS: z.coerce.number().default(7),
-  // Email Configuration
-  SMTP_HOST: z.string().default("mailpit"),
-  SMTP_PORT: z.coerce.number().default(1025),
-  SMTP_SECURE: z.coerce.boolean().default(false),
-  SMTP_USER: z.string().optional(),
-  SMTP_PASSWORD: z.string().optional(),
-  SMTP_FROM_ADDRESS: z.string().email().optional(),
-  SMTP_FROM_NAME: z.string().default("Authentication Service"),
-  EMAIL_MAX_RETRIES: z.coerce.number().default(3),
-  EMAIL_RETRY_DELAY_MS: z.coerce.number().default(1000),
-  // Frontend Configuration
-  FRONTEND_URL: z.string().url().default("http://localhost:3001"),
-  // Mailpit Configuration
-  MAILPIT_SMTP_PORT: z.coerce.number().default(1025),
-  MAILPIT_WEB_PORT: z.coerce.number().default(8025),
-  // Redis Configuration
-  REDIS_HOST: z.string().default("localhost"),
-  REDIS_PORT: z.coerce.number().default(6379),
-  REDIS_PASSWORD: z.string().optional(),
-  // Rate Limiting Configuration
-  RATE_LIMIT_WINDOW_MINUTES: z.coerce.number().default(15),
-  RATE_LIMIT_MAX_REQUESTS: z.coerce.number().default(100),
-  RATE_LIMIT_AUTH_WINDOW_MINUTES: z.coerce.number().default(15),
-  RATE_LIMIT_AUTH_MAX_REQUESTS: z.coerce.number().default(5),
-  RATE_LIMIT_STRICT_MODE: z.coerce.boolean().default(true),
-  // Session and CSRF Configuration
-  SESSION_SECRET: z.string().min(32),
-  SESSION_MAX_AGE_HOURS: z.coerce.number().default(24),
-  CSRF_SECRET: z.string().min(32),
-  CSRF_TOKEN_LENGTH: z.coerce.number().default(32),
-  CSRF_COOKIE_NAME: z.string().default("csrf-token"),
-  CSRF_HEADER_NAME: z.string().default("x-csrf-token"),
-  ENABLE_CSRF_PROTECTION: z.coerce.boolean().default(true),
-  // Password Policy Configuration
-  PASSWORD_MIN_LENGTH: z.coerce.number().min(4).max(128).default(8),
-  PASSWORD_MAX_LENGTH: z.coerce.number().min(8).max(256).default(128),
-  PASSWORD_REQUIRE_UPPERCASE: z.coerce.boolean().default(true),
-  PASSWORD_REQUIRE_LOWERCASE: z.coerce.boolean().default(true),
-  PASSWORD_REQUIRE_NUMBERS: z.coerce.boolean().default(true),
-  PASSWORD_REQUIRE_SPECIAL_CHARS: z.coerce.boolean().default(true),
-  // OAuth Configuration
-  GOOGLE_CLIENT_ID: z.string().optional(),
-  GOOGLE_CLIENT_SECRET: z.string().optional(),
-  GOOGLE_REDIRECT_URI: z.string().url().optional(),
-  GITHUB_CLIENT_ID: z.string().optional(),
-  GITHUB_CLIENT_SECRET: z.string().optional(),
-  GITHUB_REDIRECT_URI: z.string().url().optional(),
-  LINKEDIN_CLIENT_ID: z.string().optional(),
-  LINKEDIN_CLIENT_SECRET: z.string().optional(),
-  LINKEDIN_REDIRECT_URI: z.string().url().optional(),
-});
+import { envSchema } from "@/env";
 
 describe("envSchema", () => {
   it("accepts valid env object with all required fields", () => {
@@ -228,5 +161,24 @@ describe("envSchema", () => {
         GOOGLE_REDIRECT_URI: "not-a-url",
       })
     ).toThrow();
+  });
+
+  it("parses SMTP_SECURE robustly", () => {
+    const required = {
+      JWT_ACCESS_SECRET: "a".repeat(32),
+      JWT_REFRESH_SECRET: "b".repeat(32),
+      SESSION_SECRET: "c".repeat(32),
+      CSRF_SECRET: "d".repeat(32),
+    };
+    expect(envSchema.parse({ ...required, SMTP_SECURE: "false" }).SMTP_SECURE).toBe(false);
+    expect(envSchema.parse({ ...required, SMTP_SECURE: false }).SMTP_SECURE).toBe(false);
+    expect(envSchema.parse({ ...required, SMTP_SECURE: "0" }).SMTP_SECURE).toBe(false);
+    expect(envSchema.parse({ ...required, SMTP_SECURE: 0 }).SMTP_SECURE).toBe(false);
+    expect(envSchema.parse({ ...required, SMTP_SECURE: undefined }).SMTP_SECURE).toBe(false);
+    expect(envSchema.parse({ ...required, SMTP_SECURE: null }).SMTP_SECURE).toBe(false);
+    expect(envSchema.parse({ ...required, SMTP_SECURE: "true" }).SMTP_SECURE).toBe(true);
+    expect(envSchema.parse({ ...required, SMTP_SECURE: true }).SMTP_SECURE).toBe(true);
+    expect(envSchema.parse({ ...required, SMTP_SECURE: "1" }).SMTP_SECURE).toBe(true);
+    expect(envSchema.parse({ ...required, SMTP_SECURE: 1 }).SMTP_SECURE).toBe(true);
   });
 });
