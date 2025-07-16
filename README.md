@@ -42,6 +42,9 @@ The service follows a **6-layer architecture** pattern for maintainability and s
 - [Docker Desktop](https://docs.docker.com/get-docker/) and [VS Code](https://code.visualstudio.com/) (Recommended)
 - **OR** [Node.js 20+](https://nodejs.org/) and [pnpm](https://pnpm.io/)
 
+> [!NOTE]
+> Native modules (argon2, bcrypt) require Python 3, make, and g++ for installation. These are installed in the Docker images, but if you develop locally, you must install them yourself.
+
 ### 1. Get Started (30 seconds)
 
 ```bash

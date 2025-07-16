@@ -594,6 +594,10 @@ fi
 # Let's Encrypt SSL
 sudo apt install certbot python3-certbot-nginx
 sudo certbot --nginx -d your-domain.com
+
+# Native module dependencies
+# If running outside Docker, you must also install:
+#   sudo apt-get install -y python3 make g++
 ```
 
 ### Firewall Configuration

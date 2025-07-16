@@ -1,2 +1,7 @@
 ignoredBuiltDependencies:
   - mongodb-memory-server
+
+onlyBuiltDependencies:
+  - argon2
+  - bcrypt
+  - esbuild
