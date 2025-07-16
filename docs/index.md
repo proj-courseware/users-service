@@ -1,8 +1,13 @@
 # Authentication API Documentation
 
-> **Base URL:**  
-> The API base URL depends on your environment (e.g., `http://localhost:3000` for local development, or your production domain).  
+> [!NOTE]  
+> **Base URL:** The API base URL depends on your environment (e.g., `http://localhost:3000` for local development, or your production domain).
+
+> [!IMPORTANT]  
 > **Do not hardcode the base URL in client applications.**
+
+> [!TIP]
+> During local development, check emails at <http://localhost:8025> (Mailpit)
 
 ---
 

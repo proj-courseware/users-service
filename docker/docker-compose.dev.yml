@@ -2,7 +2,7 @@ version: "3.8"
 
 services:
   app:
-    container_name: users-service-app
+    container_name: users-service-api
     build:
       context: ../ # relative to this file
       dockerfile: docker/Dockerfile.dev # relative to the build context
@@ -21,11 +21,33 @@ services:
       - MONGODB_DATABASE=${MONGODB_DATABASE}
       - MONGODB_USER=${MONGODB_USER}
       - MONGODB_PASSWORD=${MONGODB_PASSWORD}
+      - JWT_ACCESS_SECRET=${JWT_ACCESS_SECRET}
+      - JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET}
+      - JWT_ACCESS_EXPIRY_MINUTES=${JWT_ACCESS_EXPIRY_MINUTES}
+      - JWT_REFRESH_EXPIRY_DAYS=${JWT_REFRESH_EXPIRY_DAYS}
+      - SMTP_HOST=mailpit # Use service name instead of localhost
+      - SMTP_PORT=${SMTP_PORT}
+      - SMTP_SECURE=${SMTP_SECURE}
+      - SMTP_USER=${SMTP_USER}
+      - SMTP_PASSWORD=${SMTP_PASSWORD}
+      - MAILPIT_SMTP_PORT=${MAILPIT_SMTP_PORT}
+      - MAILPIT_WEB_PORT=${MAILPIT_WEB_PORT}
       - REDIS_HOST=redis_cache # Use service name instead of localhost
       - REDIS_PORT=${REDIS_PORT}
       - REDIS_PASSWORD=${REDIS_PASSWORD}
-      - SMTP_HOST=mailpit # Use service name
-      - SMTP_PORT=1025
+      - FRONTEND_URL=${FRONTEND_URL}
+      - RATE_LIMIT_WINDOW_MINUTES=${RATE_LIMIT_WINDOW_MINUTES}
+      - RATE_LIMIT_MAX_REQUESTS=${RATE_LIMIT_MAX_REQUESTS}
+      - RATE_LIMIT_AUTH_WINDOW_MINUTES=${RATE_LIMIT_AUTH_WINDOW_MINUTES}
+      - RATE_LIMIT_AUTH_MAX_REQUESTS=${RATE_LIMIT_AUTH_MAX_REQUESTS}
+      - RATE_LIMIT_STRICT_MODE=${RATE_LIMIT_STRICT_MODE}
+      - SESSION_SECRET=${SESSION_SECRET}
+      - SESSION_MAX_AGE_HOURS=${SESSION_MAX_AGE_HOURS}
+      - CSRF_SECRET=${CSRF_SECRET}
+      - CSRF_TOKEN_LENGTH=${CSRF_TOKEN_LENGTH}
+      - CSRF_COOKIE_NAME=${CSRF_COOKIE_NAME}
+      - CSRF_HEADER_NAME=${CSRF_HEADER_NAME}
+      - ENABLE_CSRF_PROTECTION=${ENABLE_CSRF_PROTECTION}
     depends_on:
       mongo_db:
         condition: service_healthy
@@ -95,8 +117,11 @@ services:
     env_file:
       - .env
     ports:
-      - "${MAILPIT_SMTP_PORT}:1025" # SMTP port
-      - "${MAILPIT_WEB_PORT}:8025" # Web UI port
+      - "${MAILPIT_SMTP_PORT}:${MAILPIT_SMTP_PORT}" # SMTP port
+      - "${MAILPIT_WEB_PORT}:${MAILPIT_WEB_PORT}" # Web UI port
+    environment:
+      - MP_SMTP_BIND_ADDR=0.0.0.0:${MAILPIT_SMTP_PORT}
+      - MP_WEB_BIND_ADDR=0.0.0.0:${MAILPIT_WEB_PORT}
     healthcheck:
       test:
         [
@@ -105,7 +130,7 @@ services:
           "--quiet",
           "--tries=1",
           "--spider",
-          "http://localhost:8025",
+          "http://localhost:${MAILPIT_WEB_PORT}",
         ]
       interval: 10s
       timeout: 5s
