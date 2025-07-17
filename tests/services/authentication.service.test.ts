@@ -323,6 +323,11 @@ describe("AuthenticationService", () => {
           (email: string) => Promise<UserType | null>
         >
       ).mockResolvedValue(testUser);
+      (
+        mockUserRepository.isAccountCurrentlyLocked as MockedFunction<
+          (email: string) => Promise<boolean>
+        >
+      ).mockResolvedValue(false);
       (mockJWTService.generateTokenPair as MockedFunction<
         (user: UserType) => Promise<{ accessToken: string; refreshToken: string }>
       >).mockResolvedValue({
@@ -522,13 +527,23 @@ describe("AuthenticationService", () => {
     const refreshToken = "valid-refresh-token";
 
     it("should successfully refresh tokens", async () => {
+      (mockJWTService.verifyRefreshToken as MockedFunction<any>)
+        .mockResolvedValueOnce({
+          ...mockRefreshPayload,
+          exp: Math.floor(Date.now() / 1000) + 604800,
+        })
+        .mockResolvedValueOnce({
+          ...mockRefreshPayload,
+          exp: Math.floor(Date.now() / 1000) + 604800,
+        });
       (
-        mockJWTService.verifyRefreshToken as MockedFunction<
-          (token: string) => Promise<RefreshJWTPayloadType>
+        mockRefreshTokenRepository.findByTokenHash as MockedFunction<
+          (hash: string) => Promise<{ id: string; isRevoked: boolean; expiresAt: Date } | null>
         >
       ).mockResolvedValue({
-        ...mockRefreshPayload,
-        exp: Math.floor(Date.now() / 1000) + 604800,
+        id: "token-id",
+        isRevoked: false,
+        expiresAt: new Date(Date.now() + 3600 * 1000),
       });
       (
         mockUserRepository.findById as MockedFunction<
@@ -600,6 +615,15 @@ describe("AuthenticationService", () => {
       ).mockResolvedValue({
         ...mockRefreshPayload,
         exp: Math.floor(Date.now() / 1000) + 604800,
+      });
+      (
+        mockRefreshTokenRepository.findByTokenHash as MockedFunction<
+          (hash: string) => Promise<{ id: string; isRevoked: boolean; expiresAt: Date } | null>
+        >
+      ).mockResolvedValue({
+        id: "token-id",
+        isRevoked: false,
+        expiresAt: new Date(Date.now() + 3600 * 1000),
       });
       (
         mockUserRepository.findById as MockedFunction<
@@ -1024,7 +1048,7 @@ describe("refresh token DB logic", () => {
     exp: Math.floor(Date.now() / 1000) + 7200,
   };
 
-  beforeEach(() => {
+  beforeEach(async () => {
     mockRefreshTokenRepository = {
       create: vi.fn(),
       findByTokenHash: vi.fn(),
@@ -1050,8 +1074,8 @@ describe("refresh token DB logic", () => {
       verifyPassword: vi.fn(),
       validatePasswordStrength: vi.fn(),
     };
-    authService =
-      new (require("@/services/authentication.service").AuthenticationService)(
+    authService = new ((await import("@/services/authentication.service"))
+      .AuthenticationService)(
         mockUserRepository as IUserRepository,
         mockPasswordService as IPasswordService,
         mockJWTService as IJWTService,

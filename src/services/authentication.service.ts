@@ -129,7 +129,7 @@ export class AuthenticationService
     }
 
     // 3. Validate password strength
-    const passwordValidation = this.passwordService.validatePasswordStrength(
+    const passwordValidation = await this.passwordService.validatePasswordStrength(
       data.password
     );
     if (!passwordValidation.isValid) {
@@ -476,7 +476,7 @@ export class AuthenticationService
 
     // 3. Validate new password strength
     const passwordValidation =
-      this.passwordService.validatePasswordStrength(newPassword);
+      await this.passwordService.validatePasswordStrength(newPassword);
     if (!passwordValidation.isValid) {
       throw new BadRequestError(
         `New password validation failed: ${passwordValidation.errors.join(", ")}`
