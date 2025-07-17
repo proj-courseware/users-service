@@ -30,21 +30,21 @@ describe("authMiddleware (with DI)", () => {
     // Create a mock AuthenticationService with a vi.fn() for the method we use
     mockAuthService = {
       authenticateUserByToken: vi.fn(),
-    } as AuthMiddlewareDeps["authenticationService"];
+    } as unknown as AuthMiddlewareDeps["authenticationService"];
 
     // Create the middleware instance for testing, injecting the mock service
     authMiddlewareToTest = createAuthMiddleware({
       authenticationService: mockAuthService,
     });
 
-    user = { userId: "user-1", globalRole: "user" };
+    user = { userId: "user-1", globalRole: "student" };
     next = vi.fn();
   });
 
   it("throws UnauthenticatedError if Authorization header is missing", async () => {
     const c = createMockContext();
     await expect(authMiddlewareToTest(c, next)).rejects.toThrow(
-      UnauthenticatedError,
+      UnauthenticatedError
     );
     expect(mockAuthService.authenticateUserByToken).not.toHaveBeenCalled();
     expect(next).not.toHaveBeenCalled();
@@ -53,7 +53,7 @@ describe("authMiddleware (with DI)", () => {
   it("throws UnauthenticatedError if Authorization header is invalid format (not Bearer)", async () => {
     const c = createMockContext({ Authorization: "InvalidToken" });
     await expect(authMiddlewareToTest(c, next)).rejects.toThrow(
-      UnauthenticatedError,
+      UnauthenticatedError
     );
     expect(mockAuthService.authenticateUserByToken).not.toHaveBeenCalled();
     expect(next).not.toHaveBeenCalled();
@@ -62,7 +62,7 @@ describe("authMiddleware (with DI)", () => {
   it("throws UnauthenticatedError if token is missing after 'Bearer '", async () => {
     const c = createMockContext({ Authorization: "Bearer " });
     await expect(authMiddlewareToTest(c, next)).rejects.toThrow(
-      UnauthenticatedError,
+      UnauthenticatedError
     );
     expect(mockAuthService.authenticateUserByToken).not.toHaveBeenCalled();
     expect(next).not.toHaveBeenCalled();
@@ -71,13 +71,13 @@ describe("authMiddleware (with DI)", () => {
   it("throws UnauthenticatedError if authenticationService.authenticateUserByToken throws UnauthenticatedError", async () => {
     const c = createMockContext({ Authorization: "Bearer valid-token" });
     (mockAuthService.authenticateUserByToken as Mock).mockRejectedValue(
-      new UnauthenticatedError("Token is invalid or expired"),
+      new UnauthenticatedError("Token is invalid or expired")
     );
     await expect(authMiddlewareToTest(c, next)).rejects.toThrow(
-      UnauthenticatedError,
+      UnauthenticatedError
     );
     expect(mockAuthService.authenticateUserByToken).toHaveBeenCalledWith(
-      "valid-token",
+      "valid-token"
     );
     expect(next).not.toHaveBeenCalled();
   });
@@ -85,13 +85,13 @@ describe("authMiddleware (with DI)", () => {
   it("throws ServiceUnavailableError if authenticationService.authenticateUserByToken throws ServiceUnavailableError", async () => {
     const c = createMockContext({ Authorization: "Bearer valid-token" });
     (mockAuthService.authenticateUserByToken as Mock).mockRejectedValue(
-      new ServiceUnavailableError("Auth service is temporarily down"),
+      new ServiceUnavailableError("Auth service is temporarily down")
     );
     await expect(authMiddlewareToTest(c, next)).rejects.toThrow(
-      ServiceUnavailableError,
+      ServiceUnavailableError
     );
     expect(mockAuthService.authenticateUserByToken).toHaveBeenCalledWith(
-      "valid-token",
+      "valid-token"
     );
     expect(next).not.toHaveBeenCalled();
   });
@@ -100,12 +100,12 @@ describe("authMiddleware (with DI)", () => {
     const c = createMockContext({ Authorization: "Bearer valid-token" });
     const genericError = new Error("Some unexpected error");
     (mockAuthService.authenticateUserByToken as Mock).mockRejectedValue(
-      genericError,
+      genericError
     );
 
     await expect(authMiddlewareToTest(c, next)).rejects.toThrow(genericError);
     expect(mockAuthService.authenticateUserByToken).toHaveBeenCalledWith(
-      "valid-token",
+      "valid-token"
     );
     expect(next).not.toHaveBeenCalled();
   });
@@ -117,7 +117,7 @@ describe("authMiddleware (with DI)", () => {
     await authMiddlewareToTest(c, next);
 
     expect(mockAuthService.authenticateUserByToken).toHaveBeenCalledWith(
-      "valid-token",
+      "valid-token"
     );
     expect(c.set).toHaveBeenCalledWith("user", user);
     expect(next).toHaveBeenCalledTimes(1);

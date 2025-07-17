@@ -2,9 +2,10 @@ import { describe, it, expect } from "vitest";
 import { globalRoleSchema, noteRoleSchema } from "@/schemas/roles.schemas";
 
 describe("globalRoleSchema", () => {
-  it("accepts 'admin' and 'user'", () => {
+  it("accepts 'admin' and 'student' and 'teacher'", () => {
     expect(globalRoleSchema.parse("admin")).toBe("admin");
-    expect(globalRoleSchema.parse("user")).toBe("user");
+    expect(globalRoleSchema.parse("student")).toBe("student");
+    expect(globalRoleSchema.parse("teacher")).toBe("teacher");
   });
   it("rejects invalid role", () => {
     expect(() => globalRoleSchema.parse("bad")).toThrow();
