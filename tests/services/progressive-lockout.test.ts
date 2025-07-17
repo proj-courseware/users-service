@@ -6,6 +6,7 @@ import {
 import { PasswordService } from "@/services/password.service";
 import { JWTService } from "@/services/jwt.service";
 import { MockDbUserRepository } from "@/repositories/mockdb/user.mockdb.repository";
+import { MockDbRefreshTokenRepository } from "@/repositories/mockdb/refresh-token.mockdb.repository";
 import { InvalidCredentialsError, AccountLockedError } from "@/errors";
 import type {
   UserType,
@@ -17,6 +18,7 @@ import type {
 describe("Progressive Account Lockout", () => {
   let authService: AuthenticationService;
   let userRepository: MockDbUserRepository;
+  let refreshTokenRepository: MockDbRefreshTokenRepository;
   let passwordService: PasswordService;
   let jwtService: JWTService;
 
@@ -54,12 +56,14 @@ describe("Progressive Account Lockout", () => {
 
   beforeEach(async () => {
     userRepository = new MockDbUserRepository();
+    refreshTokenRepository = new MockDbRefreshTokenRepository();
     passwordService = new PasswordService();
     jwtService = new JWTService();
     authService = new AuthenticationService(
       userRepository,
       passwordService,
       jwtService,
+      refreshTokenRepository,
       testConfig,
     );
 

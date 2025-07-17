@@ -24,12 +24,13 @@ function createMockContext(headers: Record<string, string> = {}) {
 
 describe("authMiddleware (with DI)", () => {
   let user: AuthenticatedUserContextType;
+  let fullUser: any; // Full user object that getUserFromToken returns
   let next: Mock;
 
   beforeEach(() => {
     // Create a mock AuthenticationService with a vi.fn() for the method we use
     mockAuthService = {
-      authenticateUserByToken: vi.fn(),
+      getUserFromToken: vi.fn(),
     } as unknown as AuthMiddlewareDeps["authenticationService"];
 
     // Create the middleware instance for testing, injecting the mock service
@@ -37,7 +38,14 @@ describe("authMiddleware (with DI)", () => {
       authenticationService: mockAuthService,
     });
 
-    user = { userId: "user-1", globalRole: "student" };
+    user = { userId: "user-1", globalRole: "student", primaryEmail: "test@example.com" };
+    fullUser = { 
+      id: "user-1", 
+      globalRole: "student", 
+      primaryEmail: "test@example.com",
+      firstName: "John",
+      lastName: "Doe"
+    };
     next = vi.fn();
   });
 
@@ -46,7 +54,7 @@ describe("authMiddleware (with DI)", () => {
     await expect(authMiddlewareToTest(c, next)).rejects.toThrow(
       UnauthenticatedError
     );
-    expect(mockAuthService.authenticateUserByToken).not.toHaveBeenCalled();
+    expect(mockAuthService.getUserFromToken).not.toHaveBeenCalled();
     expect(next).not.toHaveBeenCalled();
   });
 
@@ -55,7 +63,7 @@ describe("authMiddleware (with DI)", () => {
     await expect(authMiddlewareToTest(c, next)).rejects.toThrow(
       UnauthenticatedError
     );
-    expect(mockAuthService.authenticateUserByToken).not.toHaveBeenCalled();
+    expect(mockAuthService.getUserFromToken).not.toHaveBeenCalled();
     expect(next).not.toHaveBeenCalled();
   });
 
@@ -64,19 +72,19 @@ describe("authMiddleware (with DI)", () => {
     await expect(authMiddlewareToTest(c, next)).rejects.toThrow(
       UnauthenticatedError
     );
-    expect(mockAuthService.authenticateUserByToken).not.toHaveBeenCalled();
+    expect(mockAuthService.getUserFromToken).not.toHaveBeenCalled();
     expect(next).not.toHaveBeenCalled();
   });
 
   it("throws UnauthenticatedError if authenticationService.authenticateUserByToken throws UnauthenticatedError", async () => {
     const c = createMockContext({ Authorization: "Bearer valid-token" });
-    (mockAuthService.authenticateUserByToken as Mock).mockRejectedValue(
+    (mockAuthService.getUserFromToken as Mock).mockRejectedValue(
       new UnauthenticatedError("Token is invalid or expired")
     );
     await expect(authMiddlewareToTest(c, next)).rejects.toThrow(
       UnauthenticatedError
     );
-    expect(mockAuthService.authenticateUserByToken).toHaveBeenCalledWith(
+    expect(mockAuthService.getUserFromToken).toHaveBeenCalledWith(
       "valid-token"
     );
     expect(next).not.toHaveBeenCalled();
@@ -84,13 +92,13 @@ describe("authMiddleware (with DI)", () => {
 
   it("throws ServiceUnavailableError if authenticationService.authenticateUserByToken throws ServiceUnavailableError", async () => {
     const c = createMockContext({ Authorization: "Bearer valid-token" });
-    (mockAuthService.authenticateUserByToken as Mock).mockRejectedValue(
+    (mockAuthService.getUserFromToken as Mock).mockRejectedValue(
       new ServiceUnavailableError("Auth service is temporarily down")
     );
     await expect(authMiddlewareToTest(c, next)).rejects.toThrow(
       ServiceUnavailableError
     );
-    expect(mockAuthService.authenticateUserByToken).toHaveBeenCalledWith(
+    expect(mockAuthService.getUserFromToken).toHaveBeenCalledWith(
       "valid-token"
     );
     expect(next).not.toHaveBeenCalled();
@@ -99,12 +107,12 @@ describe("authMiddleware (with DI)", () => {
   it("throws the original error from service if it's not a known business error handled by middleware", async () => {
     const c = createMockContext({ Authorization: "Bearer valid-token" });
     const genericError = new Error("Some unexpected error");
-    (mockAuthService.authenticateUserByToken as Mock).mockRejectedValue(
+    (mockAuthService.getUserFromToken as Mock).mockRejectedValue(
       genericError
     );
 
     await expect(authMiddlewareToTest(c, next)).rejects.toThrow(genericError);
-    expect(mockAuthService.authenticateUserByToken).toHaveBeenCalledWith(
+    expect(mockAuthService.getUserFromToken).toHaveBeenCalledWith(
       "valid-token"
     );
     expect(next).not.toHaveBeenCalled();
@@ -112,11 +120,11 @@ describe("authMiddleware (with DI)", () => {
 
   it("sets user on context and calls next() if authentication is successful", async () => {
     const c = createMockContext({ Authorization: "Bearer valid-token" });
-    (mockAuthService.authenticateUserByToken as Mock).mockResolvedValue(user);
+    (mockAuthService.getUserFromToken as Mock).mockResolvedValue(fullUser);
 
     await authMiddlewareToTest(c, next);
 
-    expect(mockAuthService.authenticateUserByToken).toHaveBeenCalledWith(
+    expect(mockAuthService.getUserFromToken).toHaveBeenCalledWith(
       "valid-token"
     );
     expect(c.set).toHaveBeenCalledWith("user", user);

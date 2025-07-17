@@ -105,7 +105,7 @@ describe("OAuthController", () => {
     } as any;
 
     mockAuthService = {
-      authenticateUserByToken: vi.fn(),
+      getUserFromToken: vi.fn(),
     } as any;
 
     controller = new OAuthController(
@@ -483,9 +483,11 @@ describe("OAuthController", () => {
       };
 
       // Mock authentication
-      vi.mocked(mockAuthService.authenticateUserByToken).mockResolvedValue({
-        userId: "user123",
+      vi.mocked(mockAuthService.getUserFromToken).mockResolvedValue({
+        id: "user123",
+        primaryEmail: "john@example.com",
         globalRole: "student",
+        ...mockUser,
       });
 
       vi.mocked(mockUserRepository.findById).mockResolvedValue(
@@ -528,9 +530,11 @@ describe("OAuthController", () => {
       };
 
       // Mock authentication
-      vi.mocked(mockAuthService.authenticateUserByToken).mockResolvedValue({
-        userId: "user123",
+      vi.mocked(mockAuthService.getUserFromToken).mockResolvedValue({
+        id: "user123",
+        primaryEmail: "john@example.com",
         globalRole: "student",
+        ...mockUser,
       });
 
       vi.mocked(mockUserRepository.findById).mockResolvedValue(
@@ -562,9 +566,11 @@ describe("OAuthController", () => {
       };
 
       // Mock authentication
-      vi.mocked(mockAuthService.authenticateUserByToken).mockResolvedValue({
-        userId: "user123",
+      vi.mocked(mockAuthService.getUserFromToken).mockResolvedValue({
+        id: "user123",
+        primaryEmail: "john@example.com",
         globalRole: "student",
+        ...mockUser,
       });
 
       vi.mocked(mockUserRepository.findById).mockResolvedValue(
@@ -594,9 +600,11 @@ describe("OAuthController", () => {
 
     it("should return 404 for non-existent user", async () => {
       // Mock authentication
-      vi.mocked(mockAuthService.authenticateUserByToken).mockResolvedValue({
-        userId: "user123",
+      vi.mocked(mockAuthService.getUserFromToken).mockResolvedValue({
+        id: "user123",
+        primaryEmail: "john@example.com",
         globalRole: "student",
+        ...mockUser,
       });
 
       vi.mocked(mockUserRepository.findById).mockResolvedValue(null);
@@ -613,9 +621,11 @@ describe("OAuthController", () => {
 
     it("should return 400 for invalid provider", async () => {
       // Mock authentication
-      vi.mocked(mockAuthService.authenticateUserByToken).mockResolvedValue({
-        userId: "user123",
+      vi.mocked(mockAuthService.getUserFromToken).mockResolvedValue({
+        id: "user123",
+        primaryEmail: "john@example.com",
         globalRole: "student",
+        ...mockUser,
       });
 
       const res = await app.request("/oauth/invalid", {
