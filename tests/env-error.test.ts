@@ -1,6 +1,20 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { z } from "zod";
 
+/**
+ * This test file ensures that the application's environment validation logic in src/env.ts
+ * correctly handles invalid environment variables at runtime. Unlike env.test.ts, which tests
+ * the Zod schema validation in isolation, this file tests the real-world behavior when the
+ * application is started with invalid environment variables. It verifies that:
+ *   - The process exits with code 1 when validation fails
+ *   - The correct error messages are logged to the console
+ *   - The validation is triggered during module import (simulating app startup)
+ *
+ * This is achieved by mocking process.exit and console.error, and using dynamic import to
+ * trigger the validation logic in src/env.ts. This test complements env.test.ts by ensuring
+ * the application's startup error handling works as intended.
+ */
+
 describe("env error handling", () => {
   // Mock console.error and process.exit
   const consoleErrorMock = vi
@@ -32,8 +46,8 @@ describe("env error handling", () => {
     // Reset potential cached module
     vi.resetModules();
 
-    // Set an invalid value for AUTH_SERVICE_URL
-    process.env.AUTH_SERVICE_URL = "not-a-valid-url";
+    // Set an invalid value for FRONTEND_URL (which has URL validation)
+    process.env.FRONTEND_URL = "not-a-valid-url";
 
     // Import env.ts - this will trigger the validation logic
     // We need to use dynamic import to avoid the validation running at module load time

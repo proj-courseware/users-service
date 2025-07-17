@@ -23,7 +23,7 @@ import type {
   UpdateUserType,
   UserQueryParamsType,
 } from "@/schemas/user.schema";
-import type { AuthenticatedUserContextType } from "@/schemas/user.schemas";
+import type { AuthenticatedUserContextType } from "@/schemas/user.schema";
 import {
   NotFoundError,
   BadRequestError,
@@ -170,7 +170,7 @@ const createMockContext = (
   userContext: AuthenticatedUserContextType,
   validatedBody?: any,
   validatedParams?: any,
-  validatedQuery?: any,
+  validatedQuery?: any
 ): Partial<Context<AppEnv>> => ({
   var: {
     user: userContext,
@@ -233,7 +233,7 @@ describe("AdminController", () => {
         adminContext,
         undefined,
         undefined,
-        queryParams,
+        queryParams
       );
       await adminController.getAllUsers(c as Context<AppEnv>);
 
@@ -254,7 +254,7 @@ describe("AdminController", () => {
       const c = createMockContext(userContext);
 
       await expect(
-        adminController.getAllUsers(c as Context<AppEnv>),
+        adminController.getAllUsers(c as Context<AppEnv>)
       ).rejects.toThrow(ForbiddenError);
     });
   });
@@ -283,7 +283,7 @@ describe("AdminController", () => {
       });
 
       await expect(
-        adminController.getUserById(c as Context<AppEnv>),
+        adminController.getUserById(c as Context<AppEnv>)
       ).rejects.toThrow(NotFoundError);
     });
   });
@@ -313,13 +313,13 @@ describe("AdminController", () => {
       await adminController.createUser(c as Context<AppEnv>);
 
       expect(mockUserRepository.findByEmail).toHaveBeenCalledWith(
-        createUserData.primaryEmail,
+        createUserData.primaryEmail
       );
       expect(mockPasswordService.validatePasswordStrength).toHaveBeenCalledWith(
-        createUserData.password,
+        createUserData.password
       );
       expect(mockPasswordService.hashPassword).toHaveBeenCalledWith(
-        createUserData.password,
+        createUserData.password
       );
       expect(mockUserRepository.create).toHaveBeenCalled();
       expect(c.json).toHaveBeenCalledWith(
@@ -327,14 +327,14 @@ describe("AdminController", () => {
           success: true,
           message: "User created successfully",
         }),
-        201,
+        201
       );
     });
 
     it("should create user with generated password", async () => {
       mockUserRepository.findByEmail.mockResolvedValue(null);
       mockPasswordService.generateSecurePassword.mockReturnValue(
-        "GeneratedPass123!",
+        "GeneratedPass123!"
       );
 
       const createDataWithGenerated = {
@@ -352,7 +352,7 @@ describe("AdminController", () => {
           success: true,
           generatedPassword: "GeneratedPass123!",
         }),
-        201,
+        201
       );
     });
 
@@ -362,7 +362,7 @@ describe("AdminController", () => {
       const c = createMockContext(adminContext, createUserData);
 
       await expect(
-        adminController.createUser(c as Context<AppEnv>),
+        adminController.createUser(c as Context<AppEnv>)
       ).rejects.toThrow(UserAlreadyExistsError);
     });
 
@@ -376,7 +376,7 @@ describe("AdminController", () => {
       const c = createMockContext(adminContext, createUserData);
 
       await expect(
-        adminController.createUser(c as Context<AppEnv>),
+        adminController.createUser(c as Context<AppEnv>)
       ).rejects.toThrow(BadRequestError);
     });
   });
@@ -400,7 +400,7 @@ describe("AdminController", () => {
       expect(mockUserRepository.findById).toHaveBeenCalledWith(regularUser.id);
       expect(mockUserRepository.update).toHaveBeenCalledWith(
         regularUser.id,
-        updateData,
+        updateData
       );
       expect(c.json).toHaveBeenCalledWith({
         success: true,
@@ -418,7 +418,7 @@ describe("AdminController", () => {
       });
 
       await expect(
-        adminController.updateUser(c as Context<AppEnv>),
+        adminController.updateUser(c as Context<AppEnv>)
       ).rejects.toThrow(BadRequestError);
     });
   });
@@ -446,7 +446,7 @@ describe("AdminController", () => {
       });
 
       await expect(
-        adminController.deleteUser(c as Context<AppEnv>),
+        adminController.deleteUser(c as Context<AppEnv>)
       ).rejects.toThrow(BadRequestError);
     });
   });
@@ -466,7 +466,7 @@ describe("AdminController", () => {
         regularUser.primaryEmail,
         regularUser.failedLoginAttempts,
         true,
-        undefined,
+        undefined
       );
       expect(c.json).toHaveBeenCalledWith({
         success: true,
@@ -482,7 +482,7 @@ describe("AdminController", () => {
       (c.req!.json as any).mockResolvedValue({});
 
       await expect(
-        adminController.lockUser(c as Context<AppEnv>),
+        adminController.lockUser(c as Context<AppEnv>)
       ).rejects.toThrow(BadRequestError);
     });
 
@@ -495,7 +495,7 @@ describe("AdminController", () => {
       (c.req!.json as any).mockResolvedValue({});
 
       await expect(
-        adminController.lockUser(c as Context<AppEnv>),
+        adminController.lockUser(c as Context<AppEnv>)
       ).rejects.toThrow(BadRequestError);
     });
   });
@@ -524,7 +524,7 @@ describe("AdminController", () => {
       });
 
       await expect(
-        adminController.unlockUser(c as Context<AppEnv>),
+        adminController.unlockUser(c as Context<AppEnv>)
       ).rejects.toThrow(BadRequestError);
     });
   });
@@ -537,7 +537,7 @@ describe("AdminController", () => {
       });
       mockPasswordService.hashPassword.mockResolvedValue("new-hashed-password");
       mockPasswordService.generateSecurePassword.mockReturnValue(
-        "GeneratedPass123!",
+        "GeneratedPass123!"
       );
     });
 
@@ -552,14 +552,14 @@ describe("AdminController", () => {
       await adminController.resetUserPassword(c as Context<AppEnv>);
 
       expect(mockPasswordService.validatePasswordStrength).toHaveBeenCalledWith(
-        "NewPass123!",
+        "NewPass123!"
       );
       expect(mockPasswordService.hashPassword).toHaveBeenCalledWith(
-        "NewPass123!",
+        "NewPass123!"
       );
       expect(mockUserRepository.updatePassword).toHaveBeenCalledWith(
         regularUser.id,
-        "new-hashed-password",
+        "new-hashed-password"
       );
       expect(c.json).toHaveBeenCalledWith({
         success: true,
@@ -623,7 +623,7 @@ describe("AdminController", () => {
 
       expect(mockUserRepository.findMany).toHaveBeenCalledWith(
         { search: "test", role: "student" },
-        20,
+        20
       );
       expect(c.json).toHaveBeenCalledWith({
         success: true,
@@ -638,7 +638,7 @@ describe("AdminController", () => {
       (c.req!.query as any).mockReturnValue("a"); // Short query
 
       await expect(
-        adminController.searchUsers(c as Context<AppEnv>),
+        adminController.searchUsers(c as Context<AppEnv>)
       ).rejects.toThrow(BadRequestError);
     });
   });
@@ -676,7 +676,7 @@ describe("AdminController", () => {
       });
 
       await expect(
-        adminController.bulkOperations(c as Context<AppEnv>),
+        adminController.bulkOperations(c as Context<AppEnv>)
       ).rejects.toThrow(BadRequestError);
     });
   });
@@ -693,7 +693,7 @@ describe("AdminController", () => {
 
       const c = createMockContext(adminContext, undefined, undefined, {});
       await expect(
-        adminController.getAllUsers(c as Context<AppEnv>),
+        adminController.getAllUsers(c as Context<AppEnv>)
       ).resolves.not.toThrow();
     });
 
@@ -706,14 +706,14 @@ describe("AdminController", () => {
 
       const c = createMockContext(teacherContext);
       await expect(
-        adminController.getAllUsers(c as Context<AppEnv>),
+        adminController.getAllUsers(c as Context<AppEnv>)
       ).rejects.toThrow(ForbiddenError);
     });
 
     it("should deny student access", async () => {
       const c = createMockContext(userContext);
       await expect(
-        adminController.getAllUsers(c as Context<AppEnv>),
+        adminController.getAllUsers(c as Context<AppEnv>)
       ).rejects.toThrow(ForbiddenError);
     });
   });
@@ -738,14 +738,14 @@ describe("AdminController", () => {
     describe("getPasswordPolicy", () => {
       it("should return current password policy for admin", async () => {
         mockPasswordService.getCurrentPasswordPolicy.mockReturnValue(
-          testPolicy,
+          testPolicy
         );
 
         const c = createMockContext(adminContext);
         await adminController.getPasswordPolicy(c as Context<AppEnv>);
 
         expect(
-          mockPasswordService.getCurrentPasswordPolicy,
+          mockPasswordService.getCurrentPasswordPolicy
         ).toHaveBeenCalledOnce();
         expect(c.json).toHaveBeenCalledWith({
           success: true,
@@ -761,7 +761,7 @@ describe("AdminController", () => {
       it("should deny access to non-admin users", async () => {
         const c = createMockContext(userContext);
         await expect(
-          adminController.getPasswordPolicy(c as Context<AppEnv>),
+          adminController.getPasswordPolicy(c as Context<AppEnv>)
         ).rejects.toThrow(ForbiddenError);
       });
     });
@@ -779,7 +779,7 @@ describe("AdminController", () => {
         await adminController.validatePasswordPolicy(c as Context<AppEnv>);
 
         expect(mockPasswordService.validatePasswordPolicy).toHaveBeenCalledWith(
-          testPolicy,
+          testPolicy
         );
         expect(c.json).toHaveBeenCalledWith({
           success: true,
@@ -826,7 +826,7 @@ describe("AdminController", () => {
         (c.req!.json as any).mockResolvedValue(testPolicy);
 
         await expect(
-          adminController.validatePasswordPolicy(c as Context<AppEnv>),
+          adminController.validatePasswordPolicy(c as Context<AppEnv>)
         ).rejects.toThrow(ForbiddenError);
       });
     });
@@ -840,7 +840,7 @@ describe("AdminController", () => {
           errors: [],
         });
         mockPasswordService.getCurrentPasswordPolicy.mockReturnValue(
-          testPolicy,
+          testPolicy
         );
 
         const c = createMockContext(adminContext);
@@ -849,10 +849,10 @@ describe("AdminController", () => {
         await adminController.testPasswordPolicy(c as Context<AppEnv>);
 
         expect(
-          mockPasswordService.validatePasswordStrength,
+          mockPasswordService.validatePasswordStrength
         ).toHaveBeenCalledWith(testPassword, undefined);
         expect(
-          mockPasswordService.getCurrentPasswordPolicy,
+          mockPasswordService.getCurrentPasswordPolicy
         ).toHaveBeenCalledOnce();
         expect(c.json).toHaveBeenCalledWith({
           success: true,
@@ -892,7 +892,7 @@ describe("AdminController", () => {
         await adminController.testPasswordPolicy(c as Context<AppEnv>);
 
         expect(
-          mockPasswordService.validatePasswordStrength,
+          mockPasswordService.validatePasswordStrength
         ).toHaveBeenCalledWith(testPassword, customPolicy);
         expect(c.json).toHaveBeenCalledWith({
           success: true,
@@ -912,7 +912,7 @@ describe("AdminController", () => {
         (c.req!.json as any).mockResolvedValue({}); // No password
 
         await expect(
-          adminController.testPasswordPolicy(c as Context<AppEnv>),
+          adminController.testPasswordPolicy(c as Context<AppEnv>)
         ).rejects.toThrow(BadRequestError);
       });
 
@@ -921,7 +921,7 @@ describe("AdminController", () => {
         (c.req!.json as any).mockResolvedValue({ password: "test123" });
 
         await expect(
-          adminController.testPasswordPolicy(c as Context<AppEnv>),
+          adminController.testPasswordPolicy(c as Context<AppEnv>)
         ).rejects.toThrow(ForbiddenError);
       });
     });
@@ -935,7 +935,7 @@ describe("AdminController", () => {
         ];
 
         mockPasswordService.getCurrentPasswordPolicy.mockReturnValue(
-          testPolicy,
+          testPolicy
         );
         mockPasswordService.validatePasswordPolicy.mockReturnValue({
           isValid: true,
@@ -950,13 +950,13 @@ describe("AdminController", () => {
         await adminController.getPasswordPolicyInfo(c as Context<AppEnv>);
 
         expect(
-          mockPasswordService.getCurrentPasswordPolicy,
+          mockPasswordService.getCurrentPasswordPolicy
         ).toHaveBeenCalledOnce();
         expect(mockPasswordService.validatePasswordPolicy).toHaveBeenCalledWith(
-          testPolicy,
+          testPolicy
         );
         expect(
-          mockPasswordService.generateSecurePassword,
+          mockPasswordService.generateSecurePassword
         ).toHaveBeenCalledTimes(3);
 
         expect(c.json).toHaveBeenCalledWith({
@@ -974,7 +974,7 @@ describe("AdminController", () => {
       it("should deny access to non-admin users", async () => {
         const c = createMockContext(userContext);
         await expect(
-          adminController.getPasswordPolicyInfo(c as Context<AppEnv>),
+          adminController.getPasswordPolicyInfo(c as Context<AppEnv>)
         ).rejects.toThrow(ForbiddenError);
       });
     });
@@ -1026,7 +1026,7 @@ describe("AdminController", () => {
       it("should deny access to non-admin users", async () => {
         const c = createMockContext(userContext);
         await expect(
-          adminController.getAllSettings(c as Context<AppEnv>),
+          adminController.getAllSettings(c as Context<AppEnv>)
         ).rejects.toThrow(ForbiddenError);
       });
     });
@@ -1041,7 +1041,7 @@ describe("AdminController", () => {
         await adminController.getSettingByKey(c as Context<AppEnv>);
 
         expect(mockAdminSettingRepository.findByKey).toHaveBeenCalledWith(
-          "test.setting",
+          "test.setting"
         );
         expect(c.json).toHaveBeenCalledWith({
           success: true,
@@ -1056,7 +1056,7 @@ describe("AdminController", () => {
           key: "nonexistent",
         });
         await expect(
-          adminController.getSettingByKey(c as Context<AppEnv>),
+          adminController.getSettingByKey(c as Context<AppEnv>)
         ).rejects.toThrow(NotFoundError);
       });
 
@@ -1065,7 +1065,7 @@ describe("AdminController", () => {
           key: "test.setting",
         });
         await expect(
-          adminController.getSettingByKey(c as Context<AppEnv>),
+          adminController.getSettingByKey(c as Context<AppEnv>)
         ).rejects.toThrow(ForbiddenError);
       });
     });
@@ -1078,14 +1078,14 @@ describe("AdminController", () => {
         const c = createMockContext(
           adminContext,
           { value: "updated value", description: "Updated description" },
-          { key: "test.setting" },
+          { key: "test.setting" }
         );
         await adminController.setSettingByKey(c as Context<AppEnv>);
 
         expect(mockAdminSettingRepository.setValue).toHaveBeenCalledWith(
           "test.setting",
           "updated value",
-          "Updated description",
+          "Updated description"
         );
         expect(c.json).toHaveBeenCalledWith({
           success: true,
@@ -1105,14 +1105,14 @@ describe("AdminController", () => {
         const c = createMockContext(
           adminContext,
           { value: complexValue },
-          { key: "complex.setting" },
+          { key: "complex.setting" }
         );
         await adminController.setSettingByKey(c as Context<AppEnv>);
 
         expect(mockAdminSettingRepository.setValue).toHaveBeenCalledWith(
           "complex.setting",
           complexValue,
-          undefined,
+          undefined
         );
       });
 
@@ -1120,10 +1120,10 @@ describe("AdminController", () => {
         const c = createMockContext(
           userContext,
           { value: "test value" },
-          { key: "test.setting" },
+          { key: "test.setting" }
         );
         await expect(
-          adminController.setSettingByKey(c as Context<AppEnv>),
+          adminController.setSettingByKey(c as Context<AppEnv>)
         ).rejects.toThrow(ForbiddenError);
       });
     });
@@ -1138,7 +1138,7 @@ describe("AdminController", () => {
         await adminController.deleteSettingByKey(c as Context<AppEnv>);
 
         expect(mockAdminSettingRepository.deleteByKey).toHaveBeenCalledWith(
-          "test.setting",
+          "test.setting"
         );
         expect(c.json).toHaveBeenCalledWith({
           success: true,
@@ -1153,7 +1153,7 @@ describe("AdminController", () => {
           key: "nonexistent",
         });
         await expect(
-          adminController.deleteSettingByKey(c as Context<AppEnv>),
+          adminController.deleteSettingByKey(c as Context<AppEnv>)
         ).rejects.toThrow(NotFoundError);
       });
 
@@ -1162,7 +1162,7 @@ describe("AdminController", () => {
           key: "test.setting",
         });
         await expect(
-          adminController.deleteSettingByKey(c as Context<AppEnv>),
+          adminController.deleteSettingByKey(c as Context<AppEnv>)
         ).rejects.toThrow(ForbiddenError);
       });
     });
@@ -1196,7 +1196,7 @@ describe("AdminController", () => {
       it("should deny access to non-admin users", async () => {
         const c = createMockContext(userContext, { keys: ["setting1"] });
         await expect(
-          adminController.getMultipleSettings(c as Context<AppEnv>),
+          adminController.getMultipleSettings(c as Context<AppEnv>)
         ).rejects.toThrow(ForbiddenError);
       });
     });
@@ -1241,7 +1241,7 @@ describe("AdminController", () => {
 
       it("should handle database errors gracefully", async () => {
         mockUserRepository.findMany.mockRejectedValue(
-          new Error("Database connection failed"),
+          new Error("Database connection failed")
         );
         mockAdminSettingRepository.findAll.mockResolvedValue(testSettings);
 
@@ -1265,7 +1265,7 @@ describe("AdminController", () => {
       it("should handle settings repository errors gracefully", async () => {
         mockUserRepository.findMany.mockResolvedValue([regularUser]);
         mockAdminSettingRepository.findAll.mockRejectedValue(
-          new Error("Settings error"),
+          new Error("Settings error")
         );
 
         const c = createMockContext(adminContext);
@@ -1288,7 +1288,7 @@ describe("AdminController", () => {
       it("should deny access to non-admin users", async () => {
         const c = createMockContext(userContext);
         await expect(
-          adminController.getHealthStatus(c as Context<AppEnv>),
+          adminController.getHealthStatus(c as Context<AppEnv>)
         ).rejects.toThrow(ForbiddenError);
       });
     });
