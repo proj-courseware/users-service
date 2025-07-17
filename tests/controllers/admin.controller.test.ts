@@ -13,7 +13,6 @@ import type { Context } from "hono";
 import type { AppEnv } from "@/schemas/app-env.schema";
 import type {
   UserType,
-  CreateUserType,
   UpdateUserType,
   UserQueryParamsType,
 } from "@/schemas/user.schema";
@@ -135,7 +134,7 @@ const createMockAuthService = (): IAuthenticationService => ({
   unlockAccount: vi.fn(),
   changePassword: vi.fn(),
   resetFailedAttempts: vi.fn(),
-  authenticateUserByToken: vi.fn(),
+  logout: vi.fn(),
 });
 
 const createMockPasswordService = (): IPasswordService => ({
@@ -173,14 +172,7 @@ const createMockContext = (
   } as any,
   json: vi.fn((data, status?) => ({ json: data, status }) as any),
   req: {
-    query: vi.fn((key: string) => {
-      const queryMap: Record<string, string> = {
-        q: "test",
-        limit: "20",
-        role: "student",
-      };
-      return queryMap[key];
-    }),
+    query: vi.fn((key: string) => (validatedQuery ? validatedQuery[key] : undefined)),
     json: vi.fn().mockResolvedValue({}),
   } as any,
 });
@@ -615,7 +607,11 @@ describe("AdminController", () => {
     it("should search users successfully (admin)", async () => {
       (mockUserRepository.findMany as Mock).mockResolvedValue([regularUser]);
 
-      const c = createMockContext(adminContext);
+      const c = createMockContext(adminContext, undefined, undefined, {
+        q: "test",
+        role: "student",
+        limit: "20",
+      });
       await adminController.searchUsers(c as Context<AppEnv>);
 
       expect(mockUserRepository.findMany).toHaveBeenCalledWith(
@@ -631,8 +627,7 @@ describe("AdminController", () => {
     });
 
     it("should throw BadRequestError for short query", async () => {
-      const c = createMockContext(adminContext);
-      (c.req!.query as any).mockReturnValue("a"); // Short query
+      const c = createMockContext(adminContext, undefined, undefined, { q: "a" });
 
       await expect(
         adminController.searchUsers(c as Context<AppEnv>)
