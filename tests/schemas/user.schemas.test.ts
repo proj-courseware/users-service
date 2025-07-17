@@ -15,7 +15,11 @@ describe("userIdSchema", () => {
 
 describe("authenticatedUserContextSchema", () => {
   it("accepts valid user context", () => {
-    const valid = { userId: "user-1", globalRole: "admin" };
+    const valid = {
+      userId: "user-1",
+      globalRole: "admin",
+      primaryEmail: "admin@example.com",
+    };
     expect(authenticatedUserContextSchema.parse(valid)).toEqual(valid);
   });
   it("rejects missing userId", () => {

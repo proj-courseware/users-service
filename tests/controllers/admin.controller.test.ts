@@ -282,12 +282,12 @@ describe("AdminController", () => {
   });
 
   describe("createUser", () => {
-    const createUserData: CreateUserType & { password: string } = {
+    const createUserData = {
       firstName: "New",
       lastName: "User",
-      primaryEmail: "newuser@example.com",
+      email: "newuser@example.com",
       password: "SecurePass123!",
-      globalRole: "student",
+      globalRole: "student" as const,
     };
 
     beforeEach(() => {
@@ -308,7 +308,7 @@ describe("AdminController", () => {
       await adminController.createUser(c as Context<AppEnv>);
 
       expect(mockUserRepository.findByEmail).toHaveBeenCalledWith(
-        createUserData.primaryEmail
+        createUserData.email
       );
       expect(mockPasswordService.validatePasswordStrength).toHaveBeenCalledWith(
         createUserData.password
