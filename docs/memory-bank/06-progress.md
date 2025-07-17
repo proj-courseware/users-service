@@ -645,3 +645,131 @@ While the logout system is production-ready, optional enhancements include:
 - ✅ Event-driven architecture planned
 - ✅ Migration strategy documented
 - ✅ Prototype demonstrates feasibility
+
+## Current Testing Status and Issues
+
+**Date**: July 17, 2025
+**Status**: ⚠️ **CRITICAL ISSUES IDENTIFIED** - 29 failing tests requiring immediate attention
+
+### Testing Analysis Results
+
+**Test Suite Overview**:
+- 🔴 **Total Failing Tests**: 29 tests across multiple files
+- 🟡 **Test Coverage Gaps**: 12 source files without corresponding test files (24% missing coverage)
+- 🟢 **Passing Tests**: Core functionality tests working (user controller, authentication core)
+
+### Critical Test Failures by Category
+
+#### 1. Authentication Service Tests (8 failures)
+**File**: `tests/services/authentication.service.test.ts`
+**Issue**: Password validation errors due to `undefined.join()` calls
+**Root Cause**: Error handling in password validation service
+**Impact**: **HIGH** - Core authentication functionality affected
+
+#### 2. Auth Middleware Tests (3 failures)
+**File**: `tests/middlewares/auth.middleware.test.ts`
+**Issue**: Missing `getUserFromToken` method in authentication service
+**Root Cause**: Interface mismatch between middleware and service
+**Impact**: **HIGH** - Authentication middleware broken
+
+#### 3. OAuth Controller Tests (5 failures)
+**File**: `tests/controllers/oauth.controller.test.ts`
+**Issue**: OAuth account unlink returning 500 instead of expected status codes
+**Root Cause**: Error handling in OAuth unlink functionality
+**Impact**: **MEDIUM** - Social login features affected
+
+#### 4. Progressive Lockout Tests (4 failures)
+**File**: `tests/middlewares/progressive-lockout.middleware.test.ts`
+**Issue**: Missing refresh token repository methods
+**Root Cause**: Interface dependency not properly implemented
+**Impact**: **HIGH** - Account security features broken
+
+#### 5. Schema and Configuration Tests (9 failures)
+**Files**: Various schema and configuration tests
+**Issues**: Import path issues, console mock problems, validation errors
+**Root Cause**: Test setup and configuration issues
+**Impact**: **MEDIUM** - Development workflow affected
+
+### Missing Test Coverage Analysis
+
+**Files without tests** (12 files, 24% of source files):
+- `src/config/mongodb.setup.ts` - Database configuration
+- `src/errors.ts` - Error handling definitions
+- `src/server.ts` - Server startup and configuration
+- `src/routes/*.ts` - All router files (5 files)
+- `src/repositories/*.ts` - Repository interface files (3 files)
+- `src/schemas/app-env.schema.ts` - Environment schema
+- `src/schemas/oauth.schema.ts` - OAuth schema definitions
+
+### Test Quality Issues
+
+**Structural Problems**:
+- Test file organization doesn't fully match src directory structure
+- Some tests lack proper setup/teardown procedures
+- Mock implementations incomplete in several test files
+- Error scenario coverage incomplete across multiple test suites
+
+**Integration Issues**:
+- Services not properly mocked in controller tests
+- Database connection issues in some test environments
+- Event system testing incomplete
+- Middleware testing lacks proper request/response mocking
+
+### Immediate Action Required
+
+**Priority 1 - Critical Failures** (29 tests):
+1. **Authentication Service**: Fix password validation error handling
+2. **Auth Middleware**: Add missing getUserFromToken method
+3. **OAuth Controller**: Fix unlink functionality error handling
+4. **Progressive Lockout**: Implement missing repository methods
+5. **Schema Tests**: Fix import paths and validation issues
+
+**Priority 2 - Missing Coverage** (12 files):
+1. Add tests for configuration and setup files
+2. Add tests for all router files
+3. Add tests for error handling definitions
+4. Add tests for repository interfaces
+5. Add tests for schema definitions
+
+**Priority 3 - Test Quality** (Ongoing):
+1. Reorganize test structure to match src directory
+2. Improve mock implementations
+3. Add comprehensive error scenario testing
+4. Enhance integration test coverage
+
+### Testing Recovery Timeline
+
+**Phase 1 - Critical Fixes** (2-3 days):
+- Fix 29 failing tests to restore test suite health
+- Ensure all core functionality tests pass
+- Verify authentication and security features work
+
+**Phase 2 - Coverage Addition** (3-4 days):
+- Add tests for 12 missing source files
+- Achieve 90%+ test coverage target
+- Implement comprehensive error scenario testing
+
+**Phase 3 - Quality Enhancement** (1-2 days):
+- Reorganize test structure for maintainability
+- Improve mock implementations and test utilities
+- Add integration and end-to-end testing
+
+### Success Metrics for Testing Recovery
+
+**Immediate Goals**:
+- ✅ 0 failing tests (100% test suite passing)
+- ✅ 90%+ test coverage across all source files
+- ✅ All authentication flows tested and working
+- ✅ Security features properly tested
+
+**Quality Goals**:
+- ✅ Test structure mirrors src directory organization
+- ✅ Comprehensive error scenario coverage
+- ✅ Mock implementations complete and maintainable
+- ✅ Integration tests for all major workflows
+
+**Maintenance Goals**:
+- ✅ Test suite runs fast and reliably
+- ✅ Clear test documentation and patterns
+- ✅ Automated test coverage reporting
+- ✅ Test failures provide actionable error messages

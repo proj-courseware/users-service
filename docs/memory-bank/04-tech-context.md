@@ -48,6 +48,116 @@
 - **Validation**: All environment variables validated with Zod schemas in `src/env.ts`
 - **Type Safety**: Environment variables are typed and validated at startup
 
+## Testing Infrastructure and Current Issues
+
+### Testing Framework Stack
+
+- **Test Runner**: Vitest with coverage reporting and UI
+- **Test Types**: Unit tests, integration tests, repository tests
+- **Mocking**: Vitest mocks for services and external dependencies
+- **Coverage**: Istanbul-based coverage reporting
+
+### Current Testing Status ⚠️
+
+**Date**: July 17, 2025
+**Status**: 🚨 **CRITICAL ISSUES** - 29 failing tests block deployment
+
+#### Test Suite Health
+- 🔴 **Failing Tests**: 29 tests across multiple critical components
+- 🟡 **Coverage Gaps**: 12 source files without tests (24% missing coverage)
+- 🟢 **Passing Tests**: Core user controller (21/21) and some authentication flows
+
+#### Critical Test Failures by Component
+
+**Authentication Service** (8 failures):
+- Issue: Password validation errors due to `undefined.join()` calls
+- Root Cause: Error handling in password validation service
+- Impact: Core authentication functionality testing compromised
+
+**Auth Middleware** (3 failures):
+- Issue: Missing `getUserFromToken` method in authentication service
+- Root Cause: Interface mismatch between middleware and service
+- Impact: Authentication middleware cannot function properly
+
+**OAuth Controller** (5 failures):
+- Issue: OAuth account unlink returning 500 instead of expected status codes
+- Root Cause: Error handling in OAuth unlink functionality
+- Impact: Social login features may be broken
+
+**Progressive Lockout Middleware** (4 failures):
+- Issue: Missing refresh token repository methods
+- Root Cause: Interface dependency not properly implemented
+- Impact: Account security features not working
+
+**Schema and Configuration** (9 failures):
+- Issues: Import path issues, console mock problems, validation errors
+- Root Cause: Test setup and configuration issues
+- Impact: Development workflow and schema validation affected
+
+#### Missing Test Coverage
+
+**Files without tests** (12 files):
+- `src/config/mongodb.setup.ts` - Database configuration
+- `src/errors.ts` - Error handling definitions
+- `src/server.ts` - Server startup and configuration
+- `src/routes/*.ts` - All router files (5 files)
+- `src/repositories/*.ts` - Repository interface files (3 files)
+- `src/schemas/app-env.schema.ts` - Environment schema
+- `src/schemas/oauth.schema.ts` - OAuth schema definitions
+
+### Technical Debt Analysis
+
+#### Test Infrastructure Issues
+- **Structural Problems**: Test file organization doesn't match src directory
+- **Mock Implementations**: Incomplete mocking in several test files
+- **Setup/Teardown**: Some tests lack proper cleanup procedures
+- **Integration Issues**: Services not properly mocked in controller tests
+
+#### Quality Indicators
+- **Test Reliability**: 29 failures indicate test suite instability
+- **Coverage Gaps**: 24% of source files without tests
+- **Maintenance**: Test failures suggest maintenance debt
+- **CI/CD Impact**: Failing tests block deployment pipeline
+
+### Testing Recovery Plan
+
+**Phase 1 - Critical Fixes** (2-3 days):
+- Fix authentication service password validation errors
+- Add missing getUserFromToken method to authentication service
+- Fix OAuth controller error handling
+- Implement missing refresh token repository methods
+- Fix import path issues in schema tests
+
+**Phase 2 - Coverage Restoration** (3-4 days):
+- Add tests for 12 missing source files
+- Achieve 90%+ test coverage target
+- Implement comprehensive error scenario testing
+
+**Phase 3 - Quality Enhancement** (1-2 days):
+- Reorganize test structure to match src directory
+- Improve mock implementations and test utilities
+- Add integration and end-to-end testing
+
+### Best Practices for Testing Recovery
+
+#### Test Organization
+- Mirror src directory structure in tests
+- Use descriptive test file names
+- Group related tests in describe blocks
+- Follow AAA pattern (Arrange, Act, Assert)
+
+#### Mock Strategy
+- Use interface-based mocking for dependencies
+- Mock external services and databases
+- Create reusable mock factories
+- Maintain mock consistency across tests
+
+#### Error Scenario Testing
+- Test happy path and error conditions
+- Validate error types and messages
+- Test edge cases and boundary conditions
+- Ensure proper error propagation
+
 ### Key Environment Variables
 
 ```bash
