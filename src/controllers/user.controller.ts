@@ -9,9 +9,11 @@ import type {
 } from "@/schemas/user.schema";
 import type { IAuthenticationService } from "@/services/authentication.service";
 import type { IEmailVerificationService } from "@/services/email-verification.service";
+import type { IEmailService } from "@/services/email.service";
 import type { IUserRepository } from "@/repositories/user.repository";
 import { AuthenticationService } from "@/services/authentication.service";
 import { EmailVerificationService } from "@/services/email-verification.service";
+import { EmailService } from "@/services/email.service";
 import { MockDbUserRepository } from "@/repositories/mockdb/user.mockdb.repository";
 import { MongoDbUserRepository } from "@/repositories/mongodb/user.mongodb.repository";
 import { MockDbRefreshTokenRepository } from "@/repositories/mockdb/refresh-token.mockdb.repository";
@@ -25,22 +27,26 @@ export interface UserControllerDeps {
   userRepository?: IUserRepository;
   authenticationService?: IAuthenticationService;
   emailVerificationService?: IEmailVerificationService;
+  emailService?: IEmailService;
 }
 
 export class UserController {
   private userRepository: IUserRepository;
   private authenticationService: IAuthenticationService;
   private emailVerificationService: IEmailVerificationService;
+  private emailService: IEmailService;
 
   constructor(deps?: UserControllerDeps) {
     if (
       deps?.userRepository &&
       deps?.authenticationService &&
-      deps?.emailVerificationService
+      deps?.emailVerificationService &&
+      deps?.emailService
     ) {
       this.userRepository = deps.userRepository;
       this.authenticationService = deps.authenticationService;
       this.emailVerificationService = deps.emailVerificationService;
+      this.emailService = deps.emailService;
     } else {
       // Create default services with proper dependency injection
       this.userRepository =
@@ -65,6 +71,8 @@ export class UserController {
       this.emailVerificationService = new EmailVerificationService(
         this.userRepository
       );
+
+      this.emailService = new EmailService();
     }
   }
 
@@ -174,20 +182,58 @@ export class UserController {
           body.emailAddress
         );
 
-      return c.json(
-        {
-          success: true,
-          message: "Email added successfully. Verification email sent.",
-          emailAddress: body.emailAddress,
-          verificationEmailSent: true,
-          // In development, include token for testing
-          ...(env.NODE_ENV === "development" && {
-            verificationToken: verificationResult.token,
-            verificationExpiresAt: verificationResult.expiresAt,
-          }),
-        },
-        201
-      );
+      // Send verification email
+      let emailSent = false;
+      let emailError: string | undefined;
+
+      try {
+        const emailResult = await this.emailService.sendVerificationEmail(
+          userContext.userId,
+          body.emailAddress,
+          verificationResult.token,
+          user.firstName
+        );
+        emailSent = emailResult.success;
+        if (!emailResult.success) {
+          emailError = emailResult.error;
+        }
+      } catch (error) {
+        console.error("Failed to send verification email:", error);
+        emailError = error instanceof Error ? error.message : "Unknown error";
+      }
+
+      if (emailSent) {
+        return c.json(
+          {
+            success: true,
+            message: "Email added successfully. Verification email sent.",
+            emailAddress: body.emailAddress,
+            verificationEmailSent: true,
+            // In development, include token for testing
+            ...(env.NODE_ENV === "development" && {
+              verificationToken: verificationResult.token,
+              verificationExpiresAt: verificationResult.expiresAt,
+            }),
+          },
+          201
+        );
+      } else {
+        return c.json(
+          {
+            success: true,
+            message:
+              "Email added successfully, but verification email could not be sent. Please try to resend verification.",
+            emailAddress: body.emailAddress,
+            verificationEmailSent: false,
+            ...(env.NODE_ENV === "development" && {
+              emailError,
+              verificationToken: verificationResult.token,
+              verificationExpiresAt: verificationResult.expiresAt,
+            }),
+          },
+          201
+        );
+      }
     } catch (error) {
       console.error("Failed to generate verification token:", error);
       return c.json(
@@ -304,15 +350,49 @@ export class UserController {
       emailAddress
     );
 
-    return c.json({
-      success: true,
-      message: result.message,
-      emailAddress: result.emailAddress,
-      // In development, include expiry info for testing
-      ...(env.NODE_ENV === "development" && {
-        verificationExpiresAt: result.expiresAt,
-      }),
-    });
+    // Send verification email
+    let emailSent = false;
+    let emailError: string | undefined;
+
+    try {
+      const emailResult = await this.emailService.sendVerificationEmail(
+        userContext.userId,
+        emailAddress,
+        result.token,
+        user.firstName
+      );
+      emailSent = emailResult.success;
+      if (!emailResult.success) {
+        emailError = emailResult.error;
+      }
+    } catch (error) {
+      console.error("Failed to send verification email:", error);
+      emailError = error instanceof Error ? error.message : "Unknown error";
+    }
+
+    if (emailSent) {
+      return c.json({
+        success: true,
+        message: "Verification email sent successfully",
+        emailAddress: result.emailAddress,
+        verificationEmailSent: true,
+        // In development, include expiry info for testing
+        ...(env.NODE_ENV === "development" && {
+          verificationExpiresAt: result.expiresAt,
+        }),
+      });
+    } else {
+      return c.json({
+        success: false,
+        message: "Failed to send verification email. Please try again later.",
+        emailAddress: result.emailAddress,
+        verificationEmailSent: false,
+        ...(env.NODE_ENV === "development" && {
+          emailError,
+          verificationExpiresAt: result.expiresAt,
+        }),
+      });
+    }
   };
 
   /**
