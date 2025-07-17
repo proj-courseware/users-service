@@ -10,7 +10,7 @@ import {
   oauthCallbackQuerySchema,
   type OAuthProvider,
 } from "@/schemas/oauth.schema";
-import type { AuthenticatedUserContextType } from "@/schemas/user.schemas";
+import type { AuthenticatedUserContextType } from "@/schemas/user.schema";
 import type { CreateUserType } from "@/schemas/user.schema";
 import {
   BadRequestError,
@@ -40,7 +40,7 @@ export class OAuthController implements IOAuthController {
     private userRepository: IUserRepository,
     private jwtService: IJWTService,
     private oauthService: IOAuthService,
-    private authService: IAuthenticationService,
+    private authService: IAuthenticationService
   ) {}
 
   async initiateOAuth(c: Context<AppEnv>): Promise<Response> {
@@ -54,7 +54,7 @@ export class OAuthController implements IOAuthController {
 
       const { url } = this.oauthService.generateAuthorizationUrl(
         provider,
-        query.redirectTo,
+        query.redirectTo
       );
 
       return c.redirect(url, 302);
@@ -77,7 +77,7 @@ export class OAuthController implements IOAuthController {
 
       if (query.error) {
         throw new UnauthorizedError(
-          `OAuth authentication failed: ${query.error_description || query.error}`,
+          `OAuth authentication failed: ${query.error_description || query.error}`
         );
       }
 
@@ -88,7 +88,7 @@ export class OAuthController implements IOAuthController {
       const oauthUserInfo = await this.oauthService.handleCallback(
         provider,
         query.code,
-        query.state,
+        query.state
       );
 
       const stateData = this.oauthService.validateState(query.state);
@@ -97,7 +97,7 @@ export class OAuthController implements IOAuthController {
 
       if (user) {
         const socialIdentity = user.socialIdentities?.find(
-          (identity) => identity.provider === provider,
+          (identity) => identity.provider === provider
         );
 
         if (!socialIdentity) {
@@ -112,7 +112,7 @@ export class OAuthController implements IOAuthController {
           user = await this.userRepository.findById(user.id);
         } else if (socialIdentity.providerUserId !== oauthUserInfo.id) {
           throw new UserAlreadyExistsError(
-            "This email is associated with a different account on this provider",
+            "This email is associated with a different account on this provider"
           );
         }
       } else {
@@ -215,24 +215,24 @@ export class OAuthController implements IOAuthController {
 
       if (!hasPassword && !hasOtherSocialIdentities) {
         throw new UserAlreadyExistsError(
-          "Cannot unlink the only authentication method. Set a password first.",
+          "Cannot unlink the only authentication method. Set a password first."
         );
       }
 
       const socialIdentity = socialIdentities.find(
-        (identity) => identity.provider === provider,
+        (identity) => identity.provider === provider
       );
 
       if (!socialIdentity) {
         throw new NotFoundError(
-          `${this.getProviderDisplayName(provider)} account is not linked`,
+          `${this.getProviderDisplayName(provider)} account is not linked`
         );
       }
 
       await this.userRepository.unlinkSocialIdentity(
         currentUser.id,
         provider,
-        socialIdentity.providerUserId,
+        socialIdentity.providerUserId
       );
 
       return c.json({

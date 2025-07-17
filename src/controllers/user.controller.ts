@@ -1,6 +1,6 @@
 import type { Context } from "hono";
 import type { AppEnv } from "@/schemas/app-env.schema";
-import type { AuthenticatedUserContextType } from "@/schemas/user.schemas";
+import type { AuthenticatedUserContextType } from "@/schemas/user.schema";
 import type {
   UpdateUserType,
   ChangePasswordType,
@@ -52,11 +52,11 @@ export class UserController {
       this.authenticationService = new AuthenticationService(
         this.userRepository,
         passwordService,
-        jwtService,
+        jwtService
       );
 
       this.emailVerificationService = new EmailVerificationService(
-        this.userRepository,
+        this.userRepository
       );
     }
   }
@@ -89,7 +89,7 @@ export class UserController {
 
     const updatedUser = await this.userRepository.update(
       userContext.userId,
-      body,
+      body
     );
 
     return c.json({
@@ -110,7 +110,7 @@ export class UserController {
     await this.authenticationService.changePassword(
       userContext.userId,
       body.currentPassword,
-      body.newPassword,
+      body.newPassword
     );
 
     return c.json({
@@ -134,7 +134,7 @@ export class UserController {
     }
 
     const emailExists = user.emails.some(
-      (email) => email.emailAddress === body.emailAddress,
+      (email) => email.emailAddress === body.emailAddress
     );
     if (emailExists) {
       throw new BadRequestError("Email address already exists for this user");
@@ -142,11 +142,11 @@ export class UserController {
 
     // Check if email is already used by another user
     const existingUser = await this.userRepository.findByEmail(
-      body.emailAddress,
+      body.emailAddress
     );
     if (existingUser) {
       throw new BadRequestError(
-        "Email address is already in use by another user",
+        "Email address is already in use by another user"
       );
     }
 
@@ -164,7 +164,7 @@ export class UserController {
       const verificationResult =
         await this.emailVerificationService.generateVerificationToken(
           userContext.userId,
-          body.emailAddress,
+          body.emailAddress
         );
 
       return c.json(
@@ -179,7 +179,7 @@ export class UserController {
             verificationExpiresAt: verificationResult.expiresAt,
           }),
         },
-        201,
+        201
       );
     } catch (error) {
       console.error("Failed to generate verification token:", error);
@@ -191,7 +191,7 @@ export class UserController {
           emailAddress: body.emailAddress,
           verificationEmailSent: false,
         },
-        201,
+        201
       );
     }
   };
@@ -216,7 +216,7 @@ export class UserController {
 
     // Check if email exists for this user
     const emailExists = user.emails.some(
-      (email) => email.emailAddress === emailAddress,
+      (email) => email.emailAddress === emailAddress
     );
     if (!emailExists) {
       throw new NotFoundError("Email address not found for this user");
@@ -245,7 +245,7 @@ export class UserController {
 
     // Check if email exists for this user and is verified
     const emailObj = user.emails.find(
-      (email) => email.emailAddress === body.emailAddress,
+      (email) => email.emailAddress === body.emailAddress
     );
     if (!emailObj) {
       throw new NotFoundError("Email address not found for this user");
@@ -257,7 +257,7 @@ export class UserController {
 
     await this.userRepository.setPrimaryEmail(
       userContext.userId,
-      body.emailAddress,
+      body.emailAddress
     );
 
     return c.json({
@@ -282,7 +282,7 @@ export class UserController {
 
     // Check if email exists for this user
     const emailObj = user.emails.find(
-      (email) => email.emailAddress === emailAddress,
+      (email) => email.emailAddress === emailAddress
     );
     if (!emailObj) {
       throw new NotFoundError("Email address not found for this user");
@@ -294,7 +294,7 @@ export class UserController {
 
     const result = await this.emailVerificationService.resendVerificationEmail(
       userContext.userId,
-      emailAddress,
+      emailAddress
     );
 
     return c.json({
@@ -345,14 +345,14 @@ export class UserController {
 
     if (!body.password) {
       throw new BadRequestError(
-        "Password confirmation is required to delete account",
+        "Password confirmation is required to delete account"
       );
     }
 
     const user = await this.userRepository.findById(userContext.userId);
     if (!user || !user.passwordHash) {
       throw new NotFoundError(
-        "User not found or cannot delete social login account",
+        "User not found or cannot delete social login account"
       );
     }
 
@@ -360,7 +360,7 @@ export class UserController {
     const passwordService = new PasswordService();
     const isPasswordValid = await passwordService.verifyPassword(
       body.password,
-      user.passwordHash,
+      user.passwordHash
     );
 
     if (!isPasswordValid) {

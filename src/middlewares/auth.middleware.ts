@@ -35,9 +35,12 @@ export const createAuthMiddleware = (deps: AuthMiddlewareDeps) => {
     if (!token) throw new TokenError();
 
     // Will throw errors if it cannot authenticate
-    const user = await authenticationService.authenticateUserByToken(token);
-
-    c.set("user", user);
+    const user = await authenticationService.getUserFromToken(token);
+    c.set("user", {
+      userId: user.id,
+      primaryEmail: user.primaryEmail,
+      globalRole: user.globalRole,
+    });
     await next();
   });
 };
@@ -52,7 +55,7 @@ const jwtService = new JWTService();
 const defaultAuthenticationService = new AuthenticationService(
   userRepository,
   passwordService,
-  jwtService,
+  jwtService
 );
 
 export const authMiddleware = createAuthMiddleware({

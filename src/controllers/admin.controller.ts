@@ -1,6 +1,6 @@
 import type { Context } from "hono";
 import type { AppEnv } from "@/schemas/app-env.schema";
-import type { AuthenticatedUserContextType } from "@/schemas/user.schemas";
+import type { AuthenticatedUserContextType } from "@/schemas/user.schema";
 import type {
   UserType,
   CreateUserType,
@@ -72,7 +72,7 @@ export class AdminController {
       this.authenticationService = new AuthenticationService(
         this.userRepository,
         this.passwordService,
-        jwtService,
+        jwtService
       );
     }
   }
@@ -99,7 +99,7 @@ export class AdminController {
 
     // Remove sensitive data from response
     const sanitizedUsers = result.data.map((user) =>
-      this.sanitizeUserData(user),
+      this.sanitizeUserData(user)
     );
 
     return c.json({
@@ -151,7 +151,7 @@ export class AdminController {
 
     // Check if user already exists
     const existingUser = await this.userRepository.findByEmail(
-      body.primaryEmail,
+      body.primaryEmail
     );
     if (existingUser) {
       throw new UserAlreadyExistsError("User with this email already exists");
@@ -167,11 +167,11 @@ export class AdminController {
     } else if (body.password) {
       // Validate provided password
       const validation = this.passwordService.validatePasswordStrength(
-        body.password,
+        body.password
       );
       if (!validation.isValid) {
         throw new BadRequestError(
-          `Password validation failed: ${validation.errors.join(", ")}`,
+          `Password validation failed: ${validation.errors.join(", ")}`
         );
       }
       passwordHash = await this.passwordService.hashPassword(body.password);
@@ -311,7 +311,7 @@ export class AdminController {
       existingUser.primaryEmail,
       existingUser.failedLoginAttempts,
       true,
-      lockUntil,
+      lockUntil
     );
 
     return c.json({
@@ -369,11 +369,11 @@ export class AdminController {
     if (body.password) {
       // Admin provided a password
       const validation = this.passwordService.validatePasswordStrength(
-        body.password,
+        body.password
       );
       if (!validation.isValid) {
         throw new BadRequestError(
-          `Password validation failed: ${validation.errors.join(", ")}`,
+          `Password validation failed: ${validation.errors.join(", ")}`
         );
       }
       newPassword = body.password;
@@ -416,15 +416,15 @@ export class AdminController {
       },
       emailVerification: {
         fullyVerified: allUsers.filter((u) =>
-          u.emails.every((email) => email.isVerified),
+          u.emails.every((email) => email.isVerified)
         ).length,
         partiallyVerified: allUsers.filter(
           (u) =>
             u.emails.some((email) => email.isVerified) &&
-            !u.emails.every((email) => email.isVerified),
+            !u.emails.every((email) => email.isVerified)
         ).length,
         unverified: allUsers.filter(
-          (u) => !u.emails.some((email) => email.isVerified),
+          (u) => !u.emails.some((email) => email.isVerified)
         ).length,
       },
       socialLogins: allUsers.filter((u) => u.socialIdentities.length > 0)
@@ -433,12 +433,12 @@ export class AdminController {
         newUsersLast7Days: allUsers.filter(
           (u) =>
             u.createdAt &&
-            u.createdAt > new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
+            u.createdAt > new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
         ).length,
         activeUsersLast7Days: allUsers.filter(
           (u) =>
             u.lastLoginAt &&
-            u.lastLoginAt > new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
+            u.lastLoginAt > new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
         ).length,
       },
     };
@@ -500,7 +500,7 @@ export class AdminController {
     // Prevent admin from performing bulk operations on themselves
     if (userIds.includes(userContext.userId)) {
       throw new BadRequestError(
-        "Cannot perform bulk operations on your own account",
+        "Cannot perform bulk operations on your own account"
       );
     }
 
@@ -525,7 +525,7 @@ export class AdminController {
               await this.userRepository.updateLoginAttempts(
                 user.primaryEmail,
                 user.failedLoginAttempts,
-                true,
+                true
               );
               results.success++;
             } else {
@@ -554,7 +554,7 @@ export class AdminController {
       } catch (_error) {
         results.failed++;
         results.errors.push(
-          `Failed to ${operation} user ${userId}: ${(_error as Error).message}`,
+          `Failed to ${operation} user ${userId}: ${(_error as Error).message}`
         );
       }
     }
@@ -621,7 +621,7 @@ export class AdminController {
     const setting = await this.adminSettingRepository.setValue(
       key,
       body.value,
-      body.description,
+      body.description
     );
 
     return c.json({
@@ -662,7 +662,7 @@ export class AdminController {
 
     const body = c.var.validatedBody as { keys: string[] };
     const settingsMap = await this.adminSettingRepository.getMultiple(
-      body.keys,
+      body.keys
     );
 
     return c.json({
@@ -820,7 +820,7 @@ export class AdminController {
 
     const testResult = this.passwordService.validatePasswordStrength(
       body.password,
-      body.policy,
+      body.policy
     );
 
     const usedPolicy =
@@ -850,7 +850,7 @@ export class AdminController {
     const examplePasswords = [];
     for (let i = 0; i < 3; i++) {
       const password = this.passwordService.generateSecurePassword(
-        currentPolicy.minLength + 2,
+        currentPolicy.minLength + 2
       );
       examplePasswords.push(password);
     }
