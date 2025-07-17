@@ -8,7 +8,7 @@ import type { AppEnv } from "@/schemas/app-env.schema";
 import type {
   AuthenticatedUserContextType,
   UserIdType,
-} from "@/schemas/user.schemas";
+} from "@/schemas/user.schema";
 import type { ServiceEventType } from "@/schemas/event.schema";
 import { globalErrorHandler, UnauthenticatedError } from "@/errors";
 
@@ -23,14 +23,17 @@ describe("Events Router (E2E Style with Mock Dependencies)", () => {
   const testUser: AuthenticatedUserContextType = {
     userId: "user-test-123" as UserIdType,
     globalRole: "student",
+    primaryEmail: "test@example.com",
   };
   const adminUser: AuthenticatedUserContextType = {
     userId: "admin-test-456" as UserIdType,
     globalRole: "admin",
+    primaryEmail: "admin@example.com",
   };
   const otherUser: AuthenticatedUserContextType = {
     userId: "user-other-789" as UserIdType,
     globalRole: "student",
+    primaryEmail: "other@example.com",
   };
 
   beforeEach(() => {

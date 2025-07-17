@@ -1,25 +1,29 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { AuthorizationService } from "@/services/authorization.service";
-import type { AuthenticatedUserContextType } from "@/schemas/user.schemas";
+import type { AuthenticatedUserContextType } from "@/schemas/user.schema";
 
 const adminUser: AuthenticatedUserContextType = {
   userId: "admin-1",
   globalRole: "admin",
+  primaryEmail: "admin@example.com",
 };
 
 const teacherUser: AuthenticatedUserContextType = {
   userId: "teacher-1",
   globalRole: "teacher",
+  primaryEmail: "teacher@example.com",
 };
 
 const studentUser: AuthenticatedUserContextType = {
   userId: "student-1",
   globalRole: "student",
+  primaryEmail: "student@example.com",
 };
 
 const otherStudentUser: AuthenticatedUserContextType = {
   userId: "student-2",
   globalRole: "student",
+  primaryEmail: "other-student@example.com",
 };
 
 describe("AuthorizationService", () => {
@@ -87,17 +91,17 @@ describe("AuthorizationService", () => {
     describe("canViewUserProfile", () => {
       it("allows admin to view any user profile", async () => {
         await expect(
-          service.canViewUserProfile(adminUser, studentUser.userId),
+          service.canViewUserProfile(adminUser, studentUser.userId)
         ).resolves.toBe(true);
       });
       it("allows user to view their own profile", async () => {
         await expect(
-          service.canViewUserProfile(studentUser, studentUser.userId),
+          service.canViewUserProfile(studentUser, studentUser.userId)
         ).resolves.toBe(true);
       });
       it("denies user from viewing other user's profile", async () => {
         await expect(
-          service.canViewUserProfile(studentUser, otherStudentUser.userId),
+          service.canViewUserProfile(studentUser, otherStudentUser.userId)
         ).resolves.toBe(false);
       });
     });
@@ -105,17 +109,17 @@ describe("AuthorizationService", () => {
     describe("canUpdateUserProfile", () => {
       it("allows admin to update any user profile", async () => {
         await expect(
-          service.canUpdateUserProfile(adminUser, studentUser.userId),
+          service.canUpdateUserProfile(adminUser, studentUser.userId)
         ).resolves.toBe(true);
       });
       it("allows user to update their own profile", async () => {
         await expect(
-          service.canUpdateUserProfile(studentUser, studentUser.userId),
+          service.canUpdateUserProfile(studentUser, studentUser.userId)
         ).resolves.toBe(true);
       });
       it("denies user from updating other user's profile", async () => {
         await expect(
-          service.canUpdateUserProfile(studentUser, otherStudentUser.userId),
+          service.canUpdateUserProfile(studentUser, otherStudentUser.userId)
         ).resolves.toBe(false);
       });
     });
@@ -126,21 +130,21 @@ describe("AuthorizationService", () => {
       it("allows admin to receive any authentication event", async () => {
         const eventData = { userId: "other-user", action: "login" };
         await expect(
-          service.canReceiveAuthEvent(adminUser, eventData),
+          service.canReceiveAuthEvent(adminUser, eventData)
         ).resolves.toBe(true);
       });
 
       it("allows user to receive their own authentication events", async () => {
         const eventData = { userId: studentUser.userId, action: "login" };
         await expect(
-          service.canReceiveAuthEvent(studentUser, eventData),
+          service.canReceiveAuthEvent(studentUser, eventData)
         ).resolves.toBe(true);
       });
 
       it("denies user from receiving other users' authentication events", async () => {
         const eventData = { userId: otherStudentUser.userId, action: "login" };
         await expect(
-          service.canReceiveAuthEvent(studentUser, eventData),
+          service.canReceiveAuthEvent(studentUser, eventData)
         ).resolves.toBe(false);
       });
     });

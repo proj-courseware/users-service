@@ -307,17 +307,29 @@ export class AuthController {
   };
 
   /**
-   * Logout (client-side token invalidation)
+   * Logout (refresh token revocation)
    * POST /auth/logout
    */
   logout = async (c: Context<AppEnv>): Promise<Response> => {
-    // For JWT tokens, logout is typically handled client-side by removing the token
-    // In a more sophisticated setup, you might maintain a token blacklist
-
+    let refreshToken: string | undefined = undefined;
+    // Try to get from body
+    try {
+      const body = await c.req.json();
+      refreshToken = body.refreshToken;
+    } catch {
+      // No problem! Move on to try header
+    }
+    // Or from header
+    if (!refreshToken) {
+      refreshToken = c.req.header("X-Refresh-Token");
+    }
+    if (!refreshToken) {
+      throw new BadRequestError("Refresh token is required for logout");
+    }
+    await this.authenticationService.logout(refreshToken);
     return c.json({
       success: true,
-      message:
-        "Logged out successfully. Please remove the access token from your client.",
+      message: "Logged out successfully. All tokens have been invalidated.",
     });
   };
 

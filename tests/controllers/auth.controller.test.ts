@@ -74,6 +74,7 @@ describe("AuthController", () => {
       changePassword: vi.fn(),
       resetFailedAttempts: vi.fn(),
       authenticateUserByToken: vi.fn(),
+      logout: vi.fn(),
     } as any;
 
     mockEmailVerificationService = {
@@ -166,7 +167,7 @@ describe("AuthController", () => {
 
       expect(mockAuthService.register).toHaveBeenCalledWith(registerData);
       expect(
-        mockEmailVerificationService.generateVerificationToken,
+        mockEmailVerificationService.generateVerificationToken
       ).toHaveBeenCalledWith(mockUser.id, mockUser.primaryEmail);
       expect(response).toMatchObject({
         success: true,
@@ -279,7 +280,7 @@ describe("AuthController", () => {
       const response = await authController.refreshToken(context);
 
       expect(mockAuthService.refreshTokens).toHaveBeenCalledWith(
-        "old_refresh_token",
+        "old_refresh_token"
       );
       expect(response).toEqual({
         success: true,
@@ -293,7 +294,7 @@ describe("AuthController", () => {
       const context = createMockContext({ json: {} });
 
       await expect(authController.refreshToken(context)).rejects.toThrow(
-        BadRequestError,
+        BadRequestError
       );
     });
   });
@@ -316,7 +317,7 @@ describe("AuthController", () => {
       const response = await authController.verifyEmail(context);
 
       expect(
-        mockEmailVerificationService.verifyEmailToken,
+        mockEmailVerificationService.verifyEmailToken
       ).toHaveBeenCalledWith("verification_token_123");
       expect(response).toEqual({
         success: true,
@@ -340,7 +341,7 @@ describe("AuthController", () => {
       });
 
       await expect(authController.verifyEmail(context)).rejects.toThrow(
-        BadRequestError,
+        BadRequestError
       );
     });
 
@@ -348,7 +349,7 @@ describe("AuthController", () => {
       const context = createMockContext({ json: {} });
 
       await expect(authController.verifyEmail(context)).rejects.toThrow(
-        BadRequestError,
+        BadRequestError
       );
     });
   });
@@ -372,7 +373,7 @@ describe("AuthController", () => {
       const response = await authController.resendVerification(context);
 
       expect(
-        mockEmailVerificationService.resendVerificationEmail,
+        mockEmailVerificationService.resendVerificationEmail
       ).toHaveBeenCalledWith("user-123", "john.doe@example.com");
       expect(response).toMatchObject({
         success: true,
@@ -385,7 +386,7 @@ describe("AuthController", () => {
       const context = createMockContext({ json: { userId: "user-123" } });
 
       await expect(authController.resendVerification(context)).rejects.toThrow(
-        BadRequestError,
+        BadRequestError
       );
     });
   });
@@ -400,7 +401,7 @@ describe("AuthController", () => {
       const response = await authController.me(context);
 
       expect(mockAuthService.getUserFromToken).toHaveBeenCalledWith(
-        "valid_token_123",
+        "valid_token_123"
       );
       expect(response).toEqual({
         success: true,
@@ -424,14 +425,34 @@ describe("AuthController", () => {
   });
 
   describe("logout", () => {
-    it("should return logout success message", async () => {
-      const context = createMockContext();
+    it("should call authenticationService.logout with token from body", async () => {
+      const mockLogout = vi.fn();
+      authController.authenticationService.logout = mockLogout;
+      const context = createMockContext({ json: { refreshToken: "abc" } });
+      await authController.logout(context);
+      expect(mockLogout).toHaveBeenCalledWith("abc");
+    });
+    it("should call authenticationService.logout with token from header if not in body", async () => {
+      const mockLogout = vi.fn();
+      authController.authenticationService.logout = mockLogout;
+      const context = createMockContext({
+        headers: { "X-Refresh-Token": "def" },
+        json: {},
+      });
+      await authController.logout(context);
+      expect(mockLogout).toHaveBeenCalledWith("def");
+    });
+    it("should throw error if refresh token is missing", async () => {
+      const context = createMockContext({ json: {} });
+      await expect(authController.logout(context)).rejects.toThrow();
+    });
+    it("should return correct success message", async () => {
+      authController.authenticationService.logout = vi.fn();
+      const context = createMockContext({ json: { refreshToken: "abc" } });
       const response = await authController.logout(context);
-
       expect(response).toEqual({
         success: true,
-        message:
-          "Logged out successfully. Please remove the access token from your client.",
+        message: "Logged out successfully. All tokens have been invalidated.",
       });
     });
   });
@@ -456,7 +477,7 @@ describe("AuthController", () => {
       const response = await authController.tokenInfo(context);
 
       expect(mockAuthService.verifyAccessToken).toHaveBeenCalledWith(
-        "valid_token_123",
+        "valid_token_123"
       );
       expect(response).toMatchObject({
         success: true,
@@ -479,7 +500,7 @@ describe("AuthController", () => {
       });
 
       await expect(authController.tokenInfo(context)).rejects.toThrow(
-        BadRequestError,
+        BadRequestError
       );
     });
   });

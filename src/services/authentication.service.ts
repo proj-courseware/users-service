@@ -22,6 +22,7 @@ import type {
   JWTPayloadType,
   EmailObjectType,
 } from "@/schemas/user.schema";
+import crypto from "crypto";
 
 // Authentication result interfaces
 export interface AuthenticationResult {
@@ -81,6 +82,7 @@ export interface IAuthenticationService {
   ): Promise<void>;
   resetFailedAttempts(email: string): Promise<void>;
   getUserFromToken(accessToken: string): Promise<UserType>;
+  logout(refreshToken: string): Promise<void>;
 }
 
 // Main authentication service implementation
@@ -289,6 +291,18 @@ export class AuthenticationService
       const tokens = await this.jwtService.generateTokenPair(user);
       accessToken = tokens.accessToken;
       refreshToken = tokens.refreshToken;
+      // Store refresh token in DB
+      if (refreshToken) {
+        const payload = await this.jwtService.verifyRefreshToken(refreshToken);
+        await this.refreshTokenRepository.create({
+          tokenHash: this.hashToken(refreshToken),
+          userId: user.id,
+          expiresAt: new Date(payload.exp * 1000),
+          isRevoked: false,
+          userAgent: undefined, // Optionally extract from request
+          ipAddress: undefined, // Optionally extract from request
+        });
+      }
     }
 
     // 9. Emit login event
@@ -327,23 +341,45 @@ export class AuthenticationService
         cause: error,
       });
     }
-
-    // 2. Find user to ensure they still exist and are active
+    // 2. Check token in DB
+    const tokenHash = this.hashToken(refreshToken);
+    const storedToken =
+      await this.refreshTokenRepository.findByTokenHash(tokenHash);
+    if (
+      !storedToken ||
+      storedToken.isRevoked ||
+      storedToken.expiresAt < new Date()
+    ) {
+      throw new UnauthenticatedError(
+        "Refresh token has been revoked or expired"
+      );
+    }
+    // 3. Find user
     const user = await this.userRepository.findById(payload.userId);
     if (!user) {
       throw new UnauthenticatedError(
         "User associated with token no longer exists"
       );
     }
-
     if (user.isAccountLocked) {
       throw new AccountLockedError("Account is locked");
     }
-
-    // 3. Generate new token pair (token rotation for security)
+    // 4. Generate new token pair (token rotation)
     const newTokens = await this.jwtService.generateTokenPair(user);
-
-    // 4. Emit token refresh event
+    // 5. Store new refresh token and revoke old one
+    const newPayload = await this.jwtService.verifyRefreshToken(
+      newTokens.refreshToken
+    );
+    await this.refreshTokenRepository.revokeById(storedToken.id);
+    await this.refreshTokenRepository.create({
+      tokenHash: this.hashToken(newTokens.refreshToken),
+      userId: user.id,
+      expiresAt: new Date(newPayload.exp * 1000),
+      isRevoked: false,
+      userAgent: undefined,
+      ipAddress: undefined,
+    });
+    // 6. Emit token refresh event
     this.emitEvent(
       "token_refreshed",
       {
@@ -355,7 +391,6 @@ export class AuthenticationService
         user: { userId: user.id, email: user.primaryEmail },
       }
     );
-
     return {
       accessToken: newTokens.accessToken,
       refreshToken: newTokens.refreshToken,
@@ -452,6 +487,8 @@ export class AuthenticationService
     const newPasswordHash =
       await this.passwordService.hashPassword(newPassword);
     await this.userRepository.updatePassword(userId, newPasswordHash);
+    // Revoke all refresh tokens for this user
+    await this.refreshTokenRepository.revokeAllForUser(userId);
 
     // 5. Emit password change event
     this.emitEvent(
@@ -603,6 +640,21 @@ export class AuthenticationService
   }
 
   /**
+   * Hash a refresh token using SHA-256
+   *
+   * We use a fast hash (SHA-256) instead of a slow hash (like bcrypt/argon2) because:
+   * - Refresh tokens are high-entropy, random secrets (not user-chosen passwords)
+   * - The main goal is to prevent database leaks from exposing usable tokens
+   * - Fast lookup is important for authentication performance
+   * - Slow hashes are necessary for passwords to prevent brute-force, but not for random tokens
+   *
+   * This is a deliberate security design decision and is standard practice for token storage.
+   */
+  private hashToken(token: string): string {
+    return crypto.createHash("sha256").update(token).digest("hex");
+  }
+
+  /**
    * Remove sensitive data from user object
    * @param user User object to sanitize
    * @returns Sanitized user object without sensitive fields
@@ -638,5 +690,17 @@ export class AuthenticationService
       globalRole: payload.role as "student" | "teacher" | "admin" | "user",
       primaryEmail: payload.email,
     };
+  }
+
+  /**
+   * Logout by revoking a specific refresh token
+   */
+  async logout(refreshToken: string): Promise<void> {
+    const tokenHash = this.hashToken(refreshToken);
+    const storedToken =
+      await this.refreshTokenRepository.findByTokenHash(tokenHash);
+    if (storedToken && !storedToken.isRevoked) {
+      await this.refreshTokenRepository.revokeById(storedToken.id);
+    }
   }
 }
