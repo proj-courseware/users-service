@@ -16,13 +16,16 @@ export default defineConfig({
       all: true,
       include: ["src/**/*.ts"],
       exclude: [
+        "src/repositories/*.repository.ts", // Exclude repository interfaces
+        "src/server.ts", // Exclude server entry point
+        "src/errors.ts", // Exclude error classes
+        "src/events/*", // Exclude event setup
+        "src/config/*", // Exclude config setup
         "**/*.test.ts",
         "**/coverage/**",
         "**/node_modules/**",
         "**/dist/**",
         "**/scripts/**",
-        "**/src/server.ts",
-        "**/src/config/**",
       ],
     },
   },
