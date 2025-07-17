@@ -96,6 +96,72 @@ While the logout system is production-ready, the following enhancements could fu
 - Enhanced user experience features
 - Comprehensive session timeline
 
+## Critical Updates Needed: Email Customization & Microservices Architecture
+
+**Priority**: High
+**Status**: Required for production deployment in microservices architecture
+
+### 1. Email Template Customization 📧
+
+**Current Issue**: Email templates contain hardcoded "Authentication Service" references throughout:
+- Email subject lines
+- Application name references
+- Email signatures and sign-offs
+- Service identification in templates
+
+**Required Changes**:
+- **Configurable Service Name**: Replace hardcoded "Authentication Service" with configurable environment variable
+- **Dynamic Email Templates**: Update email service to accept service name parameter
+- **Environment Configuration**: Add SERVICE_NAME or APP_NAME environment variable
+- **Template Updates**: Update all email templates (verification, password reset, welcome) to use dynamic service name
+- **Microservices Ready**: Ensure service can be branded for different applications
+
+### 2. Notifications Service Extraction 📮
+
+**Future Architecture Goal**: Extract notifications functionality into separate microservice
+
+**Current State**: Email functionality is tightly coupled with authentication service
+
+**Extraction Plan**:
+- **Phase 1**: Decouple email service from authentication service
+- **Phase 2**: Create notifications service interface
+- **Phase 3**: Extract email service into standalone notifications-service
+- **Phase 4**: Implement event-driven notifications (authentication events → notifications service)
+
+**Benefits**:
+- **Separation of Concerns**: Authentication service focuses on identity, notifications service handles communications
+- **Scalability**: Notifications service can scale independently
+- **Reusability**: Other services can use notifications service
+- **Specialization**: Dedicated service for email templates, SMS, push notifications, etc.
+
+### 3. Microservices Architecture Considerations 🏗️
+
+**Current Service Role**: Authentication authority for microservices ecosystem
+
+**Integration Requirements**:
+- **Service Discovery**: Must integrate with service registry
+- **Configuration Management**: Centralized configuration for service branding
+- **Event Bus**: Publish authentication events for other services
+- **API Gateway**: Proper routing and authentication delegation
+- **Monitoring**: Centralized logging and metrics collection
+
+### Implementation Priority
+
+**Immediate (High Priority)**:
+1. **Email Template Customization**: Make service name configurable
+2. **Environment Variables**: Add SERVICE_NAME/APP_NAME configuration
+3. **Template Updates**: Update all email templates to use dynamic naming
+
+**Medium-Term (Medium Priority)**:
+1. **Email Service Decoupling**: Prepare email service for extraction
+2. **Interface Definition**: Define notifications service interface
+3. **Event-Driven Design**: Implement event publishing for notifications
+
+**Long-Term (Future Architecture)**:
+1. **Notifications Service**: Extract into separate microservice
+2. **Service Mesh Integration**: Implement proper service-to-service communication
+3. **Distributed Tracing**: Add tracing for cross-service authentication flows
+
 ## Project Transformation Plan
 
 ### Phase 1: Architecture Foundation ✅ COMPLETED

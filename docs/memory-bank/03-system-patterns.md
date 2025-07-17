@@ -1566,4 +1566,178 @@ async changePassword(userId: string, currentPassword: string, newPassword: strin
 
 This pattern enables secure multi-device session management, forced logout, immediate revocation after password change, and comprehensive token lifecycle management in production environments.
 
+## Email Service Customization Pattern 📧 **REQUIRED UPDATE**
+
+### Current Limitation
+
+The email service currently contains hardcoded "Authentication Service" references that prevent deployment in branded microservices architecture:
+
+```typescript
+// Current implementation (needs update)
+const emailSubject = "Authentication Service - Email Verification";
+const emailSignature = "Best regards,\nAuthentication Service Team";
+```
+
+### Required Pattern: Configurable Service Branding
+
+**Environment Configuration**:
+```typescript
+// Environment schema update required
+const envSchema = z.object({
+  SERVICE_NAME: z.string().default("Authentication Service"),
+  APP_NAME: z.string().default("Authentication Service"),
+  EMAIL_FROM_NAME: z.string().optional(),
+  // ... other environment variables
+});
+```
+
+**Email Service Enhancement**:
+```typescript
+// Required email service pattern
+export class EmailService {
+  private serviceName: string;
+  private appName: string;
+  
+  constructor(
+    private smtpConfig: SMTPConfig,
+    private emailConfig: EmailConfig
+  ) {
+    this.serviceName = emailConfig.serviceName || "Authentication Service";
+    this.appName = emailConfig.appName || "Authentication Service";
+  }
+  
+  async sendVerificationEmail(email: string, token: string): Promise<void> {
+    const subject = `${this.serviceName} - Email Verification`;
+    const emailHtml = this.generateVerificationTemplate(token);
+    
+    await this.sendEmail({
+      to: email,
+      subject,
+      html: emailHtml,
+      from: `${this.serviceName} <${this.smtpConfig.from}>`,
+    });
+  }
+  
+  private generateVerificationTemplate(token: string): string {
+    return `
+      <h1>Welcome to ${this.appName}</h1>
+      <p>Please verify your email address...</p>
+      <p>Best regards,<br>${this.serviceName} Team</p>
+    `;
+  }
+}
+```
+
+**Template Pattern**:
+```typescript
+// Email template configuration
+interface EmailTemplateConfig {
+  serviceName: string;
+  appName: string;
+  supportEmail: string;
+  frontendUrl: string;
+}
+
+// Dynamic template generation
+class EmailTemplateService {
+  generateTemplate(
+    type: 'verification' | 'password-reset' | 'welcome',
+    data: any,
+    config: EmailTemplateConfig
+  ): string {
+    const baseTemplate = this.getBaseTemplate(config);
+    const contentTemplate = this.getContentTemplate(type, data, config);
+    
+    return baseTemplate.replace('{{content}}', contentTemplate);
+  }
+}
+```
+
+### Microservices Integration Pattern
+
+**Service Configuration**:
+```typescript
+// Microservices-ready configuration
+interface ServiceConfig {
+  serviceName: string;
+  serviceVersion: string;
+  environment: string;
+  branding: {
+    appName: string;
+    supportEmail: string;
+    frontendUrl: string;
+  };
+}
+
+// Configuration injection
+export class AuthenticationService {
+  constructor(
+    private serviceConfig: ServiceConfig,
+    private emailService: EmailService,
+    // ... other dependencies
+  ) {
+    this.emailService.configure(serviceConfig.branding);
+  }
+}
+```
+
+### Future Notifications Service Pattern
+
+**Service Extraction Architecture**:
+```typescript
+// Future notifications service interface
+interface INotificationsService {
+  sendEmailNotification(
+    type: NotificationType,
+    recipient: string,
+    data: NotificationData,
+    config: ServiceBrandingConfig
+  ): Promise<void>;
+  
+  sendSMSNotification(
+    recipient: string,
+    message: string,
+    config: ServiceBrandingConfig
+  ): Promise<void>;
+  
+  sendPushNotification(
+    userId: string,
+    notification: PushNotificationData,
+    config: ServiceBrandingConfig
+  ): Promise<void>;
+}
+
+// Event-driven notifications
+class AuthenticationService {
+  async register(userData: RegisterUserType): Promise<UserType> {
+    const user = await this.userRepository.create(userData);
+    
+    // Emit event for notifications service
+    await this.eventBus.publish('user.registered', {
+      userId: user.id,
+      email: user.primaryEmail,
+      verificationToken: user.emails[0].verificationToken,
+    });
+    
+    return user;
+  }
+}
+```
+
+### Implementation Requirements
+
+**Immediate Changes Required**:
+1. **Environment Variables**: Add SERVICE_NAME, APP_NAME configuration
+2. **Email Service**: Update to accept configurable service name
+3. **Templates**: Make all email templates dynamic
+4. **Testing**: Ensure different service names work correctly
+
+**Architecture Benefits**:
+- **Multi-Tenant Support**: Same service can serve different applications
+- **Branding Flexibility**: Easy deployment with different branding
+- **Microservices Ready**: Proper service isolation and configuration
+- **Future-Proof**: Ready for notifications service extraction
+
+This pattern is **required** for production deployment in microservices architecture where the authentication service needs to be branded for different applications.
+
 These conventions are mandatory for all developers and AI assistants working on this project. Failure to follow these patterns will result in inconsistent code that is difficult to maintain and debug.
