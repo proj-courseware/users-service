@@ -326,7 +326,12 @@ export class AdminController {
     this.checkAdminRole(userContext);
 
     const { userId } = c.var.validatedParams as { userId: string };
-    const body = await c.req.json();
+    let body = {};
+    try {
+      body = await c.req.json();
+    } catch {
+      body = {};
+    }
 
     // Prevent admin from locking themselves
     if (userId === userContext.userId) {
