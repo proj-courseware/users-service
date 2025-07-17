@@ -23,6 +23,7 @@ export interface ResendVerificationResult {
   message: string;
   emailAddress: string;
   expiresAt: Date;
+  token: string;
 }
 
 // Email verification service configuration
@@ -46,16 +47,16 @@ export interface IEmailVerificationService {
   generateVerificationToken(
     userId: string,
     emailAddress: string,
-    config?: Partial<EmailVerificationConfig>,
+    config?: Partial<EmailVerificationConfig>
   ): Promise<EmailVerificationTokenResult>;
   verifyEmailToken(
     token: string,
-    config?: Partial<EmailVerificationConfig>,
+    config?: Partial<EmailVerificationConfig>
   ): Promise<EmailVerificationResult>;
   resendVerificationEmail(
     userId: string,
     emailAddress: string,
-    config?: Partial<EmailVerificationConfig>,
+    config?: Partial<EmailVerificationConfig>
   ): Promise<ResendVerificationResult>;
   isTokenExpired(expiresAt: Date): boolean;
   isTokenValid(token: string): boolean;
@@ -72,7 +73,7 @@ export class EmailVerificationService
 
   constructor(
     private readonly userRepository: IUserRepository,
-    config?: Partial<EmailVerificationConfig>,
+    config?: Partial<EmailVerificationConfig>
   ) {
     super("email");
     this.config = { ...DEFAULT_EMAIL_VERIFICATION_CONFIG, ...config };
@@ -88,7 +89,7 @@ export class EmailVerificationService
   async generateVerificationToken(
     userId: string,
     emailAddress: string,
-    config?: Partial<EmailVerificationConfig>,
+    config?: Partial<EmailVerificationConfig>
   ): Promise<EmailVerificationTokenResult> {
     const activeConfig = { ...this.config, ...config };
 
@@ -105,11 +106,11 @@ export class EmailVerificationService
 
     // 3. Check if email exists for this user
     const emailObj = user.emails.find(
-      (email) => email.emailAddress === emailAddress,
+      (email) => email.emailAddress === emailAddress
     );
     if (!emailObj) {
       throw new BadRequestError(
-        "Email address not found for this user. Please add the email first.",
+        "Email address not found for this user. Please add the email first."
       );
     }
 
@@ -121,7 +122,7 @@ export class EmailVerificationService
     // 5. Generate secure token and expiry
     const token = this.generateSecureToken(activeConfig.tokenLength);
     const expiresAt = new Date(
-      Date.now() + activeConfig.tokenExpiryHours * 60 * 60 * 1000,
+      Date.now() + activeConfig.tokenExpiryHours * 60 * 60 * 1000
     );
 
     // 6. Update user with verification token
@@ -129,7 +130,7 @@ export class EmailVerificationService
       userId,
       emailAddress,
       token,
-      expiresAt,
+      expiresAt
     );
 
     // 7. Emit verification sent event
@@ -142,7 +143,7 @@ export class EmailVerificationService
       },
       {
         user: { userId, email: emailAddress },
-      },
+      }
     );
 
     return {
@@ -178,7 +179,7 @@ export class EmailVerificationService
 
     // 3. Find the email object with this token
     const emailObj = user.emails.find(
-      (email) => email.verificationToken === token,
+      (email) => email.verificationToken === token
     );
     if (!emailObj) {
       return {
@@ -220,7 +221,7 @@ export class EmailVerificationService
       },
       {
         user: { userId: user.id, email: user.primaryEmail },
-      },
+      }
     );
 
     // 8. Get updated user data
@@ -246,7 +247,7 @@ export class EmailVerificationService
   async resendVerificationEmail(
     userId: string,
     emailAddress: string,
-    config?: Partial<EmailVerificationConfig>,
+    config?: Partial<EmailVerificationConfig>
   ): Promise<ResendVerificationResult> {
     const activeConfig = { ...this.config, ...config };
 
@@ -263,11 +264,11 @@ export class EmailVerificationService
 
     // 3. Check if email exists for this user
     const emailObj = user.emails.find(
-      (email) => email.emailAddress === emailAddress,
+      (email) => email.emailAddress === emailAddress
     );
     if (!emailObj) {
       throw new BadRequestError(
-        "Email address not found for this user. Please add the email first.",
+        "Email address not found for this user. Please add the email first."
       );
     }
 
@@ -292,7 +293,7 @@ export class EmailVerificationService
       if (tokenAge < cooldownMs) {
         const remainingMinutes = Math.ceil((cooldownMs - tokenAge) / 60000);
         throw new BadRequestError(
-          `Please wait ${remainingMinutes} minutes before requesting another verification email`,
+          `Please wait ${remainingMinutes} minutes before requesting another verification email`
         );
       }
     }
@@ -300,7 +301,7 @@ export class EmailVerificationService
     // 6. Generate new token and expiry
     const token = this.generateSecureToken(activeConfig.tokenLength);
     const expiresAt = new Date(
-      Date.now() + activeConfig.tokenExpiryHours * 60 * 60 * 1000,
+      Date.now() + activeConfig.tokenExpiryHours * 60 * 60 * 1000
     );
 
     // 7. Update user with new verification token
@@ -308,7 +309,7 @@ export class EmailVerificationService
       userId,
       emailAddress,
       token,
-      expiresAt,
+      expiresAt
     );
 
     return {
@@ -316,6 +317,7 @@ export class EmailVerificationService
       message: "Verification email resent successfully",
       emailAddress,
       expiresAt,
+      token,
     };
   }
 
@@ -403,7 +405,7 @@ export class EmailVerificationService
     }
 
     const emailObj = user.emails.find(
-      (email) => email.verificationToken === token,
+      (email) => email.verificationToken === token
     );
     if (!emailObj || !emailObj.verificationTokenExpiresAt) {
       return null;
