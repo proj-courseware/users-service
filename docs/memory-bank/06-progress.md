@@ -98,8 +98,10 @@ The authentication service inherits a solid foundation from the backend template
   - ✅ Comprehensive test coverage (28/28 tests passing)
 
 - ✅ **Testing Coverage**: Comprehensive test suites
-  - ✅ MongoDB repository: 23/23 tests passing
-  - ✅ MockDB repository: 28/28 tests passing
+  - ✅ MongoDB user repository: 23/23 tests passing
+  - ✅ MockDB user repository: 28/28 tests passing
+  - ✅ MongoDB refresh token repository: all tests passing
+  - ✅ MockDB refresh token repository: all tests passing
   - ✅ All CRUD operations covered
   - ✅ Authentication-specific scenarios tested
   - ✅ Error handling and edge cases covered
