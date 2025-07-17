@@ -1,6 +1,9 @@
 import type { Context } from "hono";
 import type { AppEnv } from "@/schemas/app-env.schema";
-import type { AuthenticatedUserContextType } from "@/schemas/user.schema";
+import type {
+  AdminRegisterUserType,
+  AuthenticatedUserContextType,
+} from "@/schemas/user.schema";
 import type {
   UserType,
   CreateUserType,
@@ -29,6 +32,7 @@ import {
   UserAlreadyExistsError,
 } from "@/errors";
 import { env } from "@/env";
+import { EmailService } from "@/services/email.service";
 
 export interface AdminControllerDeps {
   userRepository?: IUserRepository;
@@ -42,6 +46,7 @@ export class AdminController {
   private authenticationService: IAuthenticationService;
   private passwordService: IPasswordService;
   private adminSettingRepository: IAdminSettingRepository;
+  private emailService: EmailService;
 
   constructor(deps?: AdminControllerDeps) {
     if (
@@ -54,6 +59,7 @@ export class AdminController {
       this.authenticationService = deps.authenticationService;
       this.passwordService = deps.passwordService;
       this.adminSettingRepository = deps.adminSettingRepository;
+      this.emailService = new EmailService();
     } else {
       // Create default services with proper dependency injection
       this.userRepository =
@@ -74,6 +80,7 @@ export class AdminController {
         this.passwordService,
         jwtService
       );
+      this.emailService = new EmailService();
     }
   }
 
@@ -143,16 +150,14 @@ export class AdminController {
     const userContext = c.var.user as AuthenticatedUserContextType;
     this.checkAdminRole(userContext);
 
-    const body = c.var.validatedBody as CreateUserType & {
+    const body = c.var.validatedBody as AdminRegisterUserType & {
       password?: string;
       sendWelcomeEmail?: boolean;
       generatePassword?: boolean;
     };
 
     // Check if user already exists
-    const existingUser = await this.userRepository.findByEmail(
-      body.primaryEmail
-    );
+    const existingUser = await this.userRepository.findByEmail(body.email);
     if (existingUser) {
       throw new UserAlreadyExistsError("User with this email already exists");
     }
@@ -180,12 +185,12 @@ export class AdminController {
     const userData: CreateUserType = {
       firstName: body.firstName,
       lastName: body.lastName,
-      primaryEmail: body.primaryEmail,
+      primaryEmail: body.email,
       passwordHash,
       globalRole: body.globalRole || "student",
       emails: [
         {
-          emailAddress: body.primaryEmail,
+          emailAddress: body.email,
           isVerified: true, // Admin-created users have verified emails
           addedAt: new Date(),
         },
@@ -197,11 +202,32 @@ export class AdminController {
 
     const newUser = await this.userRepository.create(userData);
 
+    // Optionally send welcome email
+    let welcomeEmailResult:
+      | { success: boolean; messageId?: string; error?: string }
+      | undefined;
+    if (body.sendWelcomeEmail) {
+      try {
+        welcomeEmailResult = await this.emailService.sendWelcomeEmail(
+          body.email,
+          body.firstName
+        );
+      } catch (err) {
+        welcomeEmailResult = {
+          success: false,
+          error: err instanceof Error ? err.message : String(err),
+        };
+      }
+    }
+
     const response: {
       success: boolean;
       message: string;
       user: ReturnType<AdminController["sanitizeUserData"]>;
       generatedPassword?: string;
+      welcomeEmailSent?: boolean;
+      welcomeEmailMessageId?: string;
+      welcomeEmailError?: string;
     } = {
       success: true,
       message: "User created successfully",
@@ -212,6 +238,16 @@ export class AdminController {
     if (generatedPassword) {
       response.generatedPassword = generatedPassword;
       response.message += ". Generated password included in response.";
+    }
+
+    if (welcomeEmailResult) {
+      response.welcomeEmailSent = welcomeEmailResult.success;
+      if (welcomeEmailResult.success && welcomeEmailResult.messageId) {
+        response.welcomeEmailMessageId = welcomeEmailResult.messageId;
+      }
+      if (!welcomeEmailResult.success && welcomeEmailResult.error) {
+        response.welcomeEmailError = welcomeEmailResult.error;
+      }
     }
 
     return c.json(response, 201);
