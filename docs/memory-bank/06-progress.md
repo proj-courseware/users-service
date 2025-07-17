@@ -494,3 +494,15 @@ The authentication service inherits a solid foundation from the backend template
 - **Error Handling**: Consistent error mapping across all layers
 
 The authentication service builds upon the proven patterns of the backend template while adding the sophisticated functionality required for production authentication. This evolution maintains the educational value of the original template while providing real-world authentication capabilities.
+
+## Upcoming Feature: Token Invalidation System
+
+Planned and ready to implement: Token invalidation system for refresh tokens. This will include:
+
+- Refresh token storage and revocation in the database
+- Logout and password change endpoints will revoke tokens
+- Token refresh will rotate and revoke tokens
+- Applies to both password and OAuth logins
+- Enables secure multi-device session management and forced logout
+- High-priority security upgrade
+- Next step: implement repository, update services/controllers, and add tests.

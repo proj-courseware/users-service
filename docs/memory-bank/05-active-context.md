@@ -6,6 +6,20 @@
 **Date**: June 29, 2025
 **Objective**: Complete authentication service with real-time event capabilities and zero template remnants
 
+## Next Major Feature: Token Invalidation System (Planned)
+
+We are implementing a robust token invalidation system for authentication. This includes:
+
+- Storing refresh tokens in the database (with userId, token hash, expiry, isRevoked, etc.)
+- On login (password or OAuth), a new refresh token is created and stored
+- On logout, the refresh token is revoked in the database
+- On password change, all of a user's refresh tokens are revoked
+- On token refresh, the old refresh token is revoked and a new one is issued and stored
+- All token validation checks the database for revocation
+- This system applies to both password and OAuth logins, enabling multi-device session management and forced logout
+- Controllers and services will be updated to use the new repository and flows
+- This is a high-priority security enhancement and will be implemented next.
+
 ## Project Transformation Plan
 
 ### Phase 1: Architecture Foundation ✅ COMPLETED

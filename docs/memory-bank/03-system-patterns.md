@@ -1390,4 +1390,27 @@ vi.mocked(mockOAuthService.generateAuthorizationUrl).mockReturnValue({
 vi.mocked(mockOAuthService.handleCallback).mockResolvedValue(mockOAuthUserInfo);
 ```
 
+## Token Invalidation and Session Management Pattern
+
+The authentication system uses a refresh token repository for secure token lifecycle management. The repository interface supports:
+
+- Creating and storing refresh tokens (hashed)
+- Looking up tokens by hash and userId
+- Revoking individual tokens and all tokens for a user
+- Querying active sessions per user
+
+AuthenticationService:
+
+- Stores refresh tokens on login (password or OAuth)
+- Revokes tokens on logout, password change, or admin action
+- Rotates tokens on refresh (revoke old, issue new)
+- Checks token revocation status on every refresh
+
+Controllers:
+
+- Accept refresh tokens for logout and refresh endpoints
+- Enforce token revocation logic
+
+This pattern enables secure multi-device session management, forced logout, and immediate revocation after password change or compromise.
+
 These conventions are mandatory for all developers and AI assistants working on this project. Failure to follow these patterns will result in inconsistent code that is difficult to maintain and debug.
