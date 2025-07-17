@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { globalRoleSchema } from "@/schemas/roles.schemas";
+import { globalRoleSchema } from "@/schemas/roles.schema";
 import { queryParamsSchema } from "@/schemas/shared.schema";
 
 export const socialAuthProviderSchema = z.enum([

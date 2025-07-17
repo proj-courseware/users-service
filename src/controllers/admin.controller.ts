@@ -10,7 +10,7 @@ import type {
   UpdateUserType,
   UserQueryParamsType,
 } from "@/schemas/user.schema";
-import type { GlobalRole } from "@/schemas/roles.schemas";
+import type { GlobalRole } from "@/schemas/roles.schema";
 import type { IUserRepository } from "@/repositories/user.repository";
 import type { IAuthenticationService } from "@/services/authentication.service";
 import type {

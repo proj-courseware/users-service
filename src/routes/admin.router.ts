@@ -8,7 +8,7 @@ import {
   updateUserSchema,
   adminRegisterUserSchema,
 } from "@/schemas/user.schema";
-import { globalRoleSchema } from "@/schemas/roles.schemas";
+import { globalRoleSchema } from "@/schemas/roles.schema";
 import { passwordPolicySchema } from "@/services/password.service";
 import { z } from "zod";
 

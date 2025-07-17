@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { globalRoleSchema } from "@/schemas/roles.schemas";
+import { globalRoleSchema } from "@/schemas/roles.schema";
 
 describe("globalRoleSchema", () => {
   it("should parse valid roles", () => {
