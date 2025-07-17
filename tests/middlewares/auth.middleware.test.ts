@@ -3,7 +3,7 @@ import {
   createAuthMiddleware,
   type AuthMiddlewareDeps,
 } from "@/middlewares/auth.middleware";
-import type { AuthenticatedUserContextType } from "@/schemas/user.schemas";
+import type { AuthenticatedUserContextType } from "@/schemas/user.schema";
 import { ServiceUnavailableError, UnauthenticatedError } from "@/errors";
 import type { MiddlewareHandler } from "hono";
 import type { AppEnv } from "@/schemas/app-env.schema";
@@ -38,13 +38,17 @@ describe("authMiddleware (with DI)", () => {
       authenticationService: mockAuthService,
     });
 
-    user = { userId: "user-1", globalRole: "student", primaryEmail: "test@example.com" };
-    fullUser = { 
-      id: "user-1", 
-      globalRole: "student", 
+    user = {
+      userId: "user-1",
+      globalRole: "student",
+      primaryEmail: "test@example.com",
+    };
+    fullUser = {
+      id: "user-1",
+      globalRole: "student",
       primaryEmail: "test@example.com",
       firstName: "John",
-      lastName: "Doe"
+      lastName: "Doe",
     };
     next = vi.fn();
   });
@@ -107,9 +111,7 @@ describe("authMiddleware (with DI)", () => {
   it("throws the original error from service if it's not a known business error handled by middleware", async () => {
     const c = createMockContext({ Authorization: "Bearer valid-token" });
     const genericError = new Error("Some unexpected error");
-    (mockAuthService.getUserFromToken as Mock).mockRejectedValue(
-      genericError
-    );
+    (mockAuthService.getUserFromToken as Mock).mockRejectedValue(genericError);
 
     await expect(authMiddlewareToTest(c, next)).rejects.toThrow(genericError);
     expect(mockAuthService.getUserFromToken).toHaveBeenCalledWith(

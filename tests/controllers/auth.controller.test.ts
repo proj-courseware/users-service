@@ -8,7 +8,6 @@ import type {
   LoginCredentialsType,
   UserType,
 } from "@/schemas/user.schema";
-import type { AppEnv } from "@/schemas/app-env.schema";
 import { BadRequestError } from "@/errors";
 
 // Mock context interface

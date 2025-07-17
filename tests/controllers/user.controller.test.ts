@@ -11,9 +11,8 @@ import type {
   ChangePasswordType,
   AddEmailType,
   SetPrimaryEmailType,
-  EmailObjectType,
 } from "@/schemas/user.schema";
-import { BadRequestError, NotFoundError, ForbiddenError } from "@/errors";
+import { BadRequestError, NotFoundError } from "@/errors";
 
 // Mock context interface
 interface MockContextConfig {

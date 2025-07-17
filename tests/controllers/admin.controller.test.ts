@@ -1,11 +1,5 @@
-import {
-  describe,
-  it,
-  expect,
-  beforeEach,
-  vi,
-  type MockedFunction,
-} from "vitest";
+import { describe, it, expect, beforeEach, vi } from "vitest";
+import type { Mock } from "vitest";
 import { AdminController } from "@/controllers/admin.controller";
 import type { IUserRepository } from "@/repositories/user.repository";
 import type { IAuthenticationService } from "@/services/authentication.service";
@@ -106,7 +100,7 @@ const userContext: AuthenticatedUserContextType = {
 };
 
 // Mock implementations
-const createMockUserRepository = (): jest.Mocked<IUserRepository> => ({
+const createMockUserRepository = (): IUserRepository => ({
   create: vi.fn(),
   findById: vi.fn(),
   findByEmail: vi.fn(),
@@ -132,7 +126,7 @@ const createMockUserRepository = (): jest.Mocked<IUserRepository> => ({
   findByEmailVerificationToken: vi.fn(),
 });
 
-const createMockAuthService = (): jest.Mocked<IAuthenticationService> => ({
+const createMockAuthService = (): IAuthenticationService => ({
   register: vi.fn(),
   loginWithPassword: vi.fn(),
   refreshTokens: vi.fn(),
@@ -144,7 +138,7 @@ const createMockAuthService = (): jest.Mocked<IAuthenticationService> => ({
   authenticateUserByToken: vi.fn(),
 });
 
-const createMockPasswordService = (): jest.Mocked<IPasswordService> => ({
+const createMockPasswordService = (): IPasswordService => ({
   hashPassword: vi.fn(),
   verifyPassword: vi.fn(),
   validatePasswordStrength: vi.fn(),
@@ -153,18 +147,17 @@ const createMockPasswordService = (): jest.Mocked<IPasswordService> => ({
   validatePasswordPolicy: vi.fn(),
 });
 
-const createMockAdminSettingRepository =
-  (): jest.Mocked<IAdminSettingRepository> => ({
-    create: vi.fn(),
-    findByKey: vi.fn(),
-    findAll: vi.fn(),
-    updateByKey: vi.fn(),
-    deleteByKey: vi.fn(),
-    existsByKey: vi.fn(),
-    getValue: vi.fn(),
-    setValue: vi.fn(),
-    getMultiple: vi.fn(),
-  });
+const createMockAdminSettingRepository = (): IAdminSettingRepository => ({
+  create: vi.fn(),
+  findByKey: vi.fn(),
+  findAll: vi.fn(),
+  updateByKey: vi.fn(),
+  deleteByKey: vi.fn(),
+  existsByKey: vi.fn(),
+  getValue: vi.fn(),
+  setValue: vi.fn(),
+  getMultiple: vi.fn(),
+});
 
 const createMockContext = (
   userContext: AuthenticatedUserContextType,
@@ -194,10 +187,10 @@ const createMockContext = (
 
 describe("AdminController", () => {
   let adminController: AdminController;
-  let mockUserRepository: jest.Mocked<IUserRepository>;
-  let mockAuthService: jest.Mocked<IAuthenticationService>;
-  let mockPasswordService: jest.Mocked<IPasswordService>;
-  let mockAdminSettingRepository: jest.Mocked<IAdminSettingRepository>;
+  let mockUserRepository: IUserRepository;
+  let mockAuthService: IAuthenticationService;
+  let mockPasswordService: IPasswordService;
+  let mockAdminSettingRepository: IAdminSettingRepository;
 
   beforeEach(() => {
     mockUserRepository = createMockUserRepository();
@@ -227,7 +220,7 @@ describe("AdminController", () => {
         totalPages: 1,
       };
 
-      mockUserRepository.findAll.mockResolvedValue(paginatedResult);
+      (mockUserRepository.findAll as Mock).mockResolvedValue(paginatedResult);
 
       const c = createMockContext(
         adminContext,
@@ -261,7 +254,7 @@ describe("AdminController", () => {
 
   describe("getUserById", () => {
     it("should get user by ID (admin)", async () => {
-      mockUserRepository.findById.mockResolvedValue(regularUser);
+      (mockUserRepository.findById as Mock).mockResolvedValue(regularUser);
 
       const c = createMockContext(adminContext, undefined, {
         userId: regularUser.id,
@@ -276,7 +269,7 @@ describe("AdminController", () => {
     });
 
     it("should throw NotFoundError for non-existent user", async () => {
-      mockUserRepository.findById.mockResolvedValue(null);
+      (mockUserRepository.findById as Mock).mockResolvedValue(null);
 
       const c = createMockContext(adminContext, undefined, {
         userId: "non-existent",
@@ -298,16 +291,18 @@ describe("AdminController", () => {
     };
 
     beforeEach(() => {
-      mockPasswordService.validatePasswordStrength.mockReturnValue({
+      (mockPasswordService.validatePasswordStrength as Mock).mockReturnValue({
         isValid: true,
         errors: [],
       });
-      mockPasswordService.hashPassword.mockResolvedValue("hashed-password");
-      mockUserRepository.create.mockResolvedValue(regularUser);
+      (mockPasswordService.hashPassword as Mock).mockResolvedValue(
+        "hashed-password"
+      );
+      (mockUserRepository.create as Mock).mockResolvedValue(regularUser);
     });
 
     it("should create new user with provided password (admin)", async () => {
-      mockUserRepository.findByEmail.mockResolvedValue(null);
+      (mockUserRepository.findByEmail as Mock).mockResolvedValue(null);
 
       const c = createMockContext(adminContext, createUserData);
       await adminController.createUser(c as Context<AppEnv>);
@@ -332,8 +327,8 @@ describe("AdminController", () => {
     });
 
     it("should create user with generated password", async () => {
-      mockUserRepository.findByEmail.mockResolvedValue(null);
-      mockPasswordService.generateSecurePassword.mockReturnValue(
+      (mockUserRepository.findByEmail as Mock).mockResolvedValue(null);
+      (mockPasswordService.generateSecurePassword as Mock).mockReturnValue(
         "GeneratedPass123!"
       );
 
@@ -341,7 +336,7 @@ describe("AdminController", () => {
         ...createUserData,
         generatePassword: true,
       };
-      delete createDataWithGenerated.password;
+      delete (createDataWithGenerated as any).password;
 
       const c = createMockContext(adminContext, createDataWithGenerated);
       await adminController.createUser(c as Context<AppEnv>);
@@ -357,7 +352,7 @@ describe("AdminController", () => {
     });
 
     it("should throw UserAlreadyExistsError for existing email", async () => {
-      mockUserRepository.findByEmail.mockResolvedValue(regularUser);
+      (mockUserRepository.findByEmail as Mock).mockResolvedValue(regularUser);
 
       const c = createMockContext(adminContext, createUserData);
 
@@ -367,8 +362,8 @@ describe("AdminController", () => {
     });
 
     it("should throw BadRequestError for weak password", async () => {
-      mockUserRepository.findByEmail.mockResolvedValue(null);
-      mockPasswordService.validatePasswordStrength.mockReturnValue({
+      (mockUserRepository.findByEmail as Mock).mockResolvedValue(null);
+      (mockPasswordService.validatePasswordStrength as Mock).mockReturnValue({
         isValid: false,
         errors: ["Password too weak"],
       });
@@ -389,8 +384,8 @@ describe("AdminController", () => {
 
     it("should update user successfully (admin)", async () => {
       const updatedUser = { ...regularUser, ...updateData };
-      mockUserRepository.findById.mockResolvedValue(regularUser);
-      mockUserRepository.update.mockResolvedValue(updatedUser);
+      (mockUserRepository.findById as Mock).mockResolvedValue(regularUser);
+      (mockUserRepository.update as Mock).mockResolvedValue(updatedUser);
 
       const c = createMockContext(adminContext, updateData, {
         userId: regularUser.id,
@@ -410,7 +405,7 @@ describe("AdminController", () => {
     });
 
     it("should prevent admin from demoting themselves", async () => {
-      mockUserRepository.findById.mockResolvedValue(adminUser);
+      (mockUserRepository.findById as Mock).mockResolvedValue(adminUser);
 
       const demoteData = { globalRole: "student" as const };
       const c = createMockContext(adminContext, demoteData, {
@@ -425,7 +420,7 @@ describe("AdminController", () => {
 
   describe("deleteUser", () => {
     it("should delete user successfully (admin)", async () => {
-      mockUserRepository.findById.mockResolvedValue(regularUser);
+      (mockUserRepository.findById as Mock).mockResolvedValue(regularUser);
 
       const c = createMockContext(adminContext, undefined, {
         userId: regularUser.id,
@@ -453,7 +448,7 @@ describe("AdminController", () => {
 
   describe("lockUser", () => {
     it("should lock user account (admin)", async () => {
-      mockUserRepository.findById.mockResolvedValue(regularUser);
+      (mockUserRepository.findById as Mock).mockResolvedValue(regularUser);
 
       const c = createMockContext(adminContext, undefined, {
         userId: regularUser.id,
@@ -487,7 +482,7 @@ describe("AdminController", () => {
     });
 
     it("should throw BadRequestError for already locked account", async () => {
-      mockUserRepository.findById.mockResolvedValue(lockedUser);
+      (mockUserRepository.findById as Mock).mockResolvedValue(lockedUser);
 
       const c = createMockContext(adminContext, undefined, {
         userId: lockedUser.id,
@@ -502,7 +497,7 @@ describe("AdminController", () => {
 
   describe("unlockUser", () => {
     it("should unlock user account (admin)", async () => {
-      mockUserRepository.findById.mockResolvedValue(lockedUser);
+      (mockUserRepository.findById as Mock).mockResolvedValue(lockedUser);
 
       const c = createMockContext(adminContext, undefined, {
         userId: lockedUser.id,
@@ -517,7 +512,7 @@ describe("AdminController", () => {
     });
 
     it("should throw BadRequestError for non-locked account", async () => {
-      mockUserRepository.findById.mockResolvedValue(regularUser);
+      (mockUserRepository.findById as Mock).mockResolvedValue(regularUser);
 
       const c = createMockContext(adminContext, undefined, {
         userId: regularUser.id,
@@ -531,18 +526,20 @@ describe("AdminController", () => {
 
   describe("resetUserPassword", () => {
     beforeEach(() => {
-      mockPasswordService.validatePasswordStrength.mockReturnValue({
+      (mockPasswordService.validatePasswordStrength as Mock).mockReturnValue({
         isValid: true,
         errors: [],
       });
-      mockPasswordService.hashPassword.mockResolvedValue("new-hashed-password");
-      mockPasswordService.generateSecurePassword.mockReturnValue(
+      (mockPasswordService.hashPassword as Mock).mockResolvedValue(
+        "new-hashed-password"
+      );
+      (mockPasswordService.generateSecurePassword as Mock).mockReturnValue(
         "GeneratedPass123!"
       );
     });
 
     it("should reset password with provided password (admin)", async () => {
-      mockUserRepository.findById.mockResolvedValue(regularUser);
+      (mockUserRepository.findById as Mock).mockResolvedValue(regularUser);
 
       const c = createMockContext(adminContext, undefined, {
         userId: regularUser.id,
@@ -569,7 +566,7 @@ describe("AdminController", () => {
     });
 
     it("should reset password with generated password", async () => {
-      mockUserRepository.findById.mockResolvedValue(regularUser);
+      (mockUserRepository.findById as Mock).mockResolvedValue(regularUser);
 
       const c = createMockContext(adminContext, undefined, {
         userId: regularUser.id,
@@ -590,7 +587,7 @@ describe("AdminController", () => {
   describe("getSystemStats", () => {
     it("should return system statistics (admin)", async () => {
       const allUsers = [adminUser, regularUser, lockedUser];
-      mockUserRepository.findMany.mockResolvedValue(allUsers);
+      (mockUserRepository.findMany as Mock).mockResolvedValue(allUsers);
 
       const c = createMockContext(adminContext);
       await adminController.getSystemStats(c as Context<AppEnv>);
@@ -616,7 +613,7 @@ describe("AdminController", () => {
 
   describe("searchUsers", () => {
     it("should search users successfully (admin)", async () => {
-      mockUserRepository.findMany.mockResolvedValue([regularUser]);
+      (mockUserRepository.findMany as Mock).mockResolvedValue([regularUser]);
 
       const c = createMockContext(adminContext);
       await adminController.searchUsers(c as Context<AppEnv>);
@@ -645,7 +642,7 @@ describe("AdminController", () => {
 
   describe("bulkOperations", () => {
     it("should perform bulk lock operation (admin)", async () => {
-      mockUserRepository.findById
+      (mockUserRepository.findById as Mock)
         .mockResolvedValueOnce(regularUser)
         .mockResolvedValueOnce({ ...regularUser, id: "user-2" });
 
@@ -683,7 +680,7 @@ describe("AdminController", () => {
 
   describe("role-based access control", () => {
     it("should allow admin access to all endpoints", async () => {
-      mockUserRepository.findAll.mockResolvedValue({
+      (mockUserRepository.findAll as Mock).mockResolvedValue({
         data: [],
         total: 0,
         page: 1,
@@ -729,15 +726,15 @@ describe("AdminController", () => {
     };
 
     beforeEach(() => {
-      mockPasswordService.getCurrentPasswordPolicy = vi.fn();
-      mockPasswordService.validatePasswordPolicy = vi.fn();
-      mockPasswordService.validatePasswordStrength = vi.fn();
-      mockPasswordService.generateSecurePassword = vi.fn();
+      (mockPasswordService.getCurrentPasswordPolicy as Mock) = vi.fn();
+      (mockPasswordService.validatePasswordPolicy as Mock) = vi.fn();
+      (mockPasswordService.validatePasswordStrength as Mock) = vi.fn();
+      (mockPasswordService.generateSecurePassword as Mock) = vi.fn();
     });
 
     describe("getPasswordPolicy", () => {
       it("should return current password policy for admin", async () => {
-        mockPasswordService.getCurrentPasswordPolicy.mockReturnValue(
+        (mockPasswordService.getCurrentPasswordPolicy as Mock).mockReturnValue(
           testPolicy
         );
 
@@ -768,7 +765,7 @@ describe("AdminController", () => {
 
     describe("validatePasswordPolicy", () => {
       it("should validate a correct policy for admin", async () => {
-        mockPasswordService.validatePasswordPolicy.mockReturnValue({
+        (mockPasswordService.validatePasswordPolicy as Mock).mockReturnValue({
           isValid: true,
           errors: [],
         });
@@ -801,7 +798,7 @@ describe("AdminController", () => {
           requireSpecialChars: true,
         };
 
-        mockPasswordService.validatePasswordPolicy.mockReturnValue({
+        (mockPasswordService.validatePasswordPolicy as Mock).mockReturnValue({
           isValid: false,
           errors: ["Minimum length cannot be greater than maximum length"],
         });
@@ -835,11 +832,11 @@ describe("AdminController", () => {
       it("should test password against current policy for admin", async () => {
         const testPassword = "MySecurePass123!";
 
-        mockPasswordService.validatePasswordStrength.mockReturnValue({
+        (mockPasswordService.validatePasswordStrength as Mock).mockReturnValue({
           isValid: true,
           errors: [],
         });
-        mockPasswordService.getCurrentPasswordPolicy.mockReturnValue(
+        (mockPasswordService.getCurrentPasswordPolicy as Mock).mockReturnValue(
           testPolicy
         );
 
@@ -878,7 +875,7 @@ describe("AdminController", () => {
           requireSpecialChars: false,
         };
 
-        mockPasswordService.validatePasswordStrength.mockReturnValue({
+        (mockPasswordService.validatePasswordStrength as Mock).mockReturnValue({
           isValid: false,
           errors: ["Password must be at least 6 characters long"],
         });
@@ -934,14 +931,14 @@ describe("AdminController", () => {
           "ComplexPass3#",
         ];
 
-        mockPasswordService.getCurrentPasswordPolicy.mockReturnValue(
+        (mockPasswordService.getCurrentPasswordPolicy as Mock).mockReturnValue(
           testPolicy
         );
-        mockPasswordService.validatePasswordPolicy.mockReturnValue({
+        (mockPasswordService.validatePasswordPolicy as Mock).mockReturnValue({
           isValid: true,
           errors: [],
         });
-        mockPasswordService.generateSecurePassword
+        (mockPasswordService.generateSecurePassword as Mock)
           .mockReturnValueOnce(examplePasswords[0])
           .mockReturnValueOnce(examplePasswords[1])
           .mockReturnValueOnce(examplePasswords[2]);
@@ -1001,16 +998,18 @@ describe("AdminController", () => {
     ];
 
     beforeEach(() => {
-      mockAdminSettingRepository.findAll = vi.fn();
-      mockAdminSettingRepository.findByKey = vi.fn();
-      mockAdminSettingRepository.setValue = vi.fn();
-      mockAdminSettingRepository.deleteByKey = vi.fn();
-      mockAdminSettingRepository.getMultiple = vi.fn();
+      (mockAdminSettingRepository.findAll as Mock) = vi.fn();
+      (mockAdminSettingRepository.findByKey as Mock) = vi.fn();
+      (mockAdminSettingRepository.setValue as Mock) = vi.fn();
+      (mockAdminSettingRepository.deleteByKey as Mock) = vi.fn();
+      (mockAdminSettingRepository.getMultiple as Mock) = vi.fn();
     });
 
     describe("getAllSettings", () => {
       it("should return all admin settings for admin user", async () => {
-        mockAdminSettingRepository.findAll.mockResolvedValue(testSettings);
+        (mockAdminSettingRepository.findAll as Mock).mockResolvedValue(
+          testSettings
+        );
 
         const c = createMockContext(adminContext);
         await adminController.getAllSettings(c as Context<AppEnv>);
@@ -1033,7 +1032,9 @@ describe("AdminController", () => {
 
     describe("getSettingByKey", () => {
       it("should return setting by key for admin user", async () => {
-        mockAdminSettingRepository.findByKey.mockResolvedValue(testSetting);
+        (mockAdminSettingRepository.findByKey as Mock).mockResolvedValue(
+          testSetting
+        );
 
         const c = createMockContext(adminContext, undefined, {
           key: "test.setting",
@@ -1050,7 +1051,7 @@ describe("AdminController", () => {
       });
 
       it("should throw NotFoundError for non-existent setting", async () => {
-        mockAdminSettingRepository.findByKey.mockResolvedValue(null);
+        (mockAdminSettingRepository.findByKey as Mock).mockResolvedValue(null);
 
         const c = createMockContext(adminContext, undefined, {
           key: "nonexistent",
@@ -1073,7 +1074,9 @@ describe("AdminController", () => {
     describe("setSettingByKey", () => {
       it("should create or update setting for admin user", async () => {
         const updatedSetting = { ...testSetting, value: "updated value" };
-        mockAdminSettingRepository.setValue.mockResolvedValue(updatedSetting);
+        (mockAdminSettingRepository.setValue as Mock).mockResolvedValue(
+          updatedSetting
+        );
 
         const c = createMockContext(
           adminContext,
@@ -1100,7 +1103,9 @@ describe("AdminController", () => {
           items: ["a", "b", "c"],
         };
         const complexSetting = { ...testSetting, value: complexValue };
-        mockAdminSettingRepository.setValue.mockResolvedValue(complexSetting);
+        (mockAdminSettingRepository.setValue as Mock).mockResolvedValue(
+          complexSetting
+        );
 
         const c = createMockContext(
           adminContext,
@@ -1130,7 +1135,9 @@ describe("AdminController", () => {
 
     describe("deleteSettingByKey", () => {
       it("should delete setting for admin user", async () => {
-        mockAdminSettingRepository.deleteByKey.mockResolvedValue(true);
+        (mockAdminSettingRepository.deleteByKey as Mock).mockResolvedValue(
+          true
+        );
 
         const c = createMockContext(adminContext, undefined, {
           key: "test.setting",
@@ -1147,7 +1154,9 @@ describe("AdminController", () => {
       });
 
       it("should throw NotFoundError for non-existent setting", async () => {
-        mockAdminSettingRepository.deleteByKey.mockResolvedValue(false);
+        (mockAdminSettingRepository.deleteByKey as Mock).mockResolvedValue(
+          false
+        );
 
         const c = createMockContext(adminContext, undefined, {
           key: "nonexistent",
@@ -1169,11 +1178,13 @@ describe("AdminController", () => {
 
     describe("getMultipleSettings", () => {
       it("should return multiple settings by keys for admin user", async () => {
-        const settingsMap = new Map([
+        const settingsMap = new Map<string, any>([
           ["setting1", "value1"],
           ["setting2", { complex: "value" }],
         ]);
-        mockAdminSettingRepository.getMultiple.mockResolvedValue(settingsMap);
+        (mockAdminSettingRepository.getMultiple as Mock).mockResolvedValue(
+          settingsMap
+        );
 
         const c = createMockContext(adminContext, {
           keys: ["setting1", "setting2"],
@@ -1204,8 +1215,10 @@ describe("AdminController", () => {
     describe("getHealthStatus", () => {
       it("should return comprehensive health status for admin user", async () => {
         // Mock successful database check
-        mockUserRepository.findMany.mockResolvedValue([regularUser]);
-        mockAdminSettingRepository.findAll.mockResolvedValue(testSettings);
+        (mockUserRepository.findMany as Mock).mockResolvedValue([regularUser]);
+        (mockAdminSettingRepository.findAll as Mock).mockResolvedValue(
+          testSettings
+        );
 
         const c = createMockContext(adminContext);
         await adminController.getHealthStatus(c as Context<AppEnv>);
@@ -1240,10 +1253,12 @@ describe("AdminController", () => {
       });
 
       it("should handle database errors gracefully", async () => {
-        mockUserRepository.findMany.mockRejectedValue(
+        (mockUserRepository.findMany as Mock).mockRejectedValue(
           new Error("Database connection failed")
         );
-        mockAdminSettingRepository.findAll.mockResolvedValue(testSettings);
+        (mockAdminSettingRepository.findAll as Mock).mockResolvedValue(
+          testSettings
+        );
 
         const c = createMockContext(adminContext);
         await adminController.getHealthStatus(c as Context<AppEnv>);
@@ -1263,8 +1278,8 @@ describe("AdminController", () => {
       });
 
       it("should handle settings repository errors gracefully", async () => {
-        mockUserRepository.findMany.mockResolvedValue([regularUser]);
-        mockAdminSettingRepository.findAll.mockRejectedValue(
+        (mockUserRepository.findMany as Mock).mockResolvedValue([regularUser]);
+        (mockAdminSettingRepository.findAll as Mock).mockRejectedValue(
           new Error("Settings error")
         );
 
