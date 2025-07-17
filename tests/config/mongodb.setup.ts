@@ -3,7 +3,6 @@ import { vi } from "vitest";
 
 // Store test database instances globally
 let testDb: Db;
-let testClient: MongoClient;
 
 // Mock database connection module
 vi.mock("@/config/mongodb.setup", () => {
@@ -12,7 +11,7 @@ vi.mock("@/config/mongodb.setup", () => {
       connect: vi.fn(async () => {
         if (!testDb) {
           throw new Error(
-            "Test database not initialized. Call setupTestDatabase() first.",
+            "Test database not initialized. Call setupTestDatabase() first."
           );
         }
         return testDb;
@@ -23,7 +22,7 @@ vi.mock("@/config/mongodb.setup", () => {
       getDb: vi.fn(() => {
         if (!testDb) {
           throw new Error(
-            "Test database not initialized. Call setupTestDatabase() first.",
+            "Test database not initialized. Call setupTestDatabase() first."
           );
         }
         return testDb;
@@ -33,7 +32,7 @@ vi.mock("@/config/mongodb.setup", () => {
     getDatabase: vi.fn(async () => {
       if (!testDb) {
         throw new Error(
-          "Test database not initialized. Call setupTestDatabase() first.",
+          "Test database not initialized. Call setupTestDatabase() first."
         );
       }
       return testDb;
@@ -55,9 +54,8 @@ global.setupTestDatabase = async () => {
   await client.connect();
   const db = client.db(dbName);
 
-  // Set the test database instances
+  // Set the test database instance
   testDb = db;
-  testClient = client;
 
   return { db, client };
 };
@@ -65,5 +63,4 @@ global.setupTestDatabase = async () => {
 global.cleanupTestDatabase = async (client: MongoClient) => {
   await client.close();
   testDb = undefined as any;
-  testClient = undefined as any;
 };
