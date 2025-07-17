@@ -21,7 +21,7 @@ export class AuthorizationService {
 
   async canViewUserProfile(
     requestingUser: AuthenticatedUserContextType,
-    targetUserId: string
+    targetUserId: string,
   ): Promise<boolean> {
     if (this.isAdmin(requestingUser)) return true;
     if (requestingUser.userId === targetUserId) return true;
@@ -30,7 +30,7 @@ export class AuthorizationService {
 
   async canUpdateUserProfile(
     requestingUser: AuthenticatedUserContextType,
-    targetUserId: string
+    targetUserId: string,
   ): Promise<boolean> {
     if (this.isAdmin(requestingUser)) return true;
     if (requestingUser.userId === targetUserId) return true;
@@ -41,7 +41,7 @@ export class AuthorizationService {
 
   async canReceiveAuthEvent(
     user: AuthenticatedUserContextType,
-    eventData: { userId: string; [key: string]: unknown }
+    eventData: { userId: string; [key: string]: unknown },
   ): Promise<boolean> {
     if (this.isAdmin(user)) return true;
     if (eventData.userId === user.userId) return true;

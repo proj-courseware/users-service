@@ -166,7 +166,7 @@ describe("AuthController", () => {
 
       expect(mockAuthService.register).toHaveBeenCalledWith(registerData);
       expect(
-        mockEmailVerificationService.generateVerificationToken
+        mockEmailVerificationService.generateVerificationToken,
       ).toHaveBeenCalledWith(mockUser.id, mockUser.primaryEmail);
       expect(response).toMatchObject({
         success: true,
@@ -279,7 +279,7 @@ describe("AuthController", () => {
       const response = await authController.refreshToken(context);
 
       expect(mockAuthService.refreshTokens).toHaveBeenCalledWith(
-        "old_refresh_token"
+        "old_refresh_token",
       );
       expect(response).toEqual({
         success: true,
@@ -293,7 +293,7 @@ describe("AuthController", () => {
       const context = createMockContext({ json: {} });
 
       await expect(authController.refreshToken(context)).rejects.toThrow(
-        BadRequestError
+        BadRequestError,
       );
     });
   });
@@ -316,7 +316,7 @@ describe("AuthController", () => {
       const response = await authController.verifyEmail(context);
 
       expect(
-        mockEmailVerificationService.verifyEmailToken
+        mockEmailVerificationService.verifyEmailToken,
       ).toHaveBeenCalledWith("verification_token_123");
       expect(response).toEqual({
         success: true,
@@ -340,7 +340,7 @@ describe("AuthController", () => {
       });
 
       await expect(authController.verifyEmail(context)).rejects.toThrow(
-        BadRequestError
+        BadRequestError,
       );
     });
 
@@ -348,7 +348,7 @@ describe("AuthController", () => {
       const context = createMockContext({ json: {} });
 
       await expect(authController.verifyEmail(context)).rejects.toThrow(
-        BadRequestError
+        BadRequestError,
       );
     });
   });
@@ -372,7 +372,7 @@ describe("AuthController", () => {
       const response = await authController.resendVerification(context);
 
       expect(
-        mockEmailVerificationService.resendVerificationEmail
+        mockEmailVerificationService.resendVerificationEmail,
       ).toHaveBeenCalledWith("user-123", "john.doe@example.com");
       expect(response).toMatchObject({
         success: true,
@@ -385,7 +385,7 @@ describe("AuthController", () => {
       const context = createMockContext({ json: { userId: "user-123" } });
 
       await expect(authController.resendVerification(context)).rejects.toThrow(
-        BadRequestError
+        BadRequestError,
       );
     });
   });
@@ -400,7 +400,7 @@ describe("AuthController", () => {
       const response = await authController.me(context);
 
       expect(mockAuthService.getUserFromToken).toHaveBeenCalledWith(
-        "valid_token_123"
+        "valid_token_123",
       );
       expect(response).toEqual({
         success: true,
@@ -476,7 +476,7 @@ describe("AuthController", () => {
       const response = await authController.tokenInfo(context);
 
       expect(mockAuthService.verifyAccessToken).toHaveBeenCalledWith(
-        "valid_token_123"
+        "valid_token_123",
       );
       expect(response).toMatchObject({
         success: true,
@@ -499,7 +499,7 @@ describe("AuthController", () => {
       });
 
       await expect(authController.tokenInfo(context)).rejects.toThrow(
-        BadRequestError
+        BadRequestError,
       );
     });
   });

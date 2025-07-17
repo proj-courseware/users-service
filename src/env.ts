@@ -146,7 +146,7 @@ const _env = envSchema.safeParse(mappedEnv);
 if (!_env.success) {
   console.error(
     "❌ Invalid environment variables after mapping:",
-    _env.error.format()
+    _env.error.format(),
   );
   // Log the mappedEnv for easier debugging of what Zod received
   console.error("Mapped environment data passed to Zod:", mappedEnv);

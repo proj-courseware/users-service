@@ -187,7 +187,7 @@ export class AuthenticationService {
   constructor(
     private userRepository: IUserRepository,
     private refreshTokenRepository: IRefreshTokenRepository,
-    private emailService: IEmailService
+    private emailService: IEmailService,
   ) {}
 
   async register(data: RegisterUserType): Promise<UserType> {
@@ -202,7 +202,7 @@ export class AuthenticationService {
 
   async loginWithPassword(
     email: string,
-    password: string
+    password: string,
   ): Promise<{
     user: UserType;
     accessToken?: string;
@@ -255,7 +255,7 @@ export class AuthController {
           message: "User registered successfully. Please verify your email.",
           user: this.sanitizeUserResponse(user),
         },
-        201
+        201,
       );
     } catch (error) {
       // Error mapping to HTTP responses
@@ -275,7 +275,7 @@ export class AuthController {
       // Set HTTP-only session cookie
       c.res.headers.set(
         "Set-Cookie",
-        `session=${result.sessionToken}; HttpOnly; Secure; SameSite=Strict; Path=/`
+        `session=${result.sessionToken}; HttpOnly; Secure; SameSite=Strict; Path=/`,
       );
 
       return c.json({
@@ -417,7 +417,7 @@ export function createAuthRoutes({
     "/register",
     rateLimitMiddleware(5, 15 * 60 * 1000), // 5 attempts per 15 minutes
     validateBody(registerUserSchema),
-    (c) => authController.register(c)
+    (c) => authController.register(c),
   );
 
   // Session-based login
@@ -425,7 +425,7 @@ export function createAuthRoutes({
     "/login/session",
     rateLimitMiddleware(5, 15 * 60 * 1000),
     validateBody(loginCredentialsSchema),
-    (c) => authController.loginSession(c)
+    (c) => authController.loginSession(c),
   );
 
   // Token-based login
@@ -433,7 +433,7 @@ export function createAuthRoutes({
     "/login/token",
     rateLimitMiddleware(5, 15 * 60 * 1000),
     validateBody(loginCredentialsSchema),
-    (c) => authController.loginToken(c)
+    (c) => authController.loginToken(c),
   );
 
   // Token refresh
@@ -441,7 +441,7 @@ export function createAuthRoutes({
     "/token/refresh",
     rateLimitMiddleware(10, 5 * 60 * 1000), // 10 attempts per 5 minutes
     validateBody(refreshTokenSchema),
-    (c) => authController.refreshToken(c)
+    (c) => authController.refreshToken(c),
   );
 
   // Social login routes
@@ -467,20 +467,20 @@ export function createUserRoutes({
 
   router.get("/", (c) => userController.getProfile(c));
   router.put("/", validateBody(updateUserSchema), (c) =>
-    userController.updateProfile(c)
+    userController.updateProfile(c),
   );
   router.put("/password", validateBody(changePasswordSchema), (c) =>
-    userController.changePassword(c)
+    userController.changePassword(c),
   );
 
   // Email management
   router.get("/emails", (c) => userController.getEmails(c));
   router.post("/emails", validateBody(addEmailSchema), (c) =>
-    userController.addEmail(c)
+    userController.addEmail(c),
   );
   router.delete("/emails/:email", (c) => userController.removeEmail(c));
   router.post("/emails/set-primary", validateBody(setPrimaryEmailSchema), (c) =>
-    userController.setPrimaryEmail(c)
+    userController.setPrimaryEmail(c),
   );
 
   return router;
@@ -514,7 +514,7 @@ export class PasswordService {
 
   validatePasswordStrength(
     password: string,
-    policy: PasswordPolicyType
+    policy: PasswordPolicyType,
   ): boolean {
     // Implement password policy validation
     if (password.length < policy.minLength) return false;
@@ -614,7 +614,7 @@ export const userSchema = z.object({
 class AuthenticationService {
   private calculateProgressiveLockoutDuration(
     attempts: number,
-    config: AuthServiceConfig
+    config: AuthServiceConfig,
   ): number {
     const baseAttempts = config.maxFailedAttempts;
     const excessAttempts = Math.max(0, attempts - baseAttempts);
@@ -696,7 +696,7 @@ async loginWithPassword(credentials: LoginCredentialsType): Promise<AuthResult> 
 export class OAuthService {
   async handleGoogleCallback(
     code: string,
-    state: string
+    state: string,
   ): Promise<{
     user: UserType;
     isNewUser: boolean;
@@ -709,7 +709,7 @@ export class OAuthService {
     // 2. Get user info from Google
     const googleUser = await this.getUserInfo(
       "google",
-      googleTokens.access_token
+      googleTokens.access_token,
     );
 
     // 3. Find existing user by email or social identity
@@ -779,7 +779,7 @@ export class EmailVerificationService {
       user.userId,
       email,
       verificationToken,
-      expiresAt
+      expiresAt,
     );
 
     // 3. Send email with verification link
@@ -788,7 +788,7 @@ export class EmailVerificationService {
   }
 
   async verifyEmail(
-    token: string
+    token: string,
   ): Promise<{ success: boolean; message: string }> {
     // 1. Find user by verification token
     const user = await this.userRepository.findByVerificationToken(token);
@@ -799,7 +799,7 @@ export class EmailVerificationService {
 
     // 2. Check token expiry
     const emailToVerify = user.emails.find(
-      (e) => e.verificationToken === token
+      (e) => e.verificationToken === token,
     );
     if (
       !emailToVerify ||
@@ -811,7 +811,7 @@ export class EmailVerificationService {
     // 3. Mark email as verified
     await this.userRepository.verifyEmail(
       user.userId,
-      emailToVerify.emailAddress
+      emailToVerify.emailAddress,
     );
 
     return { success: true, message: "Email verified successfully" };
@@ -1020,16 +1020,16 @@ export class MongoDbUserRepository implements IUserRepository {
 
   // createIndex is idempotent, so we can safely call it multiple times
   private async createIndexes(
-    collection: Collection<MongoUserDocument>
+    collection: Collection<MongoUserDocument>,
   ): Promise<void> {
     await Promise.all([
       collection.createIndex(
         { userId: 1 },
-        { unique: true, name: "users_userId" }
+        { unique: true, name: "users_userId" },
       ),
       collection.createIndex(
         { primaryEmail: 1 },
-        { unique: true, name: "users_primaryEmail" }
+        { unique: true, name: "users_primaryEmail" },
       ),
       // ... more indexes
     ]);
@@ -1286,12 +1286,12 @@ export interface IOAuthProvider {
 export interface IOAuthService {
   generateAuthorizationUrl(
     provider: OAuthProvider,
-    redirectTo?: string
+    redirectTo?: string,
   ): OAuthAuthorizationURL;
   handleCallback(
     provider: OAuthProvider,
     code: string,
-    state: string
+    state: string,
   ): Promise<OAuthUserInfo>;
   validateState(stateString: string): OAuthState;
   isProviderEnabled(provider: OAuthProvider): boolean;
@@ -1324,7 +1324,7 @@ let user = await this.userRepository.findByEmail(oauthUserInfo.email);
 if (user) {
   // Link OAuth account to existing user
   const socialIdentity = user.socialIdentities?.find(
-    (identity) => identity.provider === provider
+    (identity) => identity.provider === provider,
   );
 
   if (!socialIdentity) {
@@ -1413,11 +1413,13 @@ export interface IRefreshTokenRepository {
 ### Token Storage and Security ✅ IMPLEMENTED
 
 **Secure Token Storage**:
+
 - Tokens stored as SHA-256 hashes in database (never plaintext)
 - Metadata includes userId, expiry, revocation status, device info
 - Automatic expiry handling with cleanup utilities
 
 **Security Features**:
+
 - Cryptographically secure token hashing
 - Tamper-resistant token validation
 - Immediate revocation capabilities
@@ -1426,13 +1428,14 @@ export interface IRefreshTokenRepository {
 ### Authentication Service Integration ✅ IMPLEMENTED
 
 **Login Flow with Token Storage**:
+
 ```typescript
 async loginWithPassword(email: string, password: string): Promise<AuthResult> {
   // ... authentication logic
-  
+
   if (activeConfig.tokenMode) {
     const tokens = await this.jwtService.generateTokenPair(user);
-    
+
     // Store refresh token in database
     await this.refreshTokenRepository.create({
       tokenHash: this.hashToken(tokens.refreshToken),
@@ -1442,18 +1445,19 @@ async loginWithPassword(email: string, password: string): Promise<AuthResult> {
       userAgent: undefined,
       ipAddress: undefined,
     });
-    
+
     return { user, ...tokens };
   }
 }
 ```
 
 **Logout Flow with Token Revocation**:
+
 ```typescript
 async logout(refreshToken: string): Promise<void> {
   const tokenHash = this.hashToken(refreshToken);
   const storedToken = await this.refreshTokenRepository.findByTokenHash(tokenHash);
-  
+
   if (storedToken && !storedToken.isRevoked) {
     await this.refreshTokenRepository.revokeById(storedToken.id);
   }
@@ -1461,19 +1465,20 @@ async logout(refreshToken: string): Promise<void> {
 ```
 
 **Token Refresh with Rotation**:
+
 ```typescript
 async refreshToken(refreshToken: string): Promise<TokenPair> {
   // 1. Validate and find stored token
   const tokenHash = this.hashToken(refreshToken);
   const storedToken = await this.refreshTokenRepository.findByTokenHash(tokenHash);
-  
+
   if (!storedToken || storedToken.isRevoked) {
     throw new InvalidTokenError("Refresh token is invalid or revoked");
   }
-  
+
   // 2. Generate new token pair
   const newTokens = await this.jwtService.generateTokenPair(user);
-  
+
   // 3. Revoke old token and store new one
   await this.refreshTokenRepository.revokeById(storedToken.id);
   await this.refreshTokenRepository.create({
@@ -1482,7 +1487,7 @@ async refreshToken(refreshToken: string): Promise<TokenPair> {
     expiresAt: new Date(newPayload.exp * 1000),
     isRevoked: false,
   });
-  
+
   return newTokens;
 }
 ```
@@ -1490,17 +1495,18 @@ async refreshToken(refreshToken: string): Promise<TokenPair> {
 ### Controller Integration ✅ IMPLEMENTED
 
 **Logout Endpoint**:
+
 ```typescript
 logout = async (c: Context<AppEnv>): Promise<Response> => {
   // Accept refresh token from request body or header
   const refreshToken = await this.extractRefreshToken(c);
-  
+
   if (!refreshToken) {
     throw new BadRequestError("Refresh token is required for logout");
   }
-  
+
   await this.authenticationService.logout(refreshToken);
-  
+
   return c.json({
     success: true,
     message: "Logged out successfully. All tokens have been invalidated.",
@@ -1509,12 +1515,13 @@ logout = async (c: Context<AppEnv>): Promise<Response> => {
 ```
 
 **Token Refresh Endpoint**:
+
 ```typescript
 refreshToken = async (c: Context<AppEnv>): Promise<Response> => {
   const { refreshToken } = c.var.validatedBody as RefreshTokenRequestType;
-  
+
   const result = await this.authenticationService.refreshToken(refreshToken);
-  
+
   return c.json({
     accessToken: result.accessToken,
     refreshToken: result.refreshToken,
@@ -1526,19 +1533,21 @@ refreshToken = async (c: Context<AppEnv>): Promise<Response> => {
 ### Security Integration ✅ IMPLEMENTED
 
 **Password Change Security**:
+
 ```typescript
 async changePassword(userId: string, currentPassword: string, newPassword: string): Promise<void> {
   // ... password validation logic
-  
+
   // Revoke all refresh tokens for enhanced security
   await this.refreshTokenRepository.revokeAllForUser(userId);
-  
+
   // Update password
   await this.userRepository.updatePassword(userId, newPasswordHash);
 }
 ```
 
 **Multi-Device Session Management**:
+
 - Each device/session gets separate refresh tokens
 - Users can view active sessions via repository queries
 - Selective logout by revoking specific tokens
@@ -1547,18 +1556,21 @@ async changePassword(userId: string, currentPassword: string, newPassword: strin
 ### Production Benefits ✅ ACHIEVED
 
 **Security Benefits**:
+
 - Database-backed token validation prevents replay attacks
 - Immediate token revocation for security incidents
 - Secure token storage with cryptographic hashing
 - Comprehensive audit trail for all token operations
 
 **User Experience Benefits**:
+
 - Proper logout functionality with server-side validation
 - Multi-device session management
 - Secure token rotation for enhanced security
 - Reliable session state management
 
 **Administrative Benefits**:
+
 - Ability to revoke tokens for security incidents
 - Session monitoring and management capabilities
 - Bulk operations for user management
@@ -1581,6 +1593,7 @@ const emailSignature = "Best regards,\nAuthentication Service Team";
 ### Required Pattern: Configurable Service Branding
 
 **Environment Configuration**:
+
 ```typescript
 // Environment schema update required
 const envSchema = z.object({
@@ -1592,24 +1605,25 @@ const envSchema = z.object({
 ```
 
 **Email Service Enhancement**:
+
 ```typescript
 // Required email service pattern
 export class EmailService {
   private serviceName: string;
   private appName: string;
-  
+
   constructor(
     private smtpConfig: SMTPConfig,
-    private emailConfig: EmailConfig
+    private emailConfig: EmailConfig,
   ) {
     this.serviceName = emailConfig.serviceName || "Authentication Service";
     this.appName = emailConfig.appName || "Authentication Service";
   }
-  
+
   async sendVerificationEmail(email: string, token: string): Promise<void> {
     const subject = `${this.serviceName} - Email Verification`;
     const emailHtml = this.generateVerificationTemplate(token);
-    
+
     await this.sendEmail({
       to: email,
       subject,
@@ -1617,7 +1631,7 @@ export class EmailService {
       from: `${this.serviceName} <${this.smtpConfig.from}>`,
     });
   }
-  
+
   private generateVerificationTemplate(token: string): string {
     return `
       <h1>Welcome to ${this.appName}</h1>
@@ -1629,6 +1643,7 @@ export class EmailService {
 ```
 
 **Template Pattern**:
+
 ```typescript
 // Email template configuration
 interface EmailTemplateConfig {
@@ -1641,14 +1656,14 @@ interface EmailTemplateConfig {
 // Dynamic template generation
 class EmailTemplateService {
   generateTemplate(
-    type: 'verification' | 'password-reset' | 'welcome',
+    type: "verification" | "password-reset" | "welcome",
     data: any,
-    config: EmailTemplateConfig
+    config: EmailTemplateConfig,
   ): string {
     const baseTemplate = this.getBaseTemplate(config);
     const contentTemplate = this.getContentTemplate(type, data, config);
-    
-    return baseTemplate.replace('{{content}}', contentTemplate);
+
+    return baseTemplate.replace("{{content}}", contentTemplate);
   }
 }
 ```
@@ -1656,6 +1671,7 @@ class EmailTemplateService {
 ### Microservices Integration Pattern
 
 **Service Configuration**:
+
 ```typescript
 // Microservices-ready configuration
 interface ServiceConfig {
@@ -1684,6 +1700,7 @@ export class AuthenticationService {
 ### Future Notifications Service Pattern
 
 **Service Extraction Architecture**:
+
 ```typescript
 // Future notifications service interface
 interface INotificationsService {
@@ -1691,19 +1708,19 @@ interface INotificationsService {
     type: NotificationType,
     recipient: string,
     data: NotificationData,
-    config: ServiceBrandingConfig
+    config: ServiceBrandingConfig,
   ): Promise<void>;
-  
+
   sendSMSNotification(
     recipient: string,
     message: string,
-    config: ServiceBrandingConfig
+    config: ServiceBrandingConfig,
   ): Promise<void>;
-  
+
   sendPushNotification(
     userId: string,
     notification: PushNotificationData,
-    config: ServiceBrandingConfig
+    config: ServiceBrandingConfig,
   ): Promise<void>;
 }
 
@@ -1711,14 +1728,14 @@ interface INotificationsService {
 class AuthenticationService {
   async register(userData: RegisterUserType): Promise<UserType> {
     const user = await this.userRepository.create(userData);
-    
+
     // Emit event for notifications service
-    await this.eventBus.publish('user.registered', {
+    await this.eventBus.publish("user.registered", {
       userId: user.id,
       email: user.primaryEmail,
       verificationToken: user.emails[0].verificationToken,
     });
-    
+
     return user;
   }
 }
@@ -1727,12 +1744,14 @@ class AuthenticationService {
 ### Implementation Requirements
 
 **Immediate Changes Required**:
+
 1. **Environment Variables**: Add SERVICE_NAME, APP_NAME configuration
 2. **Email Service**: Update to accept configurable service name
 3. **Templates**: Make all email templates dynamic
 4. **Testing**: Ensure different service names work correctly
 
 **Architecture Benefits**:
+
 - **Multi-Tenant Support**: Same service can serve different applications
 - **Branding Flexibility**: Easy deployment with different branding
 - **Microservices Ready**: Proper service isolation and configuration

@@ -24,7 +24,7 @@ export const userSchema = z.object({
       verificationToken: z.string().optional(),
       verificationTokenExpiresAt: z.date().optional(),
       addedAt: z.date(),
-    })
+    }),
   ),
   socialIdentities: z.array(
     z.object({
@@ -33,7 +33,7 @@ export const userSchema = z.object({
       email: z.string().email().optional(),
       name: z.string().optional(),
       linkedAt: z.date(),
-    })
+    }),
   ),
   lastLoginAt: z.date().optional(),
   passwordLastChangedAt: z.date().optional(),

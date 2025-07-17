@@ -57,11 +57,11 @@ export class AuthController {
         userRepository,
         passwordService,
         jwtService,
-        refreshTokenRepository
+        refreshTokenRepository,
       );
 
       this.emailVerificationService = new EmailVerificationService(
-        userRepository
+        userRepository,
       );
 
       // Use MockEmailService in test environment, real EmailService otherwise
@@ -85,7 +85,7 @@ export class AuthController {
         const verificationResult =
           await this.emailVerificationService.generateVerificationToken(
             result.user.id,
-            result.user.primaryEmail
+            result.user.primaryEmail,
           );
 
         // Send verification email
@@ -93,7 +93,7 @@ export class AuthController {
           result.user.id,
           result.user.primaryEmail,
           verificationResult.token,
-          result.user.firstName
+          result.user.firstName,
         );
 
         return c.json(
@@ -115,7 +115,7 @@ export class AuthController {
               verificationExpiresAt: verificationResult.expiresAt,
             }),
           },
-          201
+          201,
         );
       } catch (error) {
         // If verification token generation fails, user is still created
@@ -130,7 +130,7 @@ export class AuthController {
             verificationEmailSent: false,
             note: "User created successfully, but verification email could not be sent. Please contact support.",
           },
-          201
+          201,
         );
       }
     }
@@ -142,7 +142,7 @@ export class AuthController {
         user: result.user,
         requiresEmailVerification: false,
       },
-      201
+      201,
     );
   };
 
@@ -176,7 +176,7 @@ export class AuthController {
     }
 
     const result = await this.authenticationService.refreshTokens(
-      body.refreshToken
+      body.refreshToken,
     );
 
     return c.json({
@@ -199,7 +199,7 @@ export class AuthController {
     }
 
     const result = await this.emailVerificationService.verifyEmailToken(
-      body.token
+      body.token,
     );
 
     if (!result.success) {
@@ -228,7 +228,7 @@ export class AuthController {
       const result =
         await this.emailVerificationService.resendVerificationEmail(
           body.userId,
-          body.emailAddress
+          body.emailAddress,
         );
 
       // Get user info for personalized email
@@ -241,7 +241,7 @@ export class AuthController {
       // Get the verification token from the updated user
       const updatedUser = await userRepository.findById(body.userId);
       const emailObj = updatedUser?.emails.find(
-        (e) => e.emailAddress === body.emailAddress
+        (e) => e.emailAddress === body.emailAddress,
       );
       const token = emailObj?.verificationToken;
 
@@ -251,7 +251,7 @@ export class AuthController {
           body.userId,
           body.emailAddress,
           token,
-          user?.firstName
+          user?.firstName,
         );
 
         return c.json({

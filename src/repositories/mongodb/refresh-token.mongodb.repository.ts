@@ -43,7 +43,7 @@ export class MongoDbRefreshTokenRepository implements IRefreshTokenRepository {
     const collection = await this.getCollection();
     await collection.updateOne(
       { _id: new ObjectId(id) },
-      { $set: { isRevoked: true } }
+      { $set: { isRevoked: true } },
     );
   }
 

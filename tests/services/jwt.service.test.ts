@@ -213,7 +213,7 @@ describe("JWTService", () => {
       const invalidToken = "invalid.token.here";
 
       await expect(jwtService.verifyAccessToken(invalidToken)).rejects.toThrow(
-        UnauthenticatedError
+        UnauthenticatedError,
       );
     });
 
@@ -224,11 +224,11 @@ describe("JWTService", () => {
           email: testUser.primaryEmail,
           role: testUser.globalRole,
         },
-        "wrong-secret"
+        "wrong-secret",
       );
 
       await expect(jwtService.verifyAccessToken(wrongToken)).rejects.toThrow(
-        UnauthenticatedError
+        UnauthenticatedError,
       );
     });
 
@@ -241,33 +241,33 @@ describe("JWTService", () => {
           iat: Math.floor(Date.now() / 1000) - 3600,
           exp: Math.floor(Date.now() / 1000) - 1800, // Expired 30 minutes ago
         },
-        process.env.JWT_ACCESS_SECRET!
+        process.env.JWT_ACCESS_SECRET!,
       );
 
       await expect(jwtService.verifyAccessToken(expiredToken)).rejects.toThrow(
-        UnauthenticatedError
+        UnauthenticatedError,
       );
     });
 
     it("should reject token with invalid payload structure", async () => {
       const invalidPayloadToken = jwt.sign(
         { invalidPayload: true },
-        process.env.JWT_ACCESS_SECRET!
+        process.env.JWT_ACCESS_SECRET!,
       );
 
       await expect(
-        jwtService.verifyAccessToken(invalidPayloadToken)
+        jwtService.verifyAccessToken(invalidPayloadToken),
       ).rejects.toThrow(UnauthenticatedError);
     });
 
     it("should reject token with missing required fields", async () => {
       const incompleteToken = jwt.sign(
         { userId: testUser.id }, // Missing email and role
-        process.env.JWT_ACCESS_SECRET!
+        process.env.JWT_ACCESS_SECRET!,
       );
 
       await expect(
-        jwtService.verifyAccessToken(incompleteToken)
+        jwtService.verifyAccessToken(incompleteToken),
       ).rejects.toThrow(UnauthenticatedError);
     });
   });
@@ -285,7 +285,7 @@ describe("JWTService", () => {
       const invalidToken = "invalid.refresh.token";
 
       await expect(jwtService.verifyRefreshToken(invalidToken)).rejects.toThrow(
-        UnauthenticatedError
+        UnauthenticatedError,
       );
     });
 
@@ -293,18 +293,18 @@ describe("JWTService", () => {
       const accessToken = await jwtService.generateAccessToken(testUser);
 
       await expect(jwtService.verifyRefreshToken(accessToken)).rejects.toThrow(
-        UnauthenticatedError
+        UnauthenticatedError,
       );
     });
 
     it("should reject refresh token with wrong secret", async () => {
       const wrongToken = jwt.sign(
         { userId: testUser.id, type: "refresh" },
-        "wrong-refresh-secret"
+        "wrong-refresh-secret",
       );
 
       await expect(jwtService.verifyRefreshToken(wrongToken)).rejects.toThrow(
-        UnauthenticatedError
+        UnauthenticatedError,
       );
     });
 
@@ -316,11 +316,11 @@ describe("JWTService", () => {
           iat: Math.floor(Date.now() / 1000) - 3600,
           exp: Math.floor(Date.now() / 1000) - 1800,
         },
-        process.env.JWT_REFRESH_SECRET!
+        process.env.JWT_REFRESH_SECRET!,
       );
 
       await expect(jwtService.verifyRefreshToken(expiredToken)).rejects.toThrow(
-        UnauthenticatedError
+        UnauthenticatedError,
       );
     });
   });
@@ -375,7 +375,7 @@ describe("JWTService", () => {
         testUser,
         {
           expiryOverride: customExpiry,
-        }
+        },
       );
 
       const accessDecoded = jwt.decode(accessToken) as JWTPayloadType;
@@ -422,7 +422,7 @@ describe("JWTService", () => {
             userId: testUser.id,
             exp: Math.floor(Date.now() / 1000) - 3600, // Expired 1 hour ago
           },
-          process.env.JWT_ACCESS_SECRET!
+          process.env.JWT_ACCESS_SECRET!,
         );
 
         const isExpired = jwtService.isTokenExpired(expiredToken);
@@ -466,7 +466,7 @@ describe("JWTService", () => {
             userId: testUser.id,
             exp: Math.floor(Date.now() / 1000) - 3600,
           },
-          process.env.JWT_ACCESS_SECRET!
+          process.env.JWT_ACCESS_SECRET!,
         );
 
         const remaining = jwtService.getTokenRemainingTime(expiredToken);
@@ -483,7 +483,7 @@ describe("JWTService", () => {
   describe("error handling", () => {
     it("should throw UnauthenticatedError for malformed tokens", async () => {
       await expect(jwtService.verifyAccessToken("not.a.jwt")).rejects.toThrow(
-        UnauthenticatedError
+        UnauthenticatedError,
       );
     });
 
@@ -491,7 +491,7 @@ describe("JWTService", () => {
       const token = jwt.sign({ userId: testUser.id }, "wrong-secret");
 
       await expect(jwtService.verifyAccessToken(token)).rejects.toThrow(
-        UnauthenticatedError
+        UnauthenticatedError,
       );
     });
 
@@ -513,10 +513,10 @@ describe("JWTService", () => {
 
       // Verify initial tokens work
       await expect(
-        jwtService.verifyAccessToken(oldAccessToken)
+        jwtService.verifyAccessToken(oldAccessToken),
       ).resolves.toBeDefined();
       await expect(
-        jwtService.verifyRefreshToken(refreshToken)
+        jwtService.verifyRefreshToken(refreshToken),
       ).resolves.toBeDefined();
 
       // Simulate token rotation - generate new access token
@@ -524,15 +524,15 @@ describe("JWTService", () => {
 
       // Both old and new access tokens should be valid (until old expires)
       await expect(
-        jwtService.verifyAccessToken(oldAccessToken)
+        jwtService.verifyAccessToken(oldAccessToken),
       ).resolves.toBeDefined();
       await expect(
-        jwtService.verifyAccessToken(newAccessToken)
+        jwtService.verifyAccessToken(newAccessToken),
       ).resolves.toBeDefined();
 
       // Refresh token should still be valid
       await expect(
-        jwtService.verifyRefreshToken(refreshToken)
+        jwtService.verifyRefreshToken(refreshToken),
       ).resolves.toBeDefined();
     });
 
@@ -541,10 +541,10 @@ describe("JWTService", () => {
       const adminTokens = await jwtService.generateTokenPair(adminUser);
 
       const studentPayload = await jwtService.verifyAccessToken(
-        studentTokens.accessToken
+        studentTokens.accessToken,
       );
       const adminPayload = await jwtService.verifyAccessToken(
-        adminTokens.accessToken
+        adminTokens.accessToken,
       );
 
       expect(studentPayload.role).toBe("student");

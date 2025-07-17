@@ -179,14 +179,18 @@ describe("AuthenticationService", () => {
       listActiveSessions: vi.fn(),
     };
     // Always return errors: [] by default
-    mockPasswordService.validatePasswordStrength = vi.fn().mockResolvedValue({ isValid: true, errors: [] });
+    mockPasswordService.validatePasswordStrength = vi
+      .fn()
+      .mockResolvedValue({ isValid: true, errors: [] });
     authService = new AuthenticationService(
       mockUserRepository as IUserRepository,
       mockPasswordService as IPasswordService,
       mockJWTService as IJWTService,
-      mockRefreshTokenRepository as IRefreshTokenRepository
+      mockRefreshTokenRepository as IRefreshTokenRepository,
     );
-    (mockUserRepository.isAccountCurrentlyLocked as any).mockResolvedValue(false);
+    (mockUserRepository.isAccountCurrentlyLocked as any).mockResolvedValue(
+      false,
+    );
     vi.clearAllMocks();
   });
 
@@ -211,7 +215,9 @@ describe("AuthenticationService", () => {
           (email: string) => Promise<UserType | null>
         >
       ).mockResolvedValue(null);
-      mockPasswordService.validatePasswordStrength = vi.fn().mockResolvedValue({ isValid: true, errors: [] });
+      mockPasswordService.validatePasswordStrength = vi
+        .fn()
+        .mockResolvedValue({ isValid: true, errors: [] });
       const result = await authService.register(registerData);
 
       expect(result.user).toBeDefined();
@@ -219,13 +225,13 @@ describe("AuthenticationService", () => {
       expect(result.message).toContain("verify");
 
       expect(mockUserRepository.findByEmail).toHaveBeenCalledWith(
-        registerData.email
+        registerData.email,
       );
       expect(mockPasswordService.validatePasswordStrength).toHaveBeenCalledWith(
-        registerData.password
+        registerData.password,
       );
       expect(mockPasswordService.hashPassword).toHaveBeenCalledWith(
-        registerData.password
+        registerData.password,
       );
       expect(mockUserRepository.create).toHaveBeenCalled();
     });
@@ -236,7 +242,9 @@ describe("AuthenticationService", () => {
           (email: string) => Promise<UserType | null>
         >
       ).mockResolvedValue(null);
-      mockPasswordService.validatePasswordStrength = vi.fn().mockResolvedValue({ isValid: true, errors: [] });
+      mockPasswordService.validatePasswordStrength = vi
+        .fn()
+        .mockResolvedValue({ isValid: true, errors: [] });
       const result = await authService.register(registerData, {
         requireEmailVerification: false,
       });
@@ -253,7 +261,7 @@ describe("AuthenticationService", () => {
       ).mockResolvedValue(testUser);
 
       await expect(authService.register(registerData)).rejects.toThrow(
-        UserAlreadyExistsError
+        UserAlreadyExistsError,
       );
     });
 
@@ -268,7 +276,7 @@ describe("AuthenticationService", () => {
         .mockResolvedValue({ isValid: false, errors: ["Password too weak"] });
 
       await expect(authService.register(registerData)).rejects.toThrow(
-        BadRequestError
+        BadRequestError,
       );
     });
 
@@ -276,7 +284,7 @@ describe("AuthenticationService", () => {
       const invalidData = { ...registerData, email: "" };
 
       await expect(authService.register(invalidData)).rejects.toThrow(
-        BadRequestError
+        BadRequestError,
       );
     });
 
@@ -284,7 +292,7 @@ describe("AuthenticationService", () => {
       const invalidData = { ...registerData, password: "" };
 
       await expect(authService.register(invalidData)).rejects.toThrow(
-        BadRequestError
+        BadRequestError,
       );
     });
 
@@ -294,7 +302,9 @@ describe("AuthenticationService", () => {
           (email: string) => Promise<UserType | null>
         >
       ).mockResolvedValue(null);
-      mockPasswordService.validatePasswordStrength = vi.fn().mockResolvedValue({ isValid: true, errors: [] });
+      mockPasswordService.validatePasswordStrength = vi
+        .fn()
+        .mockResolvedValue({ isValid: true, errors: [] });
       const result = await authService.register(registerData);
 
       expect((result.user as UserType).passwordHash).toBeUndefined();
@@ -308,7 +318,7 @@ describe("AuthenticationService", () => {
       (
         mockJWTService.generateTokenPair as MockedFunction<
           (
-            user: UserType
+            user: UserType,
           ) => Promise<{ accessToken: string; refreshToken: string }>
         >
       ).mockResolvedValue({
@@ -328,18 +338,32 @@ describe("AuthenticationService", () => {
           (email: string) => Promise<boolean>
         >
       ).mockResolvedValue(false);
-      (mockJWTService.generateTokenPair as MockedFunction<
-        (user: UserType) => Promise<{ accessToken: string; refreshToken: string }>
-      >).mockResolvedValue({
+      (
+        mockJWTService.generateTokenPair as MockedFunction<
+          (
+            user: UserType,
+          ) => Promise<{ accessToken: string; refreshToken: string }>
+        >
+      ).mockResolvedValue({
         accessToken: "access-token",
         refreshToken: "refresh-token",
       });
-      (mockJWTService.verifyAccessToken as MockedFunction<
-        (token: string) => Promise<JWTPayloadType>
-      >).mockResolvedValue({ ...mockJWTPayload, exp: Math.floor(Date.now() / 1000) + 900 });
-      (mockJWTService.verifyRefreshToken as MockedFunction<
-        (token: string) => Promise<RefreshJWTPayloadType>
-      >).mockResolvedValue({ ...mockRefreshPayload, exp: Math.floor(Date.now() / 1000) + 604800 });
+      (
+        mockJWTService.verifyAccessToken as MockedFunction<
+          (token: string) => Promise<JWTPayloadType>
+        >
+      ).mockResolvedValue({
+        ...mockJWTPayload,
+        exp: Math.floor(Date.now() / 1000) + 900,
+      });
+      (
+        mockJWTService.verifyRefreshToken as MockedFunction<
+          (token: string) => Promise<RefreshJWTPayloadType>
+        >
+      ).mockResolvedValue({
+        ...mockRefreshPayload,
+        exp: Math.floor(Date.now() / 1000) + 604800,
+      });
       const result = await authService.loginWithPassword(loginCredentials);
 
       expect(result.user).toBeDefined();
@@ -347,14 +371,14 @@ describe("AuthenticationService", () => {
       expect(result.refreshToken).toBe("refresh-token");
 
       expect(mockUserRepository.findByEmail).toHaveBeenCalledWith(
-        loginCredentials.email
+        loginCredentials.email,
       );
       expect(mockPasswordService.verifyPassword).toHaveBeenCalledWith(
         loginCredentials.password,
-        testUser.passwordHash
+        testUser.passwordHash,
       );
       expect(mockUserRepository.updateLastLogin).toHaveBeenCalledWith(
-        testUser.id
+        testUser.id,
       );
       expect(mockJWTService.generateTokenPair).toHaveBeenCalledWith(testUser);
     });
@@ -384,7 +408,7 @@ describe("AuthenticationService", () => {
       ).mockResolvedValue(null);
 
       await expect(
-        authService.loginWithPassword(loginCredentials)
+        authService.loginWithPassword(loginCredentials),
       ).rejects.toThrow(InvalidCredentialsError);
     });
 
@@ -401,7 +425,7 @@ describe("AuthenticationService", () => {
       ).mockResolvedValue(true);
 
       await expect(
-        authService.loginWithPassword(loginCredentials)
+        authService.loginWithPassword(loginCredentials),
       ).rejects.toThrow(AccountLockedError);
     });
 
@@ -413,7 +437,7 @@ describe("AuthenticationService", () => {
       ).mockResolvedValue(unverifiedUser);
 
       await expect(
-        authService.loginWithPassword(loginCredentials)
+        authService.loginWithPassword(loginCredentials),
       ).rejects.toThrow(EmailNotVerifiedError);
     });
 
@@ -423,21 +447,35 @@ describe("AuthenticationService", () => {
           (email: string) => Promise<UserType | null>
         >
       ).mockResolvedValue(unverifiedUser);
-      (mockJWTService.generateTokenPair as MockedFunction<
-        (user: UserType) => Promise<{ accessToken: string; refreshToken: string }>
-      >).mockResolvedValue({
+      (
+        mockJWTService.generateTokenPair as MockedFunction<
+          (
+            user: UserType,
+          ) => Promise<{ accessToken: string; refreshToken: string }>
+        >
+      ).mockResolvedValue({
         accessToken: "access-token",
         refreshToken: "refresh-token",
       });
-      (mockJWTService.verifyAccessToken as MockedFunction<
-        (token: string) => Promise<JWTPayloadType>
-      >).mockResolvedValue({ ...mockJWTPayload, exp: Math.floor(Date.now() / 1000) + 900 });
-      (mockJWTService.verifyRefreshToken as MockedFunction<
-        (token: string) => Promise<RefreshJWTPayloadType>
-      >).mockResolvedValue({ ...mockRefreshPayload, exp: Math.floor(Date.now() / 1000) + 604800 });
+      (
+        mockJWTService.verifyAccessToken as MockedFunction<
+          (token: string) => Promise<JWTPayloadType>
+        >
+      ).mockResolvedValue({
+        ...mockJWTPayload,
+        exp: Math.floor(Date.now() / 1000) + 900,
+      });
+      (
+        mockJWTService.verifyRefreshToken as MockedFunction<
+          (token: string) => Promise<RefreshJWTPayloadType>
+        >
+      ).mockResolvedValue({
+        ...mockRefreshPayload,
+        exp: Math.floor(Date.now() / 1000) + 604800,
+      });
       const result = await authService.loginWithPassword(
         { ...loginCredentials, email: unverifiedUser.primaryEmail },
-        { requireEmailVerification: false }
+        { requireEmailVerification: false },
       );
 
       expect(result.user).toBeDefined();
@@ -452,7 +490,7 @@ describe("AuthenticationService", () => {
       mockPasswordService.verifyPassword = vi.fn().mockResolvedValue(false);
 
       await expect(
-        authService.loginWithPassword(loginCredentials)
+        authService.loginWithPassword(loginCredentials),
       ).rejects.toThrow(InvalidCredentialsError);
 
       expect(mockUserRepository.updateLoginAttempts).toHaveBeenCalled();
@@ -467,7 +505,7 @@ describe("AuthenticationService", () => {
       ).mockResolvedValue(socialUser);
 
       await expect(
-        authService.loginWithPassword(loginCredentials)
+        authService.loginWithPassword(loginCredentials),
       ).rejects.toThrow(InvalidCredentialsError);
     });
 
@@ -478,24 +516,38 @@ describe("AuthenticationService", () => {
           (email: string) => Promise<UserType | null>
         >
       ).mockResolvedValue(userWithFailedAttempts);
-      (mockJWTService.generateTokenPair as MockedFunction<
-        (user: UserType) => Promise<{ accessToken: string; refreshToken: string }>
-      >).mockResolvedValue({
+      (
+        mockJWTService.generateTokenPair as MockedFunction<
+          (
+            user: UserType,
+          ) => Promise<{ accessToken: string; refreshToken: string }>
+        >
+      ).mockResolvedValue({
         accessToken: "access-token",
         refreshToken: "refresh-token",
       });
-      (mockJWTService.verifyAccessToken as MockedFunction<
-        (token: string) => Promise<JWTPayloadType>
-      >).mockResolvedValue({ ...mockJWTPayload, exp: Math.floor(Date.now() / 1000) + 900 });
-      (mockJWTService.verifyRefreshToken as MockedFunction<
-        (token: string) => Promise<RefreshJWTPayloadType>
-      >).mockResolvedValue({ ...mockRefreshPayload, exp: Math.floor(Date.now() / 1000) + 604800 });
+      (
+        mockJWTService.verifyAccessToken as MockedFunction<
+          (token: string) => Promise<JWTPayloadType>
+        >
+      ).mockResolvedValue({
+        ...mockJWTPayload,
+        exp: Math.floor(Date.now() / 1000) + 900,
+      });
+      (
+        mockJWTService.verifyRefreshToken as MockedFunction<
+          (token: string) => Promise<RefreshJWTPayloadType>
+        >
+      ).mockResolvedValue({
+        ...mockRefreshPayload,
+        exp: Math.floor(Date.now() / 1000) + 604800,
+      });
       await authService.loginWithPassword(loginCredentials);
 
       expect(mockUserRepository.updateLoginAttempts).toHaveBeenCalledWith(
         loginCredentials.email,
         0,
-        false
+        false,
       );
     });
 
@@ -505,18 +557,32 @@ describe("AuthenticationService", () => {
           (email: string) => Promise<UserType | null>
         >
       ).mockResolvedValue(testUser);
-      (mockJWTService.generateTokenPair as MockedFunction<
-        (user: UserType) => Promise<{ accessToken: string; refreshToken: string }>
-      >).mockResolvedValue({
+      (
+        mockJWTService.generateTokenPair as MockedFunction<
+          (
+            user: UserType,
+          ) => Promise<{ accessToken: string; refreshToken: string }>
+        >
+      ).mockResolvedValue({
         accessToken: "access-token",
         refreshToken: "refresh-token",
       });
-      (mockJWTService.verifyAccessToken as MockedFunction<
-        (token: string) => Promise<JWTPayloadType>
-      >).mockResolvedValue({ ...mockJWTPayload, exp: Math.floor(Date.now() / 1000) + 900 });
-      (mockJWTService.verifyRefreshToken as MockedFunction<
-        (token: string) => Promise<RefreshJWTPayloadType>
-      >).mockResolvedValue({ ...mockRefreshPayload, exp: Math.floor(Date.now() / 1000) + 604800 });
+      (
+        mockJWTService.verifyAccessToken as MockedFunction<
+          (token: string) => Promise<JWTPayloadType>
+        >
+      ).mockResolvedValue({
+        ...mockJWTPayload,
+        exp: Math.floor(Date.now() / 1000) + 900,
+      });
+      (
+        mockJWTService.verifyRefreshToken as MockedFunction<
+          (token: string) => Promise<RefreshJWTPayloadType>
+        >
+      ).mockResolvedValue({
+        ...mockRefreshPayload,
+        exp: Math.floor(Date.now() / 1000) + 604800,
+      });
       const result = await authService.loginWithPassword(loginCredentials);
 
       expect((result.user as UserType).passwordHash).toBeUndefined();
@@ -538,7 +604,13 @@ describe("AuthenticationService", () => {
         });
       (
         mockRefreshTokenRepository.findByTokenHash as MockedFunction<
-          (hash: string) => Promise<{ id: string; isRevoked: boolean; expiresAt: Date } | null>
+          (
+            hash: string,
+          ) => Promise<{
+            id: string;
+            isRevoked: boolean;
+            expiresAt: Date;
+          } | null>
         >
       ).mockResolvedValue({
         id: "token-id",
@@ -553,7 +625,7 @@ describe("AuthenticationService", () => {
       (
         mockJWTService.generateTokenPair as MockedFunction<
           (
-            user: UserType
+            user: UserType,
           ) => Promise<{ accessToken: string; refreshToken: string }>
         >
       ).mockResolvedValue({
@@ -567,10 +639,10 @@ describe("AuthenticationService", () => {
       expect(result.refreshToken).toBe("new-refresh-token");
 
       expect(mockJWTService.verifyRefreshToken).toHaveBeenCalledWith(
-        refreshToken
+        refreshToken,
       );
       expect(mockUserRepository.findById).toHaveBeenCalledWith(
-        mockRefreshPayload.userId
+        mockRefreshPayload.userId,
       );
       expect(mockJWTService.generateTokenPair).toHaveBeenCalledWith(testUser);
     });
@@ -583,7 +655,7 @@ describe("AuthenticationService", () => {
       ).mockRejectedValue(new UnauthenticatedError("Invalid token"));
 
       await expect(authService.refreshTokens(refreshToken)).rejects.toThrow(
-        UnauthenticatedError
+        UnauthenticatedError,
       );
     });
 
@@ -603,7 +675,7 @@ describe("AuthenticationService", () => {
       ).mockResolvedValue(null);
 
       await expect(authService.refreshTokens(refreshToken)).rejects.toThrow(
-        UnauthenticatedError
+        UnauthenticatedError,
       );
     });
 
@@ -618,7 +690,13 @@ describe("AuthenticationService", () => {
       });
       (
         mockRefreshTokenRepository.findByTokenHash as MockedFunction<
-          (hash: string) => Promise<{ id: string; isRevoked: boolean; expiresAt: Date } | null>
+          (
+            hash: string,
+          ) => Promise<{
+            id: string;
+            isRevoked: boolean;
+            expiresAt: Date;
+          } | null>
         >
       ).mockResolvedValue({
         id: "token-id",
@@ -632,7 +710,7 @@ describe("AuthenticationService", () => {
       ).mockResolvedValue(lockedUser);
 
       await expect(authService.refreshTokens(refreshToken)).rejects.toThrow(
-        AccountLockedError
+        AccountLockedError,
       );
     });
   });
@@ -654,7 +732,7 @@ describe("AuthenticationService", () => {
 
       expect(result).toEqual(mockJWTPayload);
       expect(mockJWTService.verifyAccessToken).toHaveBeenCalledWith(
-        accessToken
+        accessToken,
       );
     });
 
@@ -666,7 +744,7 @@ describe("AuthenticationService", () => {
       ).mockRejectedValue(new UnauthenticatedError("Invalid token"));
 
       await expect(authService.verifyAccessToken(accessToken)).rejects.toThrow(
-        UnauthenticatedError
+        UnauthenticatedError,
       );
     });
   });
@@ -695,10 +773,10 @@ describe("AuthenticationService", () => {
       expect((result as UserType).passwordHash).toBeUndefined();
 
       expect(mockJWTService.verifyAccessToken).toHaveBeenCalledWith(
-        accessToken
+        accessToken,
       );
       expect(mockUserRepository.findById).toHaveBeenCalledWith(
-        mockJWTPayload.userId
+        mockJWTPayload.userId,
       );
     });
 
@@ -718,7 +796,7 @@ describe("AuthenticationService", () => {
       ).mockResolvedValue(null);
 
       await expect(authService.getUserFromToken(accessToken)).rejects.toThrow(
-        UnauthenticatedError
+        UnauthenticatedError,
       );
     });
 
@@ -738,7 +816,7 @@ describe("AuthenticationService", () => {
       ).mockResolvedValue(lockedUser);
 
       await expect(authService.getUserFromToken(accessToken)).rejects.toThrow(
-        AccountLockedError
+        AccountLockedError,
       );
     });
   });
@@ -755,7 +833,7 @@ describe("AuthenticationService", () => {
 
       expect(mockUserRepository.findById).toHaveBeenCalledWith(lockedUser.id);
       expect(mockUserRepository.unlockAccount).toHaveBeenCalledWith(
-        lockedUser.id
+        lockedUser.id,
       );
     });
 
@@ -767,7 +845,7 @@ describe("AuthenticationService", () => {
       ).mockResolvedValue(null);
 
       await expect(
-        authService.unlockAccount("non-existent-id")
+        authService.unlockAccount("non-existent-id"),
       ).rejects.toThrow(NotFoundError);
     });
   });
@@ -793,23 +871,25 @@ describe("AuthenticationService", () => {
         >
       ).mockResolvedValue(testUser);
       mockPasswordService.verifyPassword = vi.fn().mockResolvedValue(true);
-      mockPasswordService.validatePasswordStrength = vi.fn().mockResolvedValue({ isValid: true, errors: [] });
+      mockPasswordService.validatePasswordStrength = vi
+        .fn()
+        .mockResolvedValue({ isValid: true, errors: [] });
       await authService.changePassword(userId, currentPassword, newPassword);
 
       expect(mockUserRepository.findById).toHaveBeenCalledWith(userId);
       expect(mockPasswordService.verifyPassword).toHaveBeenCalledWith(
         currentPassword,
-        testUser.passwordHash
+        testUser.passwordHash,
       );
       expect(mockPasswordService.validatePasswordStrength).toHaveBeenCalledWith(
-        newPassword
+        newPassword,
       );
       expect(mockPasswordService.hashPassword).toHaveBeenCalledWith(
-        newPassword
+        newPassword,
       );
       expect(mockUserRepository.updatePassword).toHaveBeenCalledWith(
         userId,
-        "new-hashed-password"
+        "new-hashed-password",
       );
     });
 
@@ -821,7 +901,7 @@ describe("AuthenticationService", () => {
       ).mockResolvedValue(null);
 
       await expect(
-        authService.changePassword(userId, currentPassword, newPassword)
+        authService.changePassword(userId, currentPassword, newPassword),
       ).rejects.toThrow(NotFoundError);
     });
 
@@ -834,7 +914,7 @@ describe("AuthenticationService", () => {
       ).mockResolvedValue(socialUser);
 
       await expect(
-        authService.changePassword(userId, currentPassword, newPassword)
+        authService.changePassword(userId, currentPassword, newPassword),
       ).rejects.toThrow(BadRequestError);
     });
 
@@ -847,7 +927,7 @@ describe("AuthenticationService", () => {
       mockPasswordService.verifyPassword = vi.fn().mockResolvedValue(false);
 
       await expect(
-        authService.changePassword(userId, currentPassword, newPassword)
+        authService.changePassword(userId, currentPassword, newPassword),
       ).rejects.toThrow(InvalidCredentialsError);
     });
 
@@ -863,7 +943,7 @@ describe("AuthenticationService", () => {
         .mockResolvedValue({ isValid: false, errors: ["Password too weak"] });
 
       await expect(
-        authService.changePassword(userId, currentPassword, newPassword)
+        authService.changePassword(userId, currentPassword, newPassword),
       ).rejects.toThrow(BadRequestError);
     });
   });
@@ -875,7 +955,7 @@ describe("AuthenticationService", () => {
       expect(mockUserRepository.updateLoginAttempts).toHaveBeenCalledWith(
         testUser.primaryEmail,
         0,
-        false
+        false,
       );
     });
   });
@@ -892,14 +972,16 @@ describe("AuthenticationService", () => {
         mockPasswordService as IPasswordService,
         mockJWTService as IJWTService,
         mockRefreshTokenRepository as IRefreshTokenRepository,
-        customConfig
+        customConfig,
       );
       (
         mockUserRepository.findByEmail as MockedFunction<
           (email: string) => Promise<UserType | null>
         >
       ).mockResolvedValue(null);
-      mockPasswordService.validatePasswordStrength = vi.fn().mockResolvedValue({ isValid: true, errors: [] });
+      mockPasswordService.validatePasswordStrength = vi
+        .fn()
+        .mockResolvedValue({ isValid: true, errors: [] });
       mockPasswordService.hashPassword = vi
         .fn()
         .mockResolvedValue("hashed-password");
@@ -923,14 +1005,14 @@ describe("AuthenticationService", () => {
         mockPasswordService as IPasswordService,
         mockJWTService as IJWTService,
         mockRefreshTokenRepository as IRefreshTokenRepository,
-        customConfig
+        customConfig,
       );
 
       // Access private config through any to test merging
       const config = (customAuthService as any).config;
       expect(config.maxFailedAttempts).toBe(10);
       expect(config.requireEmailVerification).toBe(
-        DEFAULT_AUTH_CONFIG.requireEmailVerification
+        DEFAULT_AUTH_CONFIG.requireEmailVerification,
       );
     });
   });
@@ -965,14 +1047,14 @@ describe("AuthenticationService", () => {
       mockPasswordService.verifyPassword = vi.fn().mockResolvedValue(false);
 
       await expect(
-        authService.loginWithPassword(loginCredentials)
+        authService.loginWithPassword(loginCredentials),
       ).rejects.toThrow(InvalidCredentialsError);
 
       expect(mockUserRepository.updateLoginAttempts).toHaveBeenCalledWith(
         loginCredentials.email,
         5, // Should reach max
         true, // Should lock account
-        expect.any(Date) // lockUntil date
+        expect.any(Date), // lockUntil date
       );
     });
 
@@ -986,13 +1068,13 @@ describe("AuthenticationService", () => {
       mockPasswordService.verifyPassword = vi.fn().mockResolvedValue(false);
 
       await expect(
-        authService.loginWithPassword(loginCredentials)
+        authService.loginWithPassword(loginCredentials),
       ).rejects.toThrow(InvalidCredentialsError);
 
       expect(mockUserRepository.updateLoginAttempts).toHaveBeenCalledWith(
         loginCredentials.email,
         3, // Should increment
-        false // Should not lock account
+        false, // Should not lock account
       );
     });
   });
@@ -1074,13 +1156,14 @@ describe("refresh token DB logic", () => {
       verifyPassword: vi.fn(),
       validatePasswordStrength: vi.fn(),
     };
-    authService = new ((await import("@/services/authentication.service"))
-      .AuthenticationService)(
-        mockUserRepository as IUserRepository,
-        mockPasswordService as IPasswordService,
-        mockJWTService as IJWTService,
-        mockRefreshTokenRepository as IRefreshTokenRepository
-      );
+    authService = new (
+      await import("@/services/authentication.service")
+    ).AuthenticationService(
+      mockUserRepository as IUserRepository,
+      mockPasswordService as IPasswordService,
+      mockJWTService as IJWTService,
+      mockRefreshTokenRepository as IRefreshTokenRepository,
+    );
     // Patch hashToken to deterministic value for test
     (authService as any).hashToken = (token: string) => {
       if (token === refreshToken) return refreshTokenHash;
@@ -1107,7 +1190,7 @@ describe("refresh token DB logic", () => {
     (
       mockJWTService.generateTokenPair as MockedFunction<
         (
-          user: UserType
+          user: UserType,
         ) => Promise<{ accessToken: string; refreshToken: string }>
       >
     ).mockResolvedValue({
@@ -1135,7 +1218,7 @@ describe("refresh token DB logic", () => {
       expect.objectContaining({
         tokenHash: refreshTokenHash,
         userId: testUser2.id,
-      })
+      }),
     );
     expect(result.refreshToken).toBe(refreshToken);
   });
@@ -1152,7 +1235,7 @@ describe("refresh token DB logic", () => {
     (
       mockRefreshTokenRepository.findByTokenHash as MockedFunction<
         (
-          hash: string
+          hash: string,
         ) => Promise<{ id: string; isRevoked: boolean; expiresAt: Date } | null>
       >
     ).mockResolvedValue({
@@ -1173,7 +1256,7 @@ describe("refresh token DB logic", () => {
     (
       mockJWTService.generateTokenPair as MockedFunction<
         (
-          user: UserType
+          user: UserType,
         ) => Promise<{ accessToken: string; refreshToken: string }>
       >
     ).mockResolvedValue({
@@ -1195,14 +1278,14 @@ describe("refresh token DB logic", () => {
       });
     const result = await authService.refreshTokens(refreshToken);
     expect(mockRefreshTokenRepository.findByTokenHash).toHaveBeenCalledWith(
-      refreshTokenHash
+      refreshTokenHash,
     );
     expect(mockRefreshTokenRepository.revokeById).toHaveBeenCalledWith("id1");
     expect(mockRefreshTokenRepository.create).toHaveBeenCalledWith(
       expect.objectContaining({
         tokenHash: newRefreshTokenHash,
         userId: testUser2.id,
-      })
+      }),
     );
     expect(result.refreshToken).toBe(newRefreshToken);
   });
@@ -1219,7 +1302,7 @@ describe("refresh token DB logic", () => {
     (
       mockRefreshTokenRepository.findByTokenHash as MockedFunction<
         (
-          hash: string
+          hash: string,
         ) => Promise<{ id: string; isRevoked: boolean; expiresAt: Date } | null>
       >
     ).mockResolvedValue({
@@ -1242,7 +1325,7 @@ describe("refresh token DB logic", () => {
     (
       mockRefreshTokenRepository.findByTokenHash as MockedFunction<
         (
-          hash: string
+          hash: string,
         ) => Promise<{ id: string; isRevoked: boolean; expiresAt: Date } | null>
       >
     ).mockResolvedValue({
@@ -1297,7 +1380,7 @@ describe("refresh token DB logic", () => {
     ).mockResolvedValue();
     await authService.changePassword(testUser2.id, "old", "new");
     expect(mockRefreshTokenRepository.revokeAllForUser).toHaveBeenCalledWith(
-      testUser2.id
+      testUser2.id,
     );
   });
 });

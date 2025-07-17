@@ -63,7 +63,7 @@ describe("Progressive Account Lockout", () => {
       passwordService,
       jwtService,
       refreshTokenRepository,
-      testConfig
+      testConfig,
     );
 
     // Create test user
@@ -114,7 +114,7 @@ describe("Progressive Account Lockout", () => {
     it("should track failed attempts without locking initially", async () => {
       // First failed attempt
       await expect(
-        authService.loginWithPassword(loginCredentials, testConfig)
+        authService.loginWithPassword(loginCredentials, testConfig),
       ).rejects.toThrow(InvalidCredentialsError);
 
       let user = await userRepository.findByEmail(testUser.primaryEmail);
@@ -123,7 +123,7 @@ describe("Progressive Account Lockout", () => {
 
       // Second failed attempt
       await expect(
-        authService.loginWithPassword(loginCredentials, testConfig)
+        authService.loginWithPassword(loginCredentials, testConfig),
       ).rejects.toThrow(InvalidCredentialsError);
 
       user = await userRepository.findByEmail(testUser.primaryEmail);
@@ -135,7 +135,7 @@ describe("Progressive Account Lockout", () => {
       // Perform failed attempts up to the limit
       for (let i = 0; i < testConfig.maxFailedAttempts; i++) {
         await expect(
-          authService.loginWithPassword(loginCredentials, testConfig)
+          authService.loginWithPassword(loginCredentials, testConfig),
         ).rejects.toThrow(InvalidCredentialsError);
       }
 
@@ -155,13 +155,13 @@ describe("Progressive Account Lockout", () => {
       // Lock the account
       for (let i = 0; i < testConfig.maxFailedAttempts; i++) {
         await expect(
-          authService.loginWithPassword(loginCredentials, testConfig)
+          authService.loginWithPassword(loginCredentials, testConfig),
         ).rejects.toThrow(InvalidCredentialsError);
       }
 
       // Try to login while locked
       await expect(
-        authService.loginWithPassword(loginCredentials, testConfig)
+        authService.loginWithPassword(loginCredentials, testConfig),
       ).rejects.toThrow(AccountLockedError);
     });
 
@@ -169,7 +169,7 @@ describe("Progressive Account Lockout", () => {
       // Lock the account
       for (let i = 0; i < testConfig.maxFailedAttempts; i++) {
         await expect(
-          authService.loginWithPassword(loginCredentials, testConfig)
+          authService.loginWithPassword(loginCredentials, testConfig),
         ).rejects.toThrow(InvalidCredentialsError);
       }
 
@@ -180,10 +180,10 @@ describe("Progressive Account Lockout", () => {
       } catch (error) {
         expect(error).toBeInstanceOf(AccountLockedError);
         expect((error as AccountLockedError).message).toContain(
-          "Account is locked"
+          "Account is locked",
         );
         expect((error as AccountLockedError).message).toContain(
-          "Account will be unlocked at"
+          "Account will be unlocked at",
         );
       }
     });
@@ -194,7 +194,7 @@ describe("Progressive Account Lockout", () => {
       // First lockout cycle
       for (let i = 0; i < testConfig.maxFailedAttempts; i++) {
         await expect(
-          authService.loginWithPassword(loginCredentials, testConfig)
+          authService.loginWithPassword(loginCredentials, testConfig),
         ).rejects.toThrow(InvalidCredentialsError);
       }
 
@@ -208,7 +208,7 @@ describe("Progressive Account Lockout", () => {
 
       // Trigger second lockout cycle (4th attempt total)
       await expect(
-        authService.loginWithPassword(loginCredentials, testConfig)
+        authService.loginWithPassword(loginCredentials, testConfig),
       ).rejects.toThrow(InvalidCredentialsError);
 
       user = await userRepository.findByEmail(testUser.primaryEmail);
@@ -225,12 +225,12 @@ describe("Progressive Account Lockout", () => {
       await userRepository.updateLoginAttempts(
         testUser.primaryEmail,
         19,
-        false
+        false,
       );
 
       // One more failed attempt to trigger max lockout
       await expect(
-        authService.loginWithPassword(loginCredentials, testConfig)
+        authService.loginWithPassword(loginCredentials, testConfig),
       ).rejects.toThrow(InvalidCredentialsError);
 
       const user = await userRepository.findByEmail(testUser.primaryEmail);
@@ -247,7 +247,7 @@ describe("Progressive Account Lockout", () => {
       // Lock the account
       for (let i = 0; i < testConfig.maxFailedAttempts; i++) {
         await expect(
-          authService.loginWithPassword(loginCredentials, testConfig)
+          authService.loginWithPassword(loginCredentials, testConfig),
         ).rejects.toThrow(InvalidCredentialsError);
       }
 
@@ -257,7 +257,7 @@ describe("Progressive Account Lockout", () => {
         testUser.primaryEmail,
         3,
         true,
-        expiredTime
+        expiredTime,
       );
 
       // Mock successful password verification for unlocking
@@ -269,7 +269,7 @@ describe("Progressive Account Lockout", () => {
           email: testUser.primaryEmail,
           password: "correct_password",
         },
-        testConfig
+        testConfig,
       );
 
       expect(result.user).toBeDefined();
@@ -284,13 +284,13 @@ describe("Progressive Account Lockout", () => {
       // Lock the account
       for (let i = 0; i < testConfig.maxFailedAttempts; i++) {
         await expect(
-          authService.loginWithPassword(loginCredentials, testConfig)
+          authService.loginWithPassword(loginCredentials, testConfig),
         ).rejects.toThrow(InvalidCredentialsError);
       }
 
       // Should be locked
       let isLocked = await userRepository.isAccountCurrentlyLocked(
-        testUser.primaryEmail
+        testUser.primaryEmail,
       );
       expect(isLocked).toBe(true);
 
@@ -300,12 +300,12 @@ describe("Progressive Account Lockout", () => {
         testUser.primaryEmail,
         3,
         true,
-        expiredTime
+        expiredTime,
       );
 
       // Should no longer be locked
       isLocked = await userRepository.isAccountCurrentlyLocked(
-        testUser.primaryEmail
+        testUser.primaryEmail,
       );
       expect(isLocked).toBe(false);
     });
@@ -321,7 +321,7 @@ describe("Progressive Account Lockout", () => {
       // Lock the account with standard lockout
       for (let i = 0; i < testConfig.maxFailedAttempts; i++) {
         await expect(
-          authService.loginWithPassword(loginCredentials, standardConfig)
+          authService.loginWithPassword(loginCredentials, standardConfig),
         ).rejects.toThrow(InvalidCredentialsError);
       }
 
@@ -336,7 +336,7 @@ describe("Progressive Account Lockout", () => {
       await userRepository.updateLoginAttempts(testUser.primaryEmail, 2, false);
 
       await expect(
-        authService.loginWithPassword(loginCredentials, standardConfig)
+        authService.loginWithPassword(loginCredentials, standardConfig),
       ).rejects.toThrow(InvalidCredentialsError);
 
       const user2 = await userRepository.findByEmail(testUser.primaryEmail);
@@ -353,10 +353,10 @@ describe("Progressive Account Lockout", () => {
     it("should reset failed attempts on successful login", async () => {
       // Make some failed attempts
       await expect(
-        authService.loginWithPassword(loginCredentials, testConfig)
+        authService.loginWithPassword(loginCredentials, testConfig),
       ).rejects.toThrow(InvalidCredentialsError);
       await expect(
-        authService.loginWithPassword(loginCredentials, testConfig)
+        authService.loginWithPassword(loginCredentials, testConfig),
       ).rejects.toThrow(InvalidCredentialsError);
 
       let user = await userRepository.findByEmail(testUser.primaryEmail);
@@ -371,7 +371,7 @@ describe("Progressive Account Lockout", () => {
           email: testUser.primaryEmail,
           password: "correct_password",
         },
-        testConfig
+        testConfig,
       );
 
       user = await userRepository.findByEmail(testUser.primaryEmail);

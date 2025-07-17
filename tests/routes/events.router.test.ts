@@ -50,7 +50,7 @@ describe("Events Router (E2E Style with Mock Dependencies)", () => {
     } as any;
 
     vi.mocked(AuthorizationService).mockImplementation(
-      () => mockAuthorizationService
+      () => mockAuthorizationService,
     );
 
     app = new Hono<AppEnv>();
@@ -67,7 +67,7 @@ describe("Events Router (E2E Style with Mock Dependencies)", () => {
   const setupRoutes = () => {
     app.route(
       "/events",
-      createEventsRoutes({ authMiddleware: mockAuthMiddleware })
+      createEventsRoutes({ authMiddleware: mockAuthMiddleware }),
     );
   };
 
@@ -138,7 +138,7 @@ describe("Events Router (E2E Style with Mock Dependencies)", () => {
       // Decode the initial connection message
       const text = new TextDecoder().decode(value);
       expect(text).toContain(
-        'data: {"type":"connected","message":"Authentication events stream ready"}'
+        'data: {"type":"connected","message":"Authentication events stream ready"}',
       );
 
       // Clean up
@@ -212,7 +212,7 @@ describe("Events Router (E2E Style with Mock Dependencies)", () => {
     it("should filter events based on user permissions - user can receive own events", async () => {
       setupRoutes();
       (mockAuthorizationService.canReceiveAuthEvent as any).mockResolvedValue(
-        true
+        true,
       );
 
       const response = await app.request("/events", { method: "GET" });
@@ -231,14 +231,14 @@ describe("Events Router (E2E Style with Mock Dependencies)", () => {
 
       expect(mockAuthorizationService.canReceiveAuthEvent).toHaveBeenCalledWith(
         testUser,
-        testEvent.data
+        testEvent.data,
       );
     });
 
     it("should block events when user lacks permissions", async () => {
       setupRoutes();
       (mockAuthorizationService.canReceiveAuthEvent as any).mockResolvedValue(
-        false
+        false,
       );
 
       const response = await app.request("/events", { method: "GET" });
@@ -261,7 +261,7 @@ describe("Events Router (E2E Style with Mock Dependencies)", () => {
 
       expect(mockAuthorizationService.canReceiveAuthEvent).toHaveBeenCalledWith(
         testUser,
-        testEvent.data
+        testEvent.data,
       );
     });
 
@@ -273,7 +273,7 @@ describe("Events Router (E2E Style with Mock Dependencies)", () => {
 
       setupRoutes();
       (mockAuthorizationService.canReceiveAuthEvent as any).mockResolvedValue(
-        true
+        true,
       );
 
       const response = await app.request("/events", { method: "GET" });
@@ -295,7 +295,7 @@ describe("Events Router (E2E Style with Mock Dependencies)", () => {
 
       expect(mockAuthorizationService.canReceiveAuthEvent).toHaveBeenCalledWith(
         adminUser,
-        testEvent.data
+        testEvent.data,
       );
     });
 
@@ -318,7 +318,7 @@ describe("Events Router (E2E Style with Mock Dependencies)", () => {
 
       // Authorization service should not be called for unknown resource types
       expect(
-        mockAuthorizationService.canReceiveAuthEvent
+        mockAuthorizationService.canReceiveAuthEvent,
       ).not.toHaveBeenCalled();
     });
 
@@ -340,7 +340,7 @@ describe("Events Router (E2E Style with Mock Dependencies)", () => {
 
       // Authorization service should not be called for malformed data
       expect(
-        mockAuthorizationService.canReceiveAuthEvent
+        mockAuthorizationService.canReceiveAuthEvent,
       ).not.toHaveBeenCalled();
     });
 
@@ -350,7 +350,7 @@ describe("Events Router (E2E Style with Mock Dependencies)", () => {
         .spyOn(console, "error")
         .mockImplementation(() => {});
       (mockAuthorizationService.canReceiveAuthEvent as any).mockRejectedValue(
-        new Error("Authorization service unavailable")
+        new Error("Authorization service unavailable"),
       );
 
       const response = await app.request("/events", { method: "GET" });
@@ -375,7 +375,7 @@ describe("Events Router (E2E Style with Mock Dependencies)", () => {
       expect(mockAuthorizationService.canReceiveAuthEvent).toHaveBeenCalled();
       expect(consoleSpy).toHaveBeenCalledWith(
         "Error in event handler:",
-        "Authorization service unavailable"
+        "Authorization service unavailable",
       );
 
       consoleSpy.mockRestore();
@@ -455,27 +455,27 @@ describe("Events Router (E2E Style with Mock Dependencies)", () => {
       // Verify some of the authentication event listeners are set up
       expect(listenerSpy).toHaveBeenCalledWith(
         "users:registered",
-        expect.any(Function)
+        expect.any(Function),
       );
       expect(listenerSpy).toHaveBeenCalledWith(
         "users:updated",
-        expect.any(Function)
+        expect.any(Function),
       );
       expect(listenerSpy).toHaveBeenCalledWith(
         "users:deleted",
-        expect.any(Function)
+        expect.any(Function),
       );
       expect(listenerSpy).toHaveBeenCalledWith(
         "authentication:login",
-        expect.any(Function)
+        expect.any(Function),
       );
       expect(listenerSpy).toHaveBeenCalledWith(
         "email:email_verified",
-        expect.any(Function)
+        expect.any(Function),
       );
       expect(listenerSpy).toHaveBeenCalledWith(
         "security:failed_login_attempt",
-        expect.any(Function)
+        expect.any(Function),
       );
 
       listenerSpy.mockRestore();

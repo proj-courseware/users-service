@@ -24,7 +24,7 @@ describe("authenticatedUserContextSchema", () => {
   });
   it("rejects missing userId", () => {
     expect(() =>
-      authenticatedUserContextSchema.parse({ globalRole: "admin" })
+      authenticatedUserContextSchema.parse({ globalRole: "admin" }),
     ).toThrow();
   });
   it("rejects invalid globalRole", () => {
@@ -32,7 +32,7 @@ describe("authenticatedUserContextSchema", () => {
       authenticatedUserContextSchema.parse({
         userId: "user-1",
         globalRole: "bad",
-      })
+      }),
     ).toThrow();
   });
 });

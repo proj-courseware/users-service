@@ -41,7 +41,7 @@ export class MockDbRefreshTokenRepository implements IRefreshTokenRepository {
   async listActiveSessions(userId: string): Promise<RefreshTokenType[]> {
     const now = new Date();
     return this.tokens.filter(
-      (t) => t.userId === userId && !t.isRevoked && t.expiresAt > now
+      (t) => t.userId === userId && !t.isRevoked && t.expiresAt > now,
     );
   }
 }

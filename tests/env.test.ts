@@ -111,7 +111,7 @@ describe("envSchema", () => {
         JWT_REFRESH_SECRET: "short",
         SESSION_SECRET: "short",
         CSRF_SECRET: "short",
-      })
+      }),
     ).toThrow();
   });
 
@@ -147,7 +147,7 @@ describe("envSchema", () => {
         SESSION_SECRET: "c".repeat(32),
         CSRF_SECRET: "d".repeat(32),
         SMTP_FROM_ADDRESS: "not-an-email",
-      })
+      }),
     ).toThrow();
   });
 
@@ -159,7 +159,7 @@ describe("envSchema", () => {
         SESSION_SECRET: "c".repeat(32),
         CSRF_SECRET: "d".repeat(32),
         GOOGLE_REDIRECT_URI: "not-a-url",
-      })
+      }),
     ).toThrow();
   });
 
@@ -170,15 +170,35 @@ describe("envSchema", () => {
       SESSION_SECRET: "c".repeat(32),
       CSRF_SECRET: "d".repeat(32),
     };
-    expect(envSchema.parse({ ...required, SMTP_SECURE: "false" }).SMTP_SECURE).toBe(false);
-    expect(envSchema.parse({ ...required, SMTP_SECURE: false }).SMTP_SECURE).toBe(false);
-    expect(envSchema.parse({ ...required, SMTP_SECURE: "0" }).SMTP_SECURE).toBe(false);
-    expect(envSchema.parse({ ...required, SMTP_SECURE: 0 }).SMTP_SECURE).toBe(false);
-    expect(envSchema.parse({ ...required, SMTP_SECURE: undefined }).SMTP_SECURE).toBe(false);
-    expect(envSchema.parse({ ...required, SMTP_SECURE: null }).SMTP_SECURE).toBe(false);
-    expect(envSchema.parse({ ...required, SMTP_SECURE: "true" }).SMTP_SECURE).toBe(true);
-    expect(envSchema.parse({ ...required, SMTP_SECURE: true }).SMTP_SECURE).toBe(true);
-    expect(envSchema.parse({ ...required, SMTP_SECURE: "1" }).SMTP_SECURE).toBe(true);
-    expect(envSchema.parse({ ...required, SMTP_SECURE: 1 }).SMTP_SECURE).toBe(true);
+    expect(
+      envSchema.parse({ ...required, SMTP_SECURE: "false" }).SMTP_SECURE,
+    ).toBe(false);
+    expect(
+      envSchema.parse({ ...required, SMTP_SECURE: false }).SMTP_SECURE,
+    ).toBe(false);
+    expect(envSchema.parse({ ...required, SMTP_SECURE: "0" }).SMTP_SECURE).toBe(
+      false,
+    );
+    expect(envSchema.parse({ ...required, SMTP_SECURE: 0 }).SMTP_SECURE).toBe(
+      false,
+    );
+    expect(
+      envSchema.parse({ ...required, SMTP_SECURE: undefined }).SMTP_SECURE,
+    ).toBe(false);
+    expect(
+      envSchema.parse({ ...required, SMTP_SECURE: null }).SMTP_SECURE,
+    ).toBe(false);
+    expect(
+      envSchema.parse({ ...required, SMTP_SECURE: "true" }).SMTP_SECURE,
+    ).toBe(true);
+    expect(
+      envSchema.parse({ ...required, SMTP_SECURE: true }).SMTP_SECURE,
+    ).toBe(true);
+    expect(envSchema.parse({ ...required, SMTP_SECURE: "1" }).SMTP_SECURE).toBe(
+      true,
+    );
+    expect(envSchema.parse({ ...required, SMTP_SECURE: 1 }).SMTP_SECURE).toBe(
+      true,
+    );
   });
 });

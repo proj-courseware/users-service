@@ -79,8 +79,8 @@ defaultRoot();
 function defaultRoot() {
   app.get("/", (c) =>
     c.html(
-      "<h2>Mock Frontend Running</h2><p>Use <code>/verify-email?token=...</code> to test email verification.</p>"
-    )
+      "<h2>Mock Frontend Running</h2><p>Use <code>/verify-email?token=...</code> to test email verification.</p>",
+    ),
   );
 }
 

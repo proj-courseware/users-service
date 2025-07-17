@@ -63,17 +63,17 @@ export interface IEmailService {
     userId: string,
     emailAddress: string,
     token: string,
-    firstName?: string
+    firstName?: string,
   ): Promise<EmailSendResult>;
   sendPasswordResetEmail(
     userId: string,
     emailAddress: string,
     token: string,
-    firstName?: string
+    firstName?: string,
   ): Promise<EmailSendResult>;
   sendWelcomeEmail(
     emailAddress: string,
-    firstName?: string
+    firstName?: string,
   ): Promise<EmailSendResult>;
   sendRawEmail(options: EmailSendOptions): Promise<EmailSendResult>;
   isHealthy(): Promise<boolean>;
@@ -118,7 +118,7 @@ export class EmailService implements IEmailService {
     userId: string,
     emailAddress: string,
     token: string,
-    firstName?: string
+    firstName?: string,
   ): Promise<EmailSendResult> {
     try {
       // Generate verification URL
@@ -149,7 +149,7 @@ export class EmailService implements IEmailService {
             messageId: result.messageId,
             userId,
             emailAddress,
-          }
+          },
         );
       }
 
@@ -179,7 +179,7 @@ export class EmailService implements IEmailService {
     userId: string,
     emailAddress: string,
     token: string,
-    firstName?: string
+    firstName?: string,
   ): Promise<EmailSendResult> {
     try {
       // Generate password reset URL
@@ -210,7 +210,7 @@ export class EmailService implements IEmailService {
             messageId: result.messageId,
             userId,
             emailAddress,
-          }
+          },
         );
       }
 
@@ -236,7 +236,7 @@ export class EmailService implements IEmailService {
    */
   async sendWelcomeEmail(
     emailAddress: string,
-    firstName?: string
+    firstName?: string,
   ): Promise<EmailSendResult> {
     try {
       // Create email template
@@ -303,7 +303,7 @@ export class EmailService implements IEmailService {
    * @returns Email send result
    */
   private async sendEmailWithRetry(
-    options: EmailSendOptions
+    options: EmailSendOptions,
   ): Promise<EmailSendResult> {
     let lastError: Error | undefined;
 
@@ -331,7 +331,7 @@ export class EmailService implements IEmailService {
           const delay = Math.pow(2, attempt - 1) * this.config.retryDelayMs;
           console.warn(
             `Email sending attempt ${attempt} failed, retrying in ${delay}ms:`,
-            error
+            error,
           );
           await this.delay(delay);
         }
@@ -410,7 +410,7 @@ export class MockEmailService implements IEmailService {
     userId: string,
     emailAddress: string,
     token: string,
-    firstName?: string
+    firstName?: string,
   ): Promise<EmailSendResult> {
     const verificationUrl = generateVerificationUrl(token);
     const template = emailTemplates.verification({
@@ -437,7 +437,7 @@ export class MockEmailService implements IEmailService {
     userId: string,
     emailAddress: string,
     token: string,
-    firstName?: string
+    firstName?: string,
   ): Promise<EmailSendResult> {
     const resetUrl = generatePasswordResetUrl(token);
     const template = emailTemplates.passwordReset({
@@ -462,7 +462,7 @@ export class MockEmailService implements IEmailService {
 
   async sendWelcomeEmail(
     emailAddress: string,
-    firstName?: string
+    firstName?: string,
   ): Promise<EmailSendResult> {
     const template = emailTemplates.welcome({
       firstName,

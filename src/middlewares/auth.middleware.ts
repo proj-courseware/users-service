@@ -62,7 +62,7 @@ const defaultAuthenticationService = new AuthenticationService(
   userRepository,
   passwordService,
   jwtService,
-  refreshTokenRepository
+  refreshTokenRepository,
 );
 
 export const authMiddleware = createAuthMiddleware({

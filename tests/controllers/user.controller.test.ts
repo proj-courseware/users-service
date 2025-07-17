@@ -160,7 +160,7 @@ describe("UserController", () => {
       const context = createMockContext();
 
       await expect(userController.getProfile(context)).rejects.toThrow(
-        NotFoundError
+        NotFoundError,
       );
     });
   });
@@ -180,7 +180,7 @@ describe("UserController", () => {
 
       expect(mockUserRepository.update).toHaveBeenCalledWith(
         "user-123",
-        updateData
+        updateData,
       );
       expect(response).toEqual({
         success: true,
@@ -205,7 +205,7 @@ describe("UserController", () => {
       expect(mockAuthService.changePassword).toHaveBeenCalledWith(
         "user-123",
         "oldPassword123!",
-        "newPassword123!"
+        "newPassword123!",
       );
       expect(response).toEqual({
         success: true,
@@ -241,23 +241,23 @@ describe("UserController", () => {
       const response = await userController.addEmail(context);
 
       expect(mockUserRepository.findByEmail).toHaveBeenCalledWith(
-        "jane.doe@example.com"
+        "jane.doe@example.com",
       );
       expect(mockUserRepository.addEmail).toHaveBeenCalledWith(
         "user-123",
         expect.objectContaining({
           emailAddress: "jane.doe@example.com",
           isVerified: false,
-        })
+        }),
       );
       expect(
-        mockEmailVerificationService.generateVerificationToken
+        mockEmailVerificationService.generateVerificationToken,
       ).toHaveBeenCalledWith("user-123", "jane.doe@example.com");
       expect(mockEmailService.sendVerificationEmail).toHaveBeenCalledWith(
         "user-123",
         "jane.doe@example.com",
         "verification_token_123",
-        "John"
+        "John",
       );
       expect(response).toMatchObject({
         success: true,
@@ -277,7 +277,7 @@ describe("UserController", () => {
       const context = createMockContext({ validatedBody: emailData });
 
       await expect(userController.addEmail(context)).rejects.toThrow(
-        BadRequestError
+        BadRequestError,
       );
     });
 
@@ -293,7 +293,7 @@ describe("UserController", () => {
       const context = createMockContext({ validatedBody: emailData });
 
       await expect(userController.addEmail(context)).rejects.toThrow(
-        BadRequestError
+        BadRequestError,
       );
     });
 
@@ -345,7 +345,7 @@ describe("UserController", () => {
 
       expect(mockUserRepository.removeEmail).toHaveBeenCalledWith(
         "user-123",
-        "secondary@example.com"
+        "secondary@example.com",
       );
       expect(response).toEqual({
         success: true,
@@ -361,7 +361,7 @@ describe("UserController", () => {
       });
 
       await expect(userController.removeEmail(context)).rejects.toThrow(
-        BadRequestError
+        BadRequestError,
       );
     });
 
@@ -373,7 +373,7 @@ describe("UserController", () => {
       });
 
       await expect(userController.removeEmail(context)).rejects.toThrow(
-        NotFoundError
+        NotFoundError,
       );
     });
   });
@@ -406,7 +406,7 @@ describe("UserController", () => {
 
       expect(mockUserRepository.setPrimaryEmail).toHaveBeenCalledWith(
         "user-123",
-        "secondary@example.com"
+        "secondary@example.com",
       );
       expect(response).toEqual({
         success: true,
@@ -425,7 +425,7 @@ describe("UserController", () => {
       const context = createMockContext({ validatedBody: setPrimaryData });
 
       await expect(userController.setPrimaryEmail(context)).rejects.toThrow(
-        NotFoundError
+        NotFoundError,
       );
     });
 
@@ -453,7 +453,7 @@ describe("UserController", () => {
       const context = createMockContext({ validatedBody: setPrimaryData });
 
       await expect(userController.setPrimaryEmail(context)).rejects.toThrow(
-        BadRequestError
+        BadRequestError,
       );
     });
   });
@@ -497,13 +497,13 @@ describe("UserController", () => {
       const response = await userController.resendEmailVerification(context);
 
       expect(
-        mockEmailVerificationService.resendVerificationEmail
+        mockEmailVerificationService.resendVerificationEmail,
       ).toHaveBeenCalledWith("user-123", "unverified@example.com");
       expect(mockEmailService.sendVerificationEmail).toHaveBeenCalledWith(
         "user-123",
         "unverified@example.com",
         "new_verification_token",
-        "John"
+        "John",
       );
       expect(response).toMatchObject({
         success: true,
@@ -521,7 +521,7 @@ describe("UserController", () => {
       });
 
       await expect(
-        userController.resendEmailVerification(context)
+        userController.resendEmailVerification(context),
       ).rejects.toThrow(BadRequestError);
     });
   });
@@ -608,14 +608,14 @@ describe("UserController", () => {
 
         if (!body.password) {
           throw new BadRequestError(
-            "Password confirmation is required to delete account"
+            "Password confirmation is required to delete account",
           );
         }
 
         const user = await mockUserRepository.findById(userContext.userId);
         if (!user || !user.passwordHash) {
           throw new NotFoundError(
-            "User not found or cannot delete social login account"
+            "User not found or cannot delete social login account",
           );
         }
 
@@ -644,7 +644,7 @@ describe("UserController", () => {
       const context = createMockContext({ json: {} });
 
       await expect(userController.deleteAccount(context)).rejects.toThrow(
-        BadRequestError
+        BadRequestError,
       );
     });
   });

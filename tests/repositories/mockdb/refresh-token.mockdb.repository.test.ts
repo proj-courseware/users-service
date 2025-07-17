@@ -3,7 +3,7 @@ import { MockDbRefreshTokenRepository } from "@/repositories/mockdb/refresh-toke
 import type { CreateRefreshTokenType } from "@/schemas/user.schema";
 
 function getTestToken(
-  overrides: Partial<CreateRefreshTokenType> = {}
+  overrides: Partial<CreateRefreshTokenType> = {},
 ): CreateRefreshTokenType {
   return {
     tokenHash: "hash123",
@@ -88,7 +88,7 @@ describe("MockDbRefreshTokenRepository", () => {
           userId: "userZ",
           tokenHash: "active1",
           expiresAt: new Date(now.getTime() + 10000),
-        })
+        }),
       );
       // Revoked
       const revoked = await repo.create(
@@ -96,7 +96,7 @@ describe("MockDbRefreshTokenRepository", () => {
           userId: "userZ",
           tokenHash: "revoked",
           expiresAt: new Date(now.getTime() + 10000),
-        })
+        }),
       );
       await repo.revokeById(revoked.id);
       // Expired
@@ -105,7 +105,7 @@ describe("MockDbRefreshTokenRepository", () => {
           userId: "userZ",
           tokenHash: "expired",
           expiresAt: new Date(now.getTime() - 10000),
-        })
+        }),
       );
       const sessions = await repo.listActiveSessions("userZ");
       expect(sessions).toHaveLength(1);

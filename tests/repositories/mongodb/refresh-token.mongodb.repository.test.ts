@@ -12,7 +12,7 @@ import type { MongoClient, Db } from "mongodb";
 import type { CreateRefreshTokenType } from "@/schemas/user.schema";
 
 function getTestToken(
-  overrides: Partial<CreateRefreshTokenType> = {}
+  overrides: Partial<CreateRefreshTokenType> = {},
 ): CreateRefreshTokenType {
   return {
     tokenHash: "hash123",
@@ -76,13 +76,13 @@ describe("MongoDbRefreshTokenRepository", () => {
   describe("findByUserId", () => {
     it("should find tokens by userId", async () => {
       await repository.create(
-        getTestToken({ userId: "userA", tokenHash: "a1" })
+        getTestToken({ userId: "userA", tokenHash: "a1" }),
       );
       await repository.create(
-        getTestToken({ userId: "userA", tokenHash: "a2" })
+        getTestToken({ userId: "userA", tokenHash: "a2" }),
       );
       await repository.create(
-        getTestToken({ userId: "userB", tokenHash: "b1" })
+        getTestToken({ userId: "userB", tokenHash: "b1" }),
       );
       const tokens = await repository.findByUserId("userA");
       expect(tokens).toHaveLength(2);
@@ -93,7 +93,7 @@ describe("MongoDbRefreshTokenRepository", () => {
   describe("revokeById", () => {
     it("should revoke a token by id", async () => {
       const token = await repository.create(
-        getTestToken({ tokenHash: "torevoke" })
+        getTestToken({ tokenHash: "torevoke" }),
       );
       await repository.revokeById(token.id);
       const found = await repository.findByTokenHash("torevoke");
@@ -104,13 +104,13 @@ describe("MongoDbRefreshTokenRepository", () => {
   describe("revokeAllForUser", () => {
     it("should revoke all tokens for a user", async () => {
       await repository.create(
-        getTestToken({ userId: "userX", tokenHash: "x1" })
+        getTestToken({ userId: "userX", tokenHash: "x1" }),
       );
       await repository.create(
-        getTestToken({ userId: "userX", tokenHash: "x2" })
+        getTestToken({ userId: "userX", tokenHash: "x2" }),
       );
       await repository.create(
-        getTestToken({ userId: "userY", tokenHash: "y1" })
+        getTestToken({ userId: "userY", tokenHash: "y1" }),
       );
       await repository.revokeAllForUser("userX");
       const tokens = await repository.findByUserId("userX");
@@ -129,7 +129,7 @@ describe("MongoDbRefreshTokenRepository", () => {
           userId: "userZ",
           tokenHash: "active1",
           expiresAt: new Date(now.getTime() + 10000),
-        })
+        }),
       );
       // Revoked
       const revoked = await repository.create(
@@ -137,7 +137,7 @@ describe("MongoDbRefreshTokenRepository", () => {
           userId: "userZ",
           tokenHash: "revoked",
           expiresAt: new Date(now.getTime() + 10000),
-        })
+        }),
       );
       await repository.revokeById(revoked.id);
       // Expired
@@ -146,7 +146,7 @@ describe("MongoDbRefreshTokenRepository", () => {
           userId: "userZ",
           tokenHash: "expired",
           expiresAt: new Date(now.getTime() - 10000),
-        })
+        }),
       );
       const sessions = await repository.listActiveSessions("userZ");
       expect(sessions).toHaveLength(1);

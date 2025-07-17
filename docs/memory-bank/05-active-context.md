@@ -21,6 +21,7 @@
 ### Test Suite Health Status ⚠️
 
 **Current Test Results**:
+
 - 🔴 **Failing Tests**: 29 tests across multiple critical components
 - 🟡 **Coverage Gaps**: 12 source files without tests (24% missing coverage)
 - 🟢 **Passing Tests**: Core user controller and basic authentication flows still working
@@ -28,30 +29,35 @@
 ### Critical Test Failures Requiring Immediate Action
 
 #### 1. Authentication Service Tests (8 failures) - **HIGH PRIORITY**
+
 - **File**: `tests/services/authentication.service.test.ts`
 - **Issue**: Password validation errors due to `undefined.join()` calls
 - **Impact**: Core authentication functionality appears broken in tests
 - **Action**: Fix error handling in password validation service
 
 #### 2. Auth Middleware Tests (3 failures) - **HIGH PRIORITY**
+
 - **File**: `tests/middlewares/auth.middleware.test.ts`
 - **Issue**: Missing `getUserFromToken` method in authentication service
 - **Impact**: Authentication middleware cannot function properly
 - **Action**: Add missing interface method to authentication service
 
 #### 3. OAuth Controller Tests (5 failures) - **MEDIUM PRIORITY**
+
 - **File**: `tests/controllers/oauth.controller.test.ts`
 - **Issue**: OAuth account unlink returning 500 instead of expected status codes
 - **Impact**: Social login features may be broken
 - **Action**: Fix error handling in OAuth unlink functionality
 
 #### 4. Progressive Lockout Tests (4 failures) - **HIGH PRIORITY**
+
 - **File**: `tests/middlewares/progressive-lockout.middleware.test.ts`
 - **Issue**: Missing refresh token repository methods
 - **Impact**: Account security features not working
 - **Action**: Implement missing repository interface methods
 
 #### 5. Schema and Configuration Tests (9 failures) - **MEDIUM PRIORITY**
+
 - **Files**: Various schema and configuration tests
 - **Issues**: Import path issues, console mock problems, validation errors
 - **Impact**: Development workflow and schema validation affected
@@ -60,6 +66,7 @@
 ### Missing Test Coverage (24% of source files)
 
 **Files without tests**:
+
 - `src/config/mongodb.setup.ts` - Database configuration
 - `src/errors.ts` - Error handling definitions
 - `src/server.ts` - Server startup and configuration
@@ -71,6 +78,7 @@
 ### Immediate Action Plan
 
 **Phase 1 - Fix Critical Failures** (Next 2-3 days):
+
 1. Fix authentication service password validation errors
 2. Add missing getUserFromToken method to authentication service
 3. Fix OAuth controller error handling for unlink functionality
@@ -78,11 +86,13 @@
 5. Fix import path issues in schema tests
 
 **Phase 2 - Restore Test Coverage** (Next 3-4 days):
+
 1. Add tests for 12 missing source files
 2. Achieve 90%+ test coverage target
 3. Fix test structure organization
 
 **Phase 3 - Quality Assurance** (Next 1-2 days):
+
 1. Verify all authentication flows work correctly
 2. Run comprehensive integration tests
 3. Ensure no regression in core functionality
@@ -90,6 +100,7 @@
 ### Critical Dependencies
 
 **Cannot proceed with deployment until**:
+
 - ✅ All 29 failing tests fixed and passing
 - ✅ Core authentication flows verified working
 - ✅ Test suite runs reliably without failures
@@ -134,26 +145,31 @@ The authentication service functionality is complete but critical test failures 
 **Blocking Deployment**: YES
 
 #### Authentication Service Tests (8 failures)
+
 - **Issue**: Password validation errors due to `undefined.join()` calls
 - **Root Cause**: Error handling in password validation service
 - **Action**: Fix error handling in password validation and validation result processing
 
 #### Auth Middleware Tests (3 failures)
+
 - **Issue**: Missing `getUserFromToken` method in authentication service
 - **Root Cause**: Interface mismatch between middleware and service
 - **Action**: Add missing interface method to authentication service
 
 #### Progressive Lockout Tests (4 failures)
+
 - **Issue**: Missing refresh token repository methods
 - **Root Cause**: Interface dependency not properly implemented
 - **Action**: Implement missing repository interface methods
 
 #### OAuth Controller Tests (5 failures)
+
 - **Issue**: OAuth account unlink returning 500 instead of expected status codes
 - **Root Cause**: Error handling in OAuth unlink functionality
 - **Action**: Fix error handling for OAuth unlink operations
 
 #### Schema and Configuration Tests (9 failures)
+
 - **Issues**: Import path issues, console mock problems, validation errors
 - **Root Cause**: Test setup and configuration issues
 - **Action**: Fix import paths and test setup procedures
@@ -165,6 +181,7 @@ The authentication service functionality is complete but critical test failures 
 **Coverage Gap**: 24% of source files missing tests
 
 #### Missing Test Files (12 files)
+
 - `src/config/mongodb.setup.ts` - Database configuration
 - `src/errors.ts` - Error handling definitions
 - `src/server.ts` - Server startup and configuration
@@ -180,12 +197,14 @@ The authentication service functionality is complete but critical test failures 
 **Focus**: Ensure no regression in core functionality
 
 #### Test Quality Improvements
+
 - Reorganize test structure to match src directory
 - Improve mock implementations and test utilities
 - Add comprehensive error scenario testing
 - Enhance integration test coverage
 
 #### Deployment Readiness Verification
+
 - Verify all authentication flows work correctly
 - Run comprehensive integration tests
 - Ensure no regression in core functionality
@@ -194,16 +213,19 @@ The authentication service functionality is complete but critical test failures 
 ### Implementation Timeline
 
 **Week 1 - Critical Recovery**:
+
 - Day 1-2: Fix authentication service and auth middleware tests
 - Day 2-3: Fix progressive lockout and OAuth controller tests
 - Day 3: Fix schema and configuration test issues
 
 **Week 2 - Coverage Restoration**:
+
 - Day 1-2: Add tests for configuration, error handling, and server files
 - Day 3-4: Add tests for all router files and repository interfaces
 - Day 4-5: Add tests for schema files and complete coverage gaps
 
 **Week 3 - Quality Assurance**:
+
 - Day 1: Reorganize test structure and improve utilities
 - Day 2: Run comprehensive integration tests
 - Day 3: Final verification and deployment readiness check
@@ -216,12 +238,14 @@ The authentication service functionality is complete but critical test failures 
 ### 1. Email Template Customization 📧
 
 **Current Issue**: Email templates contain hardcoded "Authentication Service" references throughout:
+
 - Email subject lines
 - Application name references
 - Email signatures and sign-offs
 - Service identification in templates
 
 **Required Changes**:
+
 - **Configurable Service Name**: Replace hardcoded "Authentication Service" with configurable environment variable
 - **Dynamic Email Templates**: Update email service to accept service name parameter
 - **Environment Configuration**: Add SERVICE_NAME or APP_NAME environment variable
@@ -235,12 +259,14 @@ The authentication service functionality is complete but critical test failures 
 **Current State**: Email functionality is tightly coupled with authentication service
 
 **Extraction Plan**:
+
 - **Phase 1**: Decouple email service from authentication service
 - **Phase 2**: Create notifications service interface
 - **Phase 3**: Extract email service into standalone notifications-service
 - **Phase 4**: Implement event-driven notifications (authentication events → notifications service)
 
 **Benefits**:
+
 - **Separation of Concerns**: Authentication service focuses on identity, notifications service handles communications
 - **Scalability**: Notifications service can scale independently
 - **Reusability**: Other services can use notifications service
@@ -251,6 +277,7 @@ The authentication service functionality is complete but critical test failures 
 **Current Service Role**: Authentication authority for microservices ecosystem
 
 **Integration Requirements**:
+
 - **Service Discovery**: Must integrate with service registry
 - **Configuration Management**: Centralized configuration for service branding
 - **Event Bus**: Publish authentication events for other services
@@ -260,16 +287,19 @@ The authentication service functionality is complete but critical test failures 
 ### Implementation Priority
 
 **Immediate (High Priority)**:
+
 1. **Email Template Customization**: Make service name configurable
 2. **Environment Variables**: Add SERVICE_NAME/APP_NAME configuration
 3. **Template Updates**: Update all email templates to use dynamic naming
 
 **Medium-Term (Medium Priority)**:
+
 1. **Email Service Decoupling**: Prepare email service for extraction
 2. **Interface Definition**: Define notifications service interface
 3. **Event-Driven Design**: Implement event publishing for notifications
 
 **Long-Term (Future Architecture)**:
+
 1. **Notifications Service**: Extract into separate microservice
 2. **Service Mesh Integration**: Implement proper service-to-service communication
 3. **Distributed Tracing**: Add tracing for cross-service authentication flows

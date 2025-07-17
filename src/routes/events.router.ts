@@ -36,8 +36,8 @@ export function createEventsRoutes(options?: EventsRouteOptions) {
         // Send initial connection message
         controller.enqueue(
           new TextEncoder().encode(
-            `data: {"type":"connected","message":"Authentication events stream ready"}\n\n`
-          )
+            `data: {"type":"connected","message":"Authentication events stream ready"}\n\n`,
+          ),
         );
 
         const eventHandler = async (event: ServiceEventType) => {
@@ -45,7 +45,7 @@ export function createEventsRoutes(options?: EventsRouteOptions) {
             const canReceive = await shouldUserReceiveEvent(
               event,
               currentUser,
-              authorizationService
+              authorizationService,
             );
             if (canReceive) {
               const eventData = `event: ${event.resourceType}:${event.action}\ndata: ${JSON.stringify(event)}\n\n`;
@@ -54,7 +54,7 @@ export function createEventsRoutes(options?: EventsRouteOptions) {
           } catch (error: unknown) {
             console.error(
               "Error in event handler:",
-              error instanceof Error ? error.message : String(error)
+              error instanceof Error ? error.message : String(error),
             );
           }
         };
@@ -103,7 +103,7 @@ export function createEventsRoutes(options?: EventsRouteOptions) {
           } catch (error: unknown) {
             console.error(
               "Heartbeat error:",
-              error instanceof Error ? error.message : String(error)
+              error instanceof Error ? error.message : String(error),
             );
             clearInterval(keepAlive);
           }
@@ -143,7 +143,7 @@ export function createEventsRoutes(options?: EventsRouteOptions) {
 async function shouldUserReceiveEvent(
   event: ServiceEventType,
   user: AuthenticatedUserContextType,
-  authorizationService: AuthorizationService
+  authorizationService: AuthorizationService,
 ): Promise<boolean> {
   // Resource-specific authorization logic for authentication events
   switch (event.resourceType) {
@@ -161,7 +161,7 @@ async function shouldUserReceiveEvent(
       ) {
         return await authorizationService.canReceiveAuthEvent(
           user,
-          event.data as { userId: string; [key: string]: unknown }
+          event.data as { userId: string; [key: string]: unknown },
         );
       }
       return false;

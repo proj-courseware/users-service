@@ -56,14 +56,14 @@ const authenticationService = new AuthenticationService(
   userRepository,
   passwordService,
   jwtService,
-  refreshTokenRepository
+  refreshTokenRepository,
 );
 const oauthService = new OAuthService();
 const oauthController = new OAuthController(
   userRepository,
   jwtService,
   oauthService,
-  authenticationService
+  authenticationService,
 );
 app.route("/auth/oauth", createOAuthRouter(oauthController));
 

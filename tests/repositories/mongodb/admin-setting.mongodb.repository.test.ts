@@ -111,7 +111,7 @@ describe("MongoDbAdminSettingRepository", () => {
       };
 
       await expect(repository.create(duplicateData)).rejects.toThrow(
-        InternalServerError
+        InternalServerError,
       );
     });
 
@@ -131,7 +131,7 @@ describe("MongoDbAdminSettingRepository", () => {
       };
 
       await expect(failingRepository.create(settingData)).rejects.toThrow(
-        InternalServerError
+        InternalServerError,
       );
     });
   });
@@ -168,7 +168,7 @@ describe("MongoDbAdminSettingRepository", () => {
       };
 
       await expect(repository.findByKey("any.key")).rejects.toThrow(
-        InternalServerError
+        InternalServerError,
       );
 
       // Restore original method
@@ -240,7 +240,7 @@ describe("MongoDbAdminSettingRepository", () => {
       expect(updated.value).toBe(updateData.value);
       expect(updated.description).toBe(updateData.description);
       expect(updated.updatedAt.getTime()).toBeGreaterThanOrEqual(
-        created.updatedAt.getTime()
+        created.updatedAt.getTime(),
       );
     });
 
@@ -250,7 +250,7 @@ describe("MongoDbAdminSettingRepository", () => {
       };
 
       await expect(
-        repository.updateByKey("non.existing.key", updateData)
+        repository.updateByKey("non.existing.key", updateData),
       ).rejects.toThrow();
     });
 
@@ -279,7 +279,7 @@ describe("MongoDbAdminSettingRepository", () => {
       };
 
       await expect(
-        repository.updateByKey("any.key", { value: "test" })
+        repository.updateByKey("any.key", { value: "test" }),
       ).rejects.toThrow(InternalServerError);
 
       (repository as any).getCollection = originalGetCollection;
@@ -316,7 +316,7 @@ describe("MongoDbAdminSettingRepository", () => {
       };
 
       await expect(repository.deleteByKey("any.key")).rejects.toThrow(
-        InternalServerError
+        InternalServerError,
       );
 
       (repository as any).getCollection = originalGetCollection;
@@ -328,7 +328,7 @@ describe("MongoDbAdminSettingRepository", () => {
       const result = await repository.setValue(
         "new.key",
         "new value",
-        "New description"
+        "New description",
       );
 
       expect(result.key).toBe("new.key");
@@ -344,7 +344,7 @@ describe("MongoDbAdminSettingRepository", () => {
 
       const updated = await repository.setValue(
         "existing.key",
-        "updated value"
+        "updated value",
       );
 
       expect(updated.id).toBe(created.id);
@@ -393,7 +393,7 @@ describe("MongoDbAdminSettingRepository", () => {
 
       // Try to create duplicate - should fail due to unique index
       await expect(
-        repository.create({ key: "index.test", value: "duplicate" })
+        repository.create({ key: "index.test", value: "duplicate" }),
       ).rejects.toThrow(InternalServerError);
     });
   });

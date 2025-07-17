@@ -49,11 +49,11 @@ describe("OAuthService", () => {
       const result = oauthService.generateAuthorizationUrl("google");
 
       expect(result.url).toContain(
-        "https://accounts.google.com/o/oauth2/v2/auth"
+        "https://accounts.google.com/o/oauth2/v2/auth",
       );
       expect(result.url).toContain("client_id=google_client_id");
       expect(result.url).toContain(
-        "redirect_uri=http%3A%2F%2Flocalhost%3A3000%2Fauth%2Fgoogle%2Fcallback"
+        "redirect_uri=http%3A%2F%2Flocalhost%3A3000%2Fauth%2Fgoogle%2Fcallback",
       );
       expect(result.url).toContain("scope=openid");
       expect(result.url).toContain("response_type=code");
@@ -68,7 +68,7 @@ describe("OAuthService", () => {
       expect(result.url).toContain("https://github.com/login/oauth/authorize");
       expect(result.url).toContain("client_id=github_client_id");
       expect(result.url).toContain(
-        "redirect_uri=http%3A%2F%2Flocalhost%3A3000%2Fauth%2Fgithub%2Fcallback"
+        "redirect_uri=http%3A%2F%2Flocalhost%3A3000%2Fauth%2Fgithub%2Fcallback",
       );
       expect(result.url).toContain("scope=user%3Aemail");
       expect(result.url).toContain("allow_signup=true");
@@ -79,11 +79,11 @@ describe("OAuthService", () => {
       const result = oauthService.generateAuthorizationUrl("linkedin");
 
       expect(result.url).toContain(
-        "https://www.linkedin.com/oauth/v2/authorization"
+        "https://www.linkedin.com/oauth/v2/authorization",
       );
       expect(result.url).toContain("client_id=linkedin_client_id");
       expect(result.url).toContain(
-        "redirect_uri=http%3A%2F%2Flocalhost%3A3000%2Fauth%2Flinkedin%2Fcallback"
+        "redirect_uri=http%3A%2F%2Flocalhost%3A3000%2Fauth%2Flinkedin%2Fcallback",
       );
       expect(result.url).toContain("scope=openid");
       expect(result.url).toContain("response_type=code");
@@ -94,7 +94,7 @@ describe("OAuthService", () => {
       const redirectTo = "http://localhost:3001/dashboard";
       const result = oauthService.generateAuthorizationUrl(
         "google",
-        redirectTo
+        redirectTo,
       );
 
       const stateData = oauthService.validateState(result.state);
@@ -196,7 +196,7 @@ describe("OAuthService", () => {
       const userInfo = await oauthService.handleCallback(
         "google",
         "auth_code",
-        authUrl.state
+        authUrl.state,
       );
 
       expect(userInfo).toEqual({
@@ -216,14 +216,14 @@ describe("OAuthService", () => {
         expect.objectContaining({
           method: "POST",
           headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        })
+        }),
       );
       expect(mockFetch).toHaveBeenNthCalledWith(
         2,
         "https://openidconnect.googleapis.com/v1/userinfo",
         expect.objectContaining({
           headers: { Authorization: "Bearer google_access_token" },
-        })
+        }),
       );
     });
 
@@ -237,7 +237,7 @@ describe("OAuthService", () => {
       });
 
       await expect(
-        oauthService.handleCallback("google", "invalid_code", authUrl.state)
+        oauthService.handleCallback("google", "invalid_code", authUrl.state),
       ).rejects.toThrow("Google token exchange failed: 400 Invalid grant");
     });
 
@@ -256,7 +256,7 @@ describe("OAuthService", () => {
         });
 
       await expect(
-        oauthService.handleCallback("google", "auth_code", authUrl.state)
+        oauthService.handleCallback("google", "auth_code", authUrl.state),
       ).rejects.toThrow("Google user info fetch failed: 401 Unauthorized");
     });
   });
@@ -303,7 +303,7 @@ describe("OAuthService", () => {
       const userInfo = await oauthService.handleCallback(
         "github",
         "auth_code",
-        authUrl.state
+        authUrl.state,
       );
 
       expect(userInfo).toEqual({
@@ -343,7 +343,7 @@ describe("OAuthService", () => {
       const userInfo = await oauthService.handleCallback(
         "github",
         "auth_code",
-        authUrl.state
+        authUrl.state,
       );
 
       expect(userInfo.name).toBe("johndoe");
@@ -376,7 +376,7 @@ describe("OAuthService", () => {
         });
 
       await expect(
-        oauthService.handleCallback("github", "auth_code", authUrl.state)
+        oauthService.handleCallback("github", "auth_code", authUrl.state),
       ).rejects.toThrow("No verified primary email found in GitHub account");
     });
   });
@@ -413,7 +413,7 @@ describe("OAuthService", () => {
       const userInfo = await oauthService.handleCallback(
         "linkedin",
         "auth_code",
-        authUrl.state
+        authUrl.state,
       );
 
       expect(userInfo).toEqual({
@@ -433,14 +433,14 @@ describe("OAuthService", () => {
         expect.objectContaining({
           method: "POST",
           headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        })
+        }),
       );
       expect(mockFetch).toHaveBeenNthCalledWith(
         2,
         "https://api.linkedin.com/v2/userinfo",
         expect.objectContaining({
           headers: { Authorization: "Bearer linkedin_access_token" },
-        })
+        }),
       );
     });
   });
@@ -450,7 +450,7 @@ describe("OAuthService", () => {
       const authUrl = oauthService.generateAuthorizationUrl("google");
 
       await expect(
-        oauthService.handleCallback("github", "auth_code", authUrl.state)
+        oauthService.handleCallback("github", "auth_code", authUrl.state),
       ).rejects.toThrow("State provider mismatch");
     });
 
@@ -481,11 +481,11 @@ describe("OAuthService", () => {
           provider: "google",
           timestamp: Date.now(),
           nonce: "test-nonce",
-        })
+        }),
       ).toString("base64url");
 
       await expect(
-        disabledService.handleCallback("google", "code", validState)
+        disabledService.handleCallback("google", "code", validState),
       ).rejects.toThrow("OAuth provider 'google' is not enabled");
     });
   });
@@ -503,7 +503,7 @@ describe("OAuthService", () => {
       mockFetch.mockRejectedValueOnce(new Error("Network error"));
 
       await expect(
-        oauthService.handleCallback("google", "auth_code", authUrl.state)
+        oauthService.handleCallback("google", "auth_code", authUrl.state),
       ).rejects.toThrow("Network error");
     });
 
@@ -516,7 +516,7 @@ describe("OAuthService", () => {
       });
 
       await expect(
-        oauthService.handleCallback("google", "auth_code", authUrl.state)
+        oauthService.handleCallback("google", "auth_code", authUrl.state),
       ).rejects.toThrow("Invalid JSON");
     });
   });

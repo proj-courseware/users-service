@@ -27,7 +27,7 @@ adminRouter.get(
     source: "query",
     varKey: "validatedQuery",
   }),
-  adminController.getAllUsers
+  adminController.getAllUsers,
 );
 
 adminRouter.get("/users/search", adminController.searchUsers);
@@ -41,7 +41,7 @@ adminRouter.get(
     source: "params",
     varKey: "validatedParams",
   }),
-  adminController.getUserById
+  adminController.getUserById,
 );
 
 adminRouter.post(
@@ -55,7 +55,7 @@ adminRouter.post(
     source: "body",
     varKey: "validatedBody",
   }),
-  adminController.createUser
+  adminController.createUser,
 );
 
 adminRouter.put(
@@ -76,7 +76,7 @@ adminRouter.put(
     source: "body",
     varKey: "validatedBody",
   }),
-  adminController.updateUser
+  adminController.updateUser,
 );
 
 adminRouter.delete(
@@ -88,7 +88,7 @@ adminRouter.delete(
     source: "params",
     varKey: "validatedParams",
   }),
-  adminController.deleteUser
+  adminController.deleteUser,
 );
 
 // User account management routes
@@ -101,7 +101,7 @@ adminRouter.post(
     source: "params",
     varKey: "validatedParams",
   }),
-  adminController.lockUser
+  adminController.lockUser,
 );
 
 adminRouter.post(
@@ -113,7 +113,7 @@ adminRouter.post(
     source: "params",
     varKey: "validatedParams",
   }),
-  adminController.unlockUser
+  adminController.unlockUser,
 );
 
 adminRouter.post(
@@ -125,7 +125,7 @@ adminRouter.post(
     source: "params",
     varKey: "validatedParams",
   }),
-  adminController.resetUserPassword
+  adminController.resetUserPassword,
 );
 
 // Bulk operations
@@ -149,7 +149,7 @@ adminRouter.get(
     source: "params",
     varKey: "validatedParams",
   }),
-  adminController.getSettingByKey
+  adminController.getSettingByKey,
 );
 
 adminRouter.put(
@@ -169,7 +169,7 @@ adminRouter.put(
     source: "body",
     varKey: "validatedBody",
   }),
-  adminController.setSettingByKey
+  adminController.setSettingByKey,
 );
 
 adminRouter.delete(
@@ -181,7 +181,7 @@ adminRouter.delete(
     source: "params",
     varKey: "validatedParams",
   }),
-  adminController.deleteSettingByKey
+  adminController.deleteSettingByKey,
 );
 
 adminRouter.post(
@@ -193,7 +193,7 @@ adminRouter.post(
     source: "body",
     varKey: "validatedBody",
   }),
-  adminController.getMultipleSettings
+  adminController.getMultipleSettings,
 );
 
 // Password policy management routes
@@ -208,7 +208,7 @@ adminRouter.post(
     source: "body",
     varKey: "validatedBody",
   }),
-  adminController.validatePasswordPolicy
+  adminController.validatePasswordPolicy,
 );
 
 adminRouter.post(
@@ -221,7 +221,7 @@ adminRouter.post(
     source: "body",
     varKey: "validatedBody",
   }),
-  adminController.testPasswordPolicy
+  adminController.testPasswordPolicy,
 );
 
 export { adminRouter };
