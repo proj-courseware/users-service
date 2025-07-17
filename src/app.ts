@@ -15,6 +15,8 @@ import { JWTService } from "@/services/jwt.service";
 import { AuthenticationService } from "@/services/authentication.service";
 import { MockDbUserRepository } from "@/repositories/mockdb/user.mockdb.repository";
 import { MongoDbUserRepository } from "@/repositories/mongodb/user.mongodb.repository";
+import { MockDbRefreshTokenRepository } from "@/repositories/mockdb/refresh-token.mockdb.repository";
+import { MongoDbRefreshTokenRepository } from "@/repositories/mongodb/refresh-token.mongodb.repository";
 import type { AppEnv } from "@/schemas/app-env.schema";
 import { globalErrorHandler } from "@/errors";
 import { env } from "@/env";
@@ -44,19 +46,24 @@ const userRepository =
   env.NODE_ENV === "test"
     ? new MockDbUserRepository()
     : new MongoDbUserRepository();
+const refreshTokenRepository =
+  env.NODE_ENV === "test"
+    ? new MockDbRefreshTokenRepository()
+    : new MongoDbRefreshTokenRepository();
 const passwordService = new PasswordService();
 const jwtService = new JWTService();
 const authenticationService = new AuthenticationService(
   userRepository,
   passwordService,
   jwtService,
+  refreshTokenRepository
 );
 const oauthService = new OAuthService();
 const oauthController = new OAuthController(
   userRepository,
   jwtService,
   oauthService,
-  authenticationService,
+  authenticationService
 );
 app.route("/auth/oauth", createOAuthRouter(oauthController));
 

@@ -33,6 +33,8 @@ import {
 } from "@/errors";
 import { env } from "@/env";
 import { EmailService } from "@/services/email.service";
+import { MongoDbRefreshTokenRepository } from "@/repositories/mongodb/refresh-token.mongodb.repository";
+import { MockDbRefreshTokenRepository } from "@/repositories/mockdb/refresh-token.mockdb.repository";
 
 export interface AdminControllerDeps {
   userRepository?: IUserRepository;
@@ -74,11 +76,16 @@ export class AdminController {
 
       this.passwordService = new PasswordService();
       const jwtService = new JWTService();
+      const refreshTokenRepository =
+        env.NODE_ENV === "test"
+          ? new MockDbRefreshTokenRepository()
+          : new MongoDbRefreshTokenRepository();
 
       this.authenticationService = new AuthenticationService(
         this.userRepository,
         this.passwordService,
-        jwtService
+        jwtService,
+        refreshTokenRepository
       );
       this.emailService = new EmailService();
     }
@@ -326,12 +333,7 @@ export class AdminController {
     this.checkAdminRole(userContext);
 
     const { userId } = c.var.validatedParams as { userId: string };
-    let body = {};
-    try {
-      body = await c.req.json();
-    } catch {
-      body = {};
-    }
+    const body = (c.var.validatedBody || {}) as { lockUntil?: string };
 
     // Prevent admin from locking themselves
     if (userId === userContext.userId) {

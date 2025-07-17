@@ -7,6 +7,8 @@ import { PasswordService } from "@/services/password.service";
 import { JWTService } from "@/services/jwt.service";
 import { env } from "@/env";
 import { UnauthenticatedError } from "@/errors";
+import { MockDbRefreshTokenRepository } from "@/repositories/mockdb/refresh-token.mockdb.repository";
+import { MongoDbRefreshTokenRepository } from "@/repositories/mongodb/refresh-token.mongodb.repository";
 
 class TokenError extends UnauthenticatedError {
   constructor() {
@@ -50,12 +52,17 @@ const userRepository =
   env.NODE_ENV === "test"
     ? new MockDbUserRepository()
     : new MongoDbUserRepository();
+const refreshTokenRepository =
+  env.NODE_ENV === "test"
+    ? new MockDbRefreshTokenRepository()
+    : new MongoDbRefreshTokenRepository();
 const passwordService = new PasswordService();
 const jwtService = new JWTService();
 const defaultAuthenticationService = new AuthenticationService(
   userRepository,
   passwordService,
-  jwtService
+  jwtService,
+  refreshTokenRepository
 );
 
 export const authMiddleware = createAuthMiddleware({

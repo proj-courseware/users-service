@@ -12,6 +12,7 @@ import { BaseService } from "@/events/base.service";
 import type { IUserRepository } from "@/repositories/user.repository";
 import type { IPasswordService } from "@/services/password.service";
 import type { IJWTService } from "@/services/jwt.service";
+import type { IRefreshTokenRepository } from "@/repositories/refresh-token.repository";
 import type {
   UserType,
   CreateUserType,
@@ -64,11 +65,11 @@ export const DEFAULT_AUTH_CONFIG: AuthServiceConfig = {
 export interface IAuthenticationService {
   register(
     data: RegisterUserType,
-    config?: Partial<AuthServiceConfig>,
+    config?: Partial<AuthServiceConfig>
   ): Promise<RegistrationResult>;
   loginWithPassword(
     credentials: LoginCredentialsType,
-    config?: Partial<AuthServiceConfig>,
+    config?: Partial<AuthServiceConfig>
   ): Promise<AuthenticationResult>;
   refreshTokens(refreshToken: string): Promise<TokenRefreshResult>;
   verifyAccessToken(accessToken: string): Promise<JWTPayloadType>;
@@ -76,7 +77,7 @@ export interface IAuthenticationService {
   changePassword(
     userId: string,
     currentPassword: string,
-    newPassword: string,
+    newPassword: string
   ): Promise<void>;
   resetFailedAttempts(email: string): Promise<void>;
   getUserFromToken(accessToken: string): Promise<UserType>;
@@ -88,15 +89,18 @@ export class AuthenticationService
   implements IAuthenticationService
 {
   private readonly config: AuthServiceConfig;
+  private readonly refreshTokenRepository: IRefreshTokenRepository;
 
   constructor(
     private readonly userRepository: IUserRepository,
     private readonly passwordService: IPasswordService,
     private readonly jwtService: IJWTService,
-    config?: Partial<AuthServiceConfig>,
+    refreshTokenRepository: IRefreshTokenRepository,
+    config?: Partial<AuthServiceConfig>
   ) {
     super("authentication");
     this.config = { ...DEFAULT_AUTH_CONFIG, ...config };
+    this.refreshTokenRepository = refreshTokenRepository;
   }
 
   /**
@@ -107,7 +111,7 @@ export class AuthenticationService
    */
   async register(
     data: RegisterUserType,
-    config?: Partial<AuthServiceConfig>,
+    config?: Partial<AuthServiceConfig>
   ): Promise<RegistrationResult> {
     const activeConfig = { ...this.config, ...config };
 
@@ -124,11 +128,11 @@ export class AuthenticationService
 
     // 3. Validate password strength
     const passwordValidation = this.passwordService.validatePasswordStrength(
-      data.password,
+      data.password
     );
     if (!passwordValidation.isValid) {
       throw new BadRequestError(
-        `Password validation failed: ${passwordValidation.errors.join(", ")}`,
+        `Password validation failed: ${passwordValidation.errors.join(", ")}`
       );
     }
 
@@ -180,7 +184,7 @@ export class AuthenticationService
       },
       {
         user: { userId: user.id, email: user.primaryEmail },
-      },
+      }
     );
 
     // 8. TODO: Send verification email (will be implemented in Email Verification Service)
@@ -203,7 +207,7 @@ export class AuthenticationService
    */
   async loginWithPassword(
     credentials: LoginCredentialsType,
-    config?: Partial<AuthServiceConfig>,
+    config?: Partial<AuthServiceConfig>
   ): Promise<AuthenticationResult> {
     const activeConfig = { ...this.config, ...config };
 
@@ -235,18 +239,18 @@ export class AuthenticationService
       await this.userRepository.updateLoginAttempts(
         credentials.email,
         0,
-        false,
+        false
       );
     }
 
     // 4. Check email verification if required
     if (activeConfig.requireEmailVerification) {
       const primaryEmailObj = user.emails.find(
-        (e) => e.emailAddress === user.primaryEmail,
+        (e) => e.emailAddress === user.primaryEmail
       );
       if (!primaryEmailObj?.isVerified) {
         throw new EmailNotVerifiedError(
-          "Please verify your email before logging in",
+          "Please verify your email before logging in"
         );
       }
     }
@@ -254,13 +258,13 @@ export class AuthenticationService
     // 5. Verify password
     if (!user.passwordHash) {
       throw new InvalidCredentialsError(
-        "This account uses social login. Please use the appropriate login method.",
+        "This account uses social login. Please use the appropriate login method."
       );
     }
 
     const isPasswordValid = await this.passwordService.verifyPassword(
       credentials.password,
-      user.passwordHash,
+      user.passwordHash
     );
 
     if (!isPasswordValid) {
@@ -298,7 +302,7 @@ export class AuthenticationService
       },
       {
         user: { userId: user.id, email: user.primaryEmail },
-      },
+      }
     );
 
     return {
@@ -328,7 +332,7 @@ export class AuthenticationService
     const user = await this.userRepository.findById(payload.userId);
     if (!user) {
       throw new UnauthenticatedError(
-        "User associated with token no longer exists",
+        "User associated with token no longer exists"
       );
     }
 
@@ -349,7 +353,7 @@ export class AuthenticationService
       },
       {
         user: { userId: user.id, email: user.primaryEmail },
-      },
+      }
     );
 
     return {
@@ -378,7 +382,7 @@ export class AuthenticationService
     const user = await this.userRepository.findById(payload.userId);
     if (!user) {
       throw new UnauthenticatedError(
-        "User associated with token no longer exists",
+        "User associated with token no longer exists"
       );
     }
 
@@ -411,7 +415,7 @@ export class AuthenticationService
   async changePassword(
     userId: string,
     currentPassword: string,
-    newPassword: string,
+    newPassword: string
   ): Promise<void> {
     // 1. Find user
     const user = await this.userRepository.findById(userId);
@@ -421,14 +425,14 @@ export class AuthenticationService
 
     if (!user.passwordHash) {
       throw new BadRequestError(
-        "This account uses social login and cannot change password",
+        "This account uses social login and cannot change password"
       );
     }
 
     // 2. Verify current password
     const isCurrentPasswordValid = await this.passwordService.verifyPassword(
       currentPassword,
-      user.passwordHash,
+      user.passwordHash
     );
 
     if (!isCurrentPasswordValid) {
@@ -440,7 +444,7 @@ export class AuthenticationService
       this.passwordService.validatePasswordStrength(newPassword);
     if (!passwordValidation.isValid) {
       throw new BadRequestError(
-        `New password validation failed: ${passwordValidation.errors.join(", ")}`,
+        `New password validation failed: ${passwordValidation.errors.join(", ")}`
       );
     }
 
@@ -458,7 +462,7 @@ export class AuthenticationService
       },
       {
         user: { userId: user.id, email: user.primaryEmail },
-      },
+      }
     );
   }
 
@@ -477,7 +481,7 @@ export class AuthenticationService
    */
   private async handleFailedLogin(
     user: UserType,
-    config: AuthServiceConfig,
+    config: AuthServiceConfig
   ): Promise<void> {
     const newAttempts = user.failedLoginAttempts + 1;
     const shouldLockAccount = newAttempts >= config.maxFailedAttempts;
@@ -486,7 +490,7 @@ export class AuthenticationService
       // Calculate progressive lockout duration
       const lockoutDuration = this.calculateProgressiveLockoutDuration(
         newAttempts,
-        config,
+        config
       );
       const lockUntil = new Date(Date.now() + lockoutDuration);
 
@@ -494,7 +498,7 @@ export class AuthenticationService
         user.primaryEmail,
         newAttempts,
         true,
-        lockUntil,
+        lockUntil
       );
 
       // Emit account locked event
@@ -509,19 +513,19 @@ export class AuthenticationService
         },
         {
           user: { userId: user.id, email: user.primaryEmail },
-        },
+        }
       );
     } else if (shouldLockAccount) {
       // Standard lockout (fixed duration)
       const lockUntil = new Date(
-        Date.now() + config.lockoutDurationMinutes * 60 * 1000,
+        Date.now() + config.lockoutDurationMinutes * 60 * 1000
       );
 
       await this.userRepository.updateLoginAttempts(
         user.primaryEmail,
         newAttempts,
         true,
-        lockUntil,
+        lockUntil
       );
 
       // Emit account locked event
@@ -536,14 +540,14 @@ export class AuthenticationService
         },
         {
           user: { userId: user.id, email: user.primaryEmail },
-        },
+        }
       );
     } else {
       // Just update failed attempts count
       await this.userRepository.updateLoginAttempts(
         user.primaryEmail,
         newAttempts,
-        false,
+        false
       );
 
       // Emit failed login attempt event
@@ -556,7 +560,7 @@ export class AuthenticationService
         },
         {
           user: { userId: user.id, email: user.primaryEmail },
-        },
+        }
       );
     }
   }
@@ -570,7 +574,7 @@ export class AuthenticationService
    */
   private calculateProgressiveLockoutDuration(
     attempts: number,
-    config: AuthServiceConfig,
+    config: AuthServiceConfig
   ): number {
     const baseAttempts = config.maxFailedAttempts;
     const excessAttempts = Math.max(0, attempts - baseAttempts);
