@@ -1,77 +1,150 @@
 # LinkedIn OAuth2 Setup Guide
 
-This guide walks you through setting up LinkedIn OAuth2 authentication for your authentication service.
+This guide walks you through setting up LinkedIn OAuth2 authentication for your authentication service using industry best practices.
+
+## Key Benefits of This Setup
+
+✅ **Separate Development & Production Apps**: Enhanced security and environment isolation  
+✅ **Smart Account Linking**: Users with the same email across providers get linked automatically  
+✅ **Professional OAuth Flow**: OpenID Connect with proper state validation  
+✅ **Team-Friendly**: Clear separation of credentials and access controls
 
 ## Prerequisites
 
 - A LinkedIn account
 - Your authentication service running locally or deployed
 - Access to LinkedIn Developer Portal
+- A LinkedIn company page (required for all LinkedIn apps)
 
-## Step 1: Create a LinkedIn App
+## Step 1: Create LinkedIn Apps (Development & Production)
+
+> **💡 Best Practice**: Create separate LinkedIn apps for development and production environments for better security, quota management, and analytics isolation.
+
+### Why Separate LinkedIn Apps?
+
+- **🔒 Security Isolation**: Production secrets never touch development environment
+- **📊 API Management**: Separate rate limits and usage analytics per environment
+- **👥 Team Access**: Different permissions for dev vs prod apps
+- **📈 Monitoring**: Separate usage analytics and monitoring per environment
+- **⚙️ Configuration**: Environment-specific settings and redirect URLs
+- **🏢 Company Page**: Can associate different company pages if needed
+
+### Create Development App
 
 1. **Go to LinkedIn Developer Portal**
 
    - Visit [LinkedIn Developer Portal](https://www.linkedin.com/developers/)
    - Sign in with your LinkedIn account
 
-2. **Create a New App**
+2. **Create New App for Development**
    - Click "Create app"
-   - You'll need to fill out the application form
+   - Use a clear development name (e.g., "courseware-local" or "MyApp-dev")
 
-## Step 2: Fill Application Information
+## Step 2: Configure Development App
 
-1. **App Details**
+1. **Development App Details**
 
-   - **App name**: Enter your application name (e.g., "My Authentication Service")
-   - **LinkedIn Page**: You need to associate your app with a LinkedIn company page
-     - If you don't have one, create a company page first
-     - Or use your personal LinkedIn profile (for development)
+   - **App name**: Use a clear development name (e.g., "courseware-local" or "MyApp-dev")
+   - **LinkedIn Page**: Associate with a LinkedIn company page
+     - Create a company page if you don't have one (required for all LinkedIn apps)
+     - You can use the same company page for both dev and prod apps
    - **App logo**: Upload your application logo (required)
    - **Legal agreement**: Check the box to agree to LinkedIn API Terms of Use
 
-2. **Create App**
+2. **Create Development App**
    - Click "Create app"
-   - Your app will be created and you'll be taken to the app dashboard
+   - Your development app will be created
 
-## Step 3: Configure App Settings
+### Create Production App
 
-1. **Navigate to Auth Tab**
+3. **Repeat for Production**
 
-   - In your app dashboard, click on the "Auth" tab
+   - Click "Create app" again for your production app
+   - **App name**: Use production name (e.g., "courseware" or "MyApp")
+   - Use the same company page and logo
+   - Create the production app
 
-2. **Configure OAuth 2.0 Settings**
+## Step 3: Configure OAuth Settings for Both Apps
 
-   - **Client ID**: This is automatically generated (copy this value)
+> **🔄 Important**: Configure OAuth settings for both development and production apps.
+
+### Development App OAuth Configuration
+
+1. **Navigate to Development App**
+
+   - Go to your development app dashboard
+   - Click on the "Auth" tab
+
+2. **Configure Development OAuth 2.0 Settings**
+
+   - **Client ID**: Copy the automatically generated value
    - **Client Secret**: Click "Generate a new client secret" and copy the value
 
    ⚠️ **Important**: Save the client secret immediately - you won't be able to see it again!
 
-3. **Authorized Redirect URLs**
-   Add your callback URLs:
-   - Development: `http://localhost:3000/auth/linkedin/callback`
-   - Production: `https://yourdomain.com/auth/linkedin/callback`
+3. **Development Authorized Redirect URLs**
+   Add your development callback URL:
+   - `http://localhost:3000/auth/oauth/linkedin/callback`
 
-## Step 4: Request API Access
+### Production App OAuth Configuration
+
+4. **Navigate to Production App**
+
+   - Go to your production app dashboard
+   - Click on the "Auth" tab
+
+5. **Configure Production OAuth 2.0 Settings**
+
+   - **Client ID**: Copy the production client ID
+   - **Client Secret**: Generate and copy the production client secret
+
+6. **Production Authorized Redirect URLs**
+   Add your production callback URL:
+   - `https://yourdomain.com/auth/oauth/linkedin/callback`
+
+## Step 4: Request API Access for Both Apps
+
+> **🔄 Important**: Request API access for both development and production apps.
 
 LinkedIn requires approval for certain API access:
 
-1. **Products Tab**
+### For Development App
 
-   - Click on the "Products" tab in your app dashboard
+1. **Navigate to Development App Products Tab**
+
+   - Go to your development app dashboard
+   - Click on the "Products" tab
+
+2. **Request Basic Authentication Access**
    - Request access to "Sign In with LinkedIn using OpenID Connect"
    - This gives you access to basic profile information
+   - Usually approved automatically for development
 
-2. **Additional Products** (if needed)
+### For Production App
+
+3. **Navigate to Production App Products Tab**
+
+   - Go to your production app dashboard
+   - Click on the "Products" tab
+
+4. **Request Production Access**
+
+   - Request access to "Sign In with LinkedIn using OpenID Connect"
+   - May require additional review for production apps
+
+### Additional Products (if needed)
+
+5. **Advanced Features** (optional)
 
    - **Marketing Developer Platform**: For marketing APIs
    - **LinkedIn Learning**: For learning content access
    - **Compliance and Verification**: For enhanced features
 
-3. **Approval Process**
-   - Some products require LinkedIn approval
-   - "Sign In with LinkedIn" is usually approved automatically
-   - Follow LinkedIn's review process for other products
+6. **Approval Process**
+
+   - Basic authentication is usually approved automatically
+   - Advanced products require LinkedIn approval and review
+   - Development apps typically get faster approval
 
 ## Step 5: Configure Scopes
 
@@ -90,38 +163,44 @@ LinkedIn OAuth2 uses scopes to control access. For authentication, you'll typica
 
 ## Step 6: Configure Your Authentication Service
 
-1. **Environment Variables**
+### Development Environment
 
-   Add these variables to your `.env` file:
+1. **Local Environment Variables**
+
+   Add these variables to your `.env` file for development:
 
    ```env
-   # LinkedIn OAuth2 Configuration
-   LINKEDIN_CLIENT_ID=your_linkedin_client_id_here
-   LINKEDIN_CLIENT_SECRET=your_linkedin_client_secret_here
-   LINKEDIN_REDIRECT_URI=http://localhost:3000/auth/linkedin/callback
-
-   # For production, use:
-   # LINKEDIN_REDIRECT_URI=https://yourdomain.com/auth/linkedin/callback
+   # LinkedIn OAuth2 Configuration (Development)
+   LINKEDIN_CLIENT_ID=your_development_linkedin_client_id_here
+   LINKEDIN_CLIENT_SECRET=your_development_linkedin_client_secret_here
+   LINKEDIN_REDIRECT_URI=http://localhost:3000/auth/oauth/linkedin/callback
    ```
 
-2. **Update App Environment Schema**
+### Production Environment
 
-   Add LinkedIn OAuth configuration to your `src/schemas/app-env.schema.ts`:
+2. **Production Environment Variables**
+
+   For production deployment, use your production app credentials:
+
+   ```env
+   # LinkedIn OAuth2 Configuration (Production)
+   LINKEDIN_CLIENT_ID=your_production_linkedin_client_id_here
+   LINKEDIN_CLIENT_SECRET=your_production_linkedin_client_secret_here
+   LINKEDIN_REDIRECT_URI=https://yourdomain.com/auth/oauth/linkedin/callback
+   ```
+
+3. **Verify Environment Schema Configuration**
+
+   The LinkedIn OAuth environment variables are already configured in `src/env.ts`. You can verify they exist by checking lines 82-84:
 
    ```typescript
-   const appEnvSchema = z.object({
-     // ... existing configuration
-
-     // LinkedIn OAuth2
-     LINKEDIN_CLIENT_ID: z.string().min(1, "LinkedIn Client ID is required"),
-     LINKEDIN_CLIENT_SECRET: z
-       .string()
-       .min(1, "LinkedIn Client Secret is required"),
-     LINKEDIN_REDIRECT_URI: z
-       .string()
-       .url("LinkedIn Redirect URI must be a valid URL"),
-   });
+   // OAuth Configuration (already present)
+   LINKEDIN_CLIENT_ID: z.string().optional(),
+   LINKEDIN_CLIENT_SECRET: z.string().optional(),
+   LINKEDIN_REDIRECT_URI: z.string().url().optional(),
    ```
+
+   **Note**: The variables are marked as `optional()` to provide flexibility during development. When you set them in your `.env` file, they become available to your application.
 
 ## Step 7: Understanding LinkedIn OAuth Flow
 
@@ -129,7 +208,7 @@ LinkedIn uses OpenID Connect (built on OAuth2) for authentication:
 
 1. **Authorization Request**: Redirect user to LinkedIn
 
-   ```
+   ```plaintext
    https://www.linkedin.com/oauth/v2/authorization?
      response_type=code&
      client_id=YOUR_CLIENT_ID&
@@ -140,24 +219,25 @@ LinkedIn uses OpenID Connect (built on OAuth2) for authentication:
 
 2. **Authorization Grant**: LinkedIn redirects back with code
 
-   ```
-   https://yourapp.com/auth/linkedin/callback?
+   ```plaintext
+   https://yourapp.com/auth/oauth/linkedin/callback?
      code=AUTHORIZATION_CODE&
      state=SAME_STATE_VALUE
    ```
 
 3. **Access Token Request**: Exchange code for access token
 
-   ```
+   ```plaintext
    POST https://www.linkedin.com/oauth/v2/accessToken
    ```
 
 4. **User Information**: Get user data with access token
-   ```
+
+   ```plaintext
    GET https://api.linkedin.com/v2/userinfo
    ```
 
-## Step 8: Test Your Configuration
+## Step 7: Test Your Configuration
 
 1. **Start Your Development Server**
 
@@ -166,39 +246,54 @@ LinkedIn uses OpenID Connect (built on OAuth2) for authentication:
    ```
 
 2. **Test the OAuth Flow**
-   - Navigate to your login page
-   - Click "Sign in with LinkedIn"
+   - Navigate to `http://localhost:3000/auth/oauth/linkedin` to initiate LinkedIn OAuth
    - You should be redirected to LinkedIn's authorization page
-   - After authorization, you should be redirected back to your application
+   - After authorization, you should be redirected back to your application via the callback URL
+   - Check your application logs for authentication success/failure messages
 
-## Step 9: Production Setup
+## Step 8: Environment Management Best Practices
 
-### For Production Deployment
+### Development vs Production Separation
 
-1. **Update App Settings**
+The approach of creating separate LinkedIn apps (`courseware` and `courseware-local`) is industry best practice. Here are additional tips:
 
-   - Go back to your LinkedIn app dashboard
-   - Update redirect URLs to include production URLs
-   - Ensure your app is associated with the correct company page
+1. **Environment File Management**
 
-2. **Verify App Status**
+   ```bash
+   # Development
+   .env                    # Local development (gitignored)
+   .env.example           # Template for new developers
 
-   - Make sure your app is approved for required products
-   - Check that all redirect URLs are configured correctly
+   # Production
+   .env.production        # Production template (gitignored)
+   # Use deployment tools to inject actual production values
+   ```
 
-3. **Security Considerations**
+2. **Team Collaboration**
+
+   - Share development app credentials with team members
+   - Keep production credentials restricted to deployment pipeline
+   - Use separate company pages if needed for different environments
+
+### Production Deployment Security
+
+1. **HTTPS Requirements**
 
    - Use HTTPS for all production URLs
-   - Store client secret securely (environment variables, secrets manager)
-   - Implement proper state validation
-   - Consider rate limiting OAuth endpoints
+   - LinkedIn requires HTTPS for production OAuth apps
 
-4. **Update Environment Variables**
-   ```env
-   LINKEDIN_CLIENT_ID=your_linkedin_client_id_here
-   LINKEDIN_CLIENT_SECRET=your_linkedin_client_secret_here
-   LINKEDIN_REDIRECT_URI=https://yourdomain.com/auth/linkedin/callback
-   ```
+2. **Credential Management**
+
+   - Store client secrets securely (environment variables, secrets manager)
+   - Use deployment tools to inject production environment variables
+   - Never commit production credentials to version control
+
+3. **OAuth Security**
+
+   - Implement proper state validation to prevent CSRF attacks
+   - Consider rate limiting OAuth endpoints
+   - Monitor OAuth usage and failed attempts
+   - Regularly review app permissions and access
 
 ## Step 10: Advanced Configuration
 
@@ -242,6 +337,7 @@ LinkedIn requires apps to be associated with a company page:
    - You need admin access to the page
 
 2. **Associate App**
+
    - In your app settings, select the company page
    - You must be an admin of the page to associate it
 
@@ -278,6 +374,7 @@ LinkedIn requires apps to be associated with a company page:
    - Provide clear use case description
 
 2. **Missing Company Page**
+
    - All LinkedIn apps must be associated with a company page
    - Create a company page if you don't have one
 
@@ -285,7 +382,7 @@ LinkedIn requires apps to be associated with a company page:
 
 ```bash
 # Test LinkedIn OAuth authorization URL generation
-curl -X GET http://localhost:3000/auth/linkedin
+curl -X GET http://localhost:3000/auth/oauth/linkedin
 # Should redirect to LinkedIn OAuth page
 
 # Test environment variables
@@ -334,11 +431,12 @@ echo $LINKEDIN_CLIENT_SECRET
 
 After completing LinkedIn OAuth setup:
 
-1. Implement the OAuth service in your authentication service
-2. Add LinkedIn login buttons to your frontend
-3. Test the complete authentication flow
-4. Set up Google OAuth (see `google-oauth-setup.md`)
-5. Set up GitHub OAuth (see `github-oauth-setup.md`)
+1. **Test the OAuth flow**: Navigate to `http://localhost:3000/auth/oauth/linkedin`
+2. **Verify account linking**: Test with the same email used in other OAuth providers
+3. **Check logs**: Monitor application logs for authentication success/failure
+4. **Set up other providers**:
+   - Google OAuth (see `google-oauth-setup.md`)
+   - GitHub OAuth (see `github-oauth-setup.md`)
 
 ## Example Implementation
 
@@ -371,7 +469,7 @@ const tokenResponse = await fetch(
       client_secret: linkedinConfig.clientSecret,
       redirect_uri: linkedinConfig.redirectUri,
     }),
-  },
+  }
 );
 
 // Get user information
@@ -405,5 +503,6 @@ const userResponse = await fetch("https://api.linkedin.com/v2/userinfo", {
    - Implement proper caching and error handling
 
 5. **Data Usage Policies**
+
    - LinkedIn has specific policies about data usage
    - Ensure compliance with their data use policies
