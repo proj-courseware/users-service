@@ -448,6 +448,62 @@ es.addEventListener("security:account_locked", (e) => {
 
 ---
 
+## Account Management & Email Conflicts
+
+### Email Address Behavior
+
+The authentication service implements intelligent account management based on email addresses:
+
+#### **Registration with Existing Email**
+
+- **Email/Password Registration**: ❌ **Rejected with `409 Conflict`**
+  ```json
+  {
+    "error": "A user with this email already exists"
+  }
+  ```
+- **OAuth Registration**: ✅ **Smart Account Linking** (see below)
+
+#### **OAuth Account Linking**
+
+When using OAuth (Google, GitHub, LinkedIn) with an existing email:
+
+1. **Existing Account Found**: OAuth provider is **linked** to the existing account
+2. **No Existing Account**: New account created with OAuth provider
+3. **Multiple OAuth Providers**: All providers with same email link to single account
+
+**Example Flow:**
+
+```plaintext
+1. Register with email/password: john@example.com ✅ Account created
+2. Login with Google (john@example.com) ✅ Google linked to existing account
+3. Login with GitHub (john@example.com) ✅ GitHub also linked to same account
+4. Try to register again with john@example.com ❌ Registration rejected
+```
+
+#### **Account Access Methods**
+
+After linking, users can login using **any** of these methods:
+
+- Original email/password
+- Any linked OAuth provider (Google, GitHub, LinkedIn)
+- All methods access the **same account** with same user ID
+
+#### **Security Protection**
+
+- **Provider ID Verification**: OAuth accounts are verified by provider user ID
+- **Email Verification**: Social login emails are automatically verified
+- **Conflict Detection**: Prevents linking different provider accounts with same email
+
+### Adding Additional Emails
+
+Authenticated users can add multiple email addresses:
+
+- **POST /me/emails**: Add new email to existing account
+- **Validation**: Email cannot be used by another user
+- **Verification**: New emails require verification before use
+- **Primary Email**: One email designated as primary for login
+
 ## Authorization & Security
 
 ### Access Control
