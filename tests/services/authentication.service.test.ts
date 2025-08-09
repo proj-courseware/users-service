@@ -604,9 +604,7 @@ describe("AuthenticationService", () => {
         });
       (
         mockRefreshTokenRepository.findByTokenHash as MockedFunction<
-          (
-            hash: string,
-          ) => Promise<{
+          (hash: string) => Promise<{
             id: string;
             isRevoked: boolean;
             expiresAt: Date;
@@ -690,9 +688,7 @@ describe("AuthenticationService", () => {
       });
       (
         mockRefreshTokenRepository.findByTokenHash as MockedFunction<
-          (
-            hash: string,
-          ) => Promise<{
+          (hash: string) => Promise<{
             id: string;
             isRevoked: boolean;
             expiresAt: Date;
