@@ -16,6 +16,7 @@ This guide walks you through setting up GitHub OAuth2 authentication for your au
    - Sign in to your GitHub account
 
 2. **Create New OAuth App**
+
    - Click "OAuth Apps" in the left sidebar
    - Click "New OAuth App"
 
@@ -29,8 +30,8 @@ This guide walks you through setting up GitHub OAuth2 authentication for your au
      - Production: `https://yourdomain.com`
    - **Application description**: Brief description of your app (optional)
    - **Authorization callback URL**: Where GitHub redirects after authentication
-     - Development: `http://localhost:3000/auth/github/callback`
-     - Production: `https://yourdomain.com/auth/github/callback`
+     - Development: `http://localhost:3000/auth/oauth/github/callback`
+     - Production: `https://yourdomain.com/auth/oauth/github/callback`
 
 2. **Enable Device Flow** (Optional)
 
@@ -38,6 +39,7 @@ This guide walks you through setting up GitHub OAuth2 authentication for your au
    - Usually not needed for web applications
 
 3. **Register Application**
+
    - Click "Register application"
 
 ## Step 3: Get OAuth Credentials
@@ -70,30 +72,33 @@ The authentication service will request these scopes during the OAuth flow.
    # GitHub OAuth2 Configuration
    GITHUB_CLIENT_ID=your_github_client_id_here
    GITHUB_CLIENT_SECRET=your_github_client_secret_here
-   GITHUB_REDIRECT_URI=http://localhost:3000/auth/github/callback
+   GITHUB_REDIRECT_URI=http://localhost:3000/auth/oauth/github/callback
 
    # For production, use:
-   # GITHUB_REDIRECT_URI=https://yourdomain.com/auth/github/callback
+   # GITHUB_REDIRECT_URI=https://yourdomain.com/auth/oauth/github/callback
    ```
 
-2. **Update App Environment Schema**
+2. **Verify Environment Schema Configuration**
 
-   Add GitHub OAuth configuration to your `src/schemas/app-env.schema.ts`:
+   The GitHub OAuth environment variables are already configured in `src/env.ts`. You can verify they exist by checking lines 79-81:
 
    ```typescript
-   const appEnvSchema = z.object({
-     // ... existing configuration
-
-     // GitHub OAuth2
-     GITHUB_CLIENT_ID: z.string().min(1, "GitHub Client ID is required"),
-     GITHUB_CLIENT_SECRET: z
-       .string()
-       .min(1, "GitHub Client Secret is required"),
-     GITHUB_REDIRECT_URI: z
-       .string()
-       .url("GitHub Redirect URI must be a valid URL"),
-   });
+   // OAuth Configuration (already present)
+   GITHUB_CLIENT_ID: z.string().optional(),
+   GITHUB_CLIENT_SECRET: z.string().optional(),
+   GITHUB_REDIRECT_URI: z.string().url().optional(),
    ```
+
+   If you need to make these required instead of optional, you can modify the schema:
+
+   ```typescript
+   // To make GitHub OAuth required, change from:
+   GITHUB_CLIENT_ID: z.string().optional(),
+   // To:
+   GITHUB_CLIENT_ID: z.string().min(1, "GitHub Client ID is required"),
+   ```
+
+   **Note**: The current configuration makes OAuth providers optional, allowing the service to run without OAuth credentials during development.
 
 ## Step 6: Understanding GitHub OAuth Flow
 
@@ -101,7 +106,7 @@ GitHub OAuth2 flow works as follows:
 
 1. **Authorization Request**: Redirect user to GitHub
 
-   ```
+   ```plaintext
    https://github.com/login/oauth/authorize?
      client_id=YOUR_CLIENT_ID&
      redirect_uri=YOUR_REDIRECT_URI&
@@ -111,20 +116,21 @@ GitHub OAuth2 flow works as follows:
 
 2. **Authorization Grant**: GitHub redirects back with code
 
-   ```
-   https://yourapp.com/auth/github/callback?
+   ```plaintext
+   https://yourapp.com/auth/oauth/github/callback?
      code=AUTHORIZATION_CODE&
      state=SAME_STATE_VALUE
    ```
 
 3. **Access Token Request**: Exchange code for access token
 
-   ```
+   ```plaintext
    POST https://github.com/login/oauth/access_token
    ```
 
 4. **User Information**: Get user data with access token
-   ```
+
+   ```plaintext
    GET https://api.github.com/user
    GET https://api.github.com/user/emails
    ```
@@ -138,10 +144,11 @@ GitHub OAuth2 flow works as follows:
    ```
 
 2. **Test the OAuth Flow**
-   - Navigate to your login page
-   - Click "Sign in with GitHub"
+
+   - Navigate to `http://localhost:3000/auth/oauth/github` to initiate GitHub OAuth
    - You should be redirected to GitHub's authorization page
-   - After authorization, you should be redirected back to your application
+   - After authorization, you should be redirected back to your application via the callback URL
+   - Check your application logs for authentication success/failure messages
 
 ## Step 8: Production Setup
 
@@ -161,10 +168,11 @@ GitHub OAuth2 flow works as follows:
    - Consider rate limiting OAuth endpoints
 
 3. **Update Environment Variables**
+
    ```env
    GITHUB_CLIENT_ID=your_github_client_id_here
    GITHUB_CLIENT_SECRET=your_github_client_secret_here
-   GITHUB_REDIRECT_URI=https://yourdomain.com/auth/github/callback
+   GITHUB_REDIRECT_URI=https://yourdomain.com/auth/oauth/github/callback
    ```
 
 ## Step 9: Advanced Configuration
@@ -223,6 +231,7 @@ const scopes = [
    - Ensure environment variables are properly loaded
 
 4. **Rate Limiting**
+
    - GitHub has rate limits for OAuth requests
    - Implement proper error handling and retry logic
    - Consider caching user information
@@ -231,7 +240,7 @@ const scopes = [
 
 ```bash
 # Test GitHub OAuth authorization URL generation
-curl -X GET http://localhost:3000/auth/github
+curl -X GET http://localhost:3000/auth/oauth/github
 # Should redirect to GitHub OAuth page
 
 # Test environment variables
@@ -252,6 +261,7 @@ echo $GITHUB_CLIENT_SECRET
    - Check for extra spaces or newlines
 
 3. **Monitor GitHub API Responses**
+
    - Log API responses for debugging
    - Check for rate limit headers
 
@@ -275,6 +285,7 @@ echo $GITHUB_CLIENT_SECRET
    - Consider token expiration
 
 4. **User Data**
+
    - Only request scopes you actually need
    - Handle user data according to privacy policies
    - Implement proper data retention policies
@@ -326,7 +337,7 @@ const tokenResponse = await fetch(
       client_secret: githubConfig.clientSecret,
       code: authorizationCode,
     }),
-  },
+  }
 );
 
 // Get user information

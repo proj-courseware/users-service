@@ -146,10 +146,12 @@
 
 - **GET /auth/oauth/:provider**  
   Initiate OAuth login flow (supports google, github, linkedin).  
+  **Example:** `/auth/oauth/github` for GitHub OAuth  
   **Response:** Redirect to OAuth provider
 
 - **GET /auth/oauth/:provider/callback**  
   OAuth callback handler.  
+  **Example:** `/auth/oauth/github/callback` for GitHub OAuth callback  
   **Response:** Redirect with tokens or error
 
 - **DELETE /auth/oauth/:provider**  
