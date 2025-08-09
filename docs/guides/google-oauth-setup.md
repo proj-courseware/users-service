@@ -8,134 +8,251 @@ This guide walks you through setting up Google OAuth2 authentication for your au
 - Access to Google Cloud Console
 - Your authentication service running locally or deployed
 
-## Step 1: Create a Google Cloud Project
+## Step 1: Create Google Cloud Projects (Development & Production)
+
+> **💡 Best Practice**: Create separate Google Cloud projects for development and production environments for better security, quota management, and analytics isolation.
+
+### Why Separate Google Cloud Projects?
+
+- **🔒 Security Isolation**: Production secrets never touch development environment
+- **📊 Quota Management**: Separate API quotas and billing per environment
+- **👥 Team Access**: Different IAM permissions for dev vs prod projects
+- **📈 Analytics**: Separate usage analytics and monitoring per environment
+- **🔍 Consent Screen**: Different consent screens for testing vs production
+- **⚙️ Configuration**: Environment-specific settings and configurations
+
+### Create Development Project
 
 1. **Go to Google Cloud Console**
 
    - Visit [Google Cloud Console](https://console.cloud.google.com/)
    - Sign in with your Google account
 
-2. **Create a New Project**
+2. **Create Development Project**
 
    - Click the project dropdown at the top of the page
    - Click "New Project"
-   - Enter a project name (e.g., "My Auth Service")
+   - Enter a project name (e.g., "my-app-local" or "my-app-dev")
    - Select your organization (if applicable)
    - Click "Create"
 
-3. **Select Your Project**
-   - Make sure your new project is selected in the project dropdown
+3. **Select Your Development Project**
 
-## Step 2: Enable Google+ API
+   - Make sure your new development project is selected in the project dropdown
 
-1. **Navigate to APIs & Services**
+### Create Production Project
+
+4. **Create Production Project**
+
+   - Click "New Project" again
+   - Enter a production project name (e.g., "my-app" or "my-app-prod")
+   - Select your organization (if applicable)
+   - Click "Create"
+
+> **📝 Note**: You'll configure each project separately in the following steps.
+
+## Step 2: Enable APIs for Both Projects
+
+> **🔄 Important**: Repeat these steps for both development and production projects.
+
+### For Development Project
+
+1. **Select Development Project**
+
+   - Switch to your development project using the project dropdown
+
+2. **Navigate to APIs & Services**
 
    - In the left sidebar, click "APIs & Services" → "Library"
 
-2. **Enable Required APIs**
-   - Search for "Google+ API" and click on it
-   - Click "Enable"
-   - Also search for "People API" and enable it (for user profile information)
+3. **Enable Required APIs**
 
-## Step 3: Configure OAuth Consent Screen
+   - Search for "Google+ API" and click on it → Click "Enable"
+   - Search for "People API" and click on it → Click "Enable"
 
-1. **Go to OAuth Consent Screen**
+### For Production Project
+
+4. **Switch to Production Project**
+
+   - Switch to your production project using the project dropdown
+
+5. **Repeat API Enablement**
+
+   - Navigate to "APIs & Services" → "Library"
+   - Enable "Google+ API" and "People API" for the production project
+
+## Step 3: Configure OAuth Consent Screen for Both Projects
+
+### Development Project Consent Screen
+
+1. **Select Development Project**
+
+   - Ensure your development project is selected
+
+2. **Go to OAuth Consent Screen**
 
    - In the left sidebar, click "APIs & Services" → "OAuth consent screen"
 
-2. **Choose User Type**
+3. **Choose User Type**
 
    - Select "External" for most applications
    - Click "Create"
 
-3. **Fill App Information**
+4. **Fill Development App Information**
 
-   - **App name**: Enter your application name (e.g., "My Authentication Service")
+   - **App name**: "my-app-local" or "my-app-dev"
    - **User support email**: Your email address
    - **App logo**: (Optional) Upload your app logo
-   - **App domain**: Your application domain (e.g., `https://myapp.com`)
-   - **Authorized domains**: Add your domain (e.g., `myapp.com`)
+   - **App domain**: `http://localhost:3000` (for development)
+   - **Authorized domains**: Leave empty for localhost development
    - **Developer contact information**: Your email address
 
-4. **Scopes**
+5. **Scopes**
 
    - Click "Add or Remove Scopes"
-   - Add these scopes:
-     - `openid`
-     - `email`
-     - `profile`
+   - Add these scopes: `openid`, `email`, `profile`
    - Click "Update"
 
-5. **Test Users** (for development)
+6. **Test Users** (Important for Development)
 
    - Add your email and other developer emails
    - Click "Add Users"
+   - Click "Save and Continue"
 
-6. **Review and Submit**
-   - Review your information
-   - Click "Back to Dashboard"
+### Production Project Consent Screen
 
-## Step 4: Create OAuth2 Credentials
+7. **Switch to Production Project**
 
-1. **Go to Credentials**
+   - Switch to your production project using the project dropdown
+
+8. **Repeat OAuth Consent Screen Setup**
+
+   - Navigate to "APIs & Services" → "OAuth consent screen"
+   - Select "External" → Click "Create"
+
+9. **Fill Production App Information**
+
+   - **App name**: "my-app" (your production app name)
+   - **User support email**: Your support email
+   - **App logo**: (Optional) Your production app logo
+   - **App domain**: `https://yourdomain.com`
+   - **Authorized domains**: `yourdomain.com`
+   - **Developer contact information**: Your contact email
+
+10. **Production Scopes and Review**
+
+    - Add the same scopes: `openid`, `email`, `profile`
+    - For production, you may want to submit for Google verification
+    - Click "Save and Continue" through all steps
+
+## Step 4: Create OAuth2 Credentials for Both Projects
+
+### Development Project Credentials
+
+1. **Select Development Project**
+
+   - Ensure your development project is selected
+
+2. **Go to Credentials**
 
    - In the left sidebar, click "APIs & Services" → "Credentials"
 
-2. **Create OAuth Client ID**
+3. **Create Development OAuth Client ID**
 
    - Click "Create Credentials" → "OAuth client ID"
    - **Application type**: Select "Web application"
-   - **Name**: Enter a name (e.g., "Auth Service Web Client")
+   - **Name**: "my-app-local Web Client" (or similar)
 
-3. **Configure Redirect URIs**
+4. **Configure Development Redirect URIs**
 
-   - **Authorized JavaScript origins**:
-     - `http://localhost:3000` (for local development)
-     - `https://yourdomain.com` (for production)
-   - **Authorized redirect URIs**:
-     - `http://localhost:3000/auth/google/callback` (for local development)
-     - `https://yourdomain.com/auth/google/callback` (for production)
+   - **Authorized JavaScript origins**: `http://localhost:3000`
+   - **Authorized redirect URIs**: `http://localhost:3000/auth/oauth/google/callback`
 
-4. **Create**
+5. **Create and Save Development Credentials**
+
    - Click "Create"
-   - **Save your credentials**:
-     - **Client ID**: Copy this value
-     - **Client Secret**: Copy this value
+   - **Copy Development Credentials**:
+     - **Client ID**: Copy and save this value
+     - **Client Secret**: Copy and save this value
+
+### Production Project Credentials
+
+6. **Switch to Production Project**
+
+   - Switch to your production project using the project dropdown
+
+7. **Create Production OAuth Client ID**
+
+   - Navigate to "APIs & Services" → "Credentials"
+   - Click "Create Credentials" → "OAuth client ID"
+   - **Application type**: Select "Web application"
+   - **Name**: "my-app Web Client" (or similar)
+
+8. **Configure Production Redirect URIs**
+
+   - **Authorized JavaScript origins**: `https://yourdomain.com`
+   - **Authorized redirect URIs**: `https://yourdomain.com/auth/oauth/google/callback`
+
+9. **Create and Save Production Credentials**
+
+   - Click "Create"
+   - **Copy Production Credentials**:
+     - **Client ID**: Copy and save this value
+     - **Client Secret**: Copy and save this value
+
+> **🔒 Security Note**: Keep development and production credentials completely separate and secure.
 
 ## Step 5: Configure Your Authentication Service
 
-1. **Environment Variables**
+### Development Environment
 
-   Add these variables to your `.env` file:
+1. **Local Environment Variables**
+
+   Add these variables to your `.env` file for development:
 
    ```env
-   # Google OAuth2 Configuration
-   GOOGLE_CLIENT_ID=your_google_client_id_here
-   GOOGLE_CLIENT_SECRET=your_google_client_secret_here
-   GOOGLE_REDIRECT_URI=http://localhost:3000/auth/google/callback
-
-   # For production, use:
-   # GOOGLE_REDIRECT_URI=https://yourdomain.com/auth/google/callback
+   # Google OAuth2 Configuration (Development)
+   GOOGLE_CLIENT_ID=your_development_google_client_id_here
+   GOOGLE_CLIENT_SECRET=your_development_google_client_secret_here
+   GOOGLE_REDIRECT_URI=http://localhost:3000/auth/oauth/google/callback
    ```
 
-2. **Update App Environment Schema**
+### Production Environment
 
-   Add Google OAuth configuration to your `src/schemas/app-env.schema.ts`:
+2. **Production Environment Variables**
+
+   For production, use separate credentials:
+
+   ```env
+   # Google OAuth2 Configuration (Production)
+   GOOGLE_CLIENT_ID=your_production_google_client_id_here
+   GOOGLE_CLIENT_SECRET=your_production_google_client_secret_here
+   GOOGLE_REDIRECT_URI=https://yourdomain.com/auth/oauth/google/callback
+   ```
+
+   > **🔒 Security Tip**: Never commit production credentials to version control. Use environment variable management tools like AWS Secrets Manager, Google Secret Manager, or similar.
+
+3. **Verify Environment Schema Configuration**
+
+   The Google OAuth environment variables are already configured in `src/env.ts`.
 
    ```typescript
-   const appEnvSchema = z.object({
-     // ... existing configuration
-
-     // Google OAuth2
-     GOOGLE_CLIENT_ID: z.string().min(1, "Google Client ID is required"),
-     GOOGLE_CLIENT_SECRET: z
-       .string()
-       .min(1, "Google Client Secret is required"),
-     GOOGLE_REDIRECT_URI: z
-       .string()
-       .url("Google Redirect URI must be a valid URL"),
-   });
+   // OAuth Configuration (already present)
+   GOOGLE_CLIENT_ID: z.string().optional(),
+   GOOGLE_CLIENT_SECRET: z.string().optional(),
+   GOOGLE_REDIRECT_URI: z.string().url().optional(),
    ```
+
+   If you need to make these required instead of optional, you can modify the schema:
+
+   ```typescript
+   // To make Google OAuth required, change from:
+   GOOGLE_CLIENT_ID: z.string().optional(),
+   // To:
+   GOOGLE_CLIENT_ID: z.string().min(1, "Google Client ID is required"),
+   ```
+
+   **Note**: The current configuration makes OAuth providers optional, allowing the service to run without OAuth credentials during development.
 
 ## Step 6: Test Your Configuration
 
@@ -146,31 +263,61 @@ This guide walks you through setting up Google OAuth2 authentication for your au
    ```
 
 2. **Test the OAuth Flow**
-   - Navigate to your login page
-   - Click "Sign in with Google"
+
+   - Navigate to `http://localhost:3000/auth/oauth/google` to initiate Google OAuth
    - You should be redirected to Google's authentication page
-   - After authorization, you should be redirected back to your application
+   - After authorization, you should be redirected back to your application via the callback URL
+   - Check your application logs for authentication success/failure messages
 
-## Step 7: Production Setup
+## Step 7: Environment Management Best Practices
 
-### For Production Deployment
+### Development vs Production Separation
 
-1. **Update OAuth Consent Screen**
+The approach of creating separate Google Cloud projects (`my-app` and `my-app-local`) is industry best practice. Here are additional tips:
 
-   - Go back to OAuth consent screen
-   - Click "Publish App" when ready for production
-   - Update domains to your production domain
+1. **Environment File Management**
 
-2. **Update Credentials**
+   ```bash
+   # Development
+   .env                    # Local development (gitignored)
+   .env.example           # Template for new developers
 
-   - Add your production redirect URI to authorized redirect URIs
-   - Update your production environment variables
+   # Production
+   .env.production        # Production template (gitignored)
+   # Use deployment tools to inject actual production values
+   ```
 
-3. **Security Considerations**
-   - Never commit OAuth credentials to version control
-   - Use environment variables or secure secret management
-   - Regularly rotate your client secret
+2. **Team Collaboration**
+
+   - Share development project credentials with your team
+   - Keep production credentials restricted to deployment systems
+   - Document which Google Cloud project is for which environment
+
+### Production Deployment Security
+
+1. **Google Cloud Project Management**
+
+   - Use separate Google Cloud projects for different environments
+   - Configure appropriate IAM permissions per project
+   - Enable audit logging for production projects
+
+2. **OAuth Consent Screen**
+
+   - For production: Click "Publish App" when ready for public use
+   - Submit for Google verification if using sensitive scopes
+   - Keep development apps in "Testing" mode
+
+3. **Credential Management**
+
+   - Store client secrets securely (environment variables, secrets manager)
+   - Use Google Secret Manager for production secrets
+   - Never commit production credentials to version control
+   - Regularly rotate client secrets
+
+4. **Monitoring and Analytics**
    - Monitor OAuth usage in Google Cloud Console
+   - Set up alerts for unusual activity
+   - Use separate analytics per environment
 
 ## Troubleshooting
 
@@ -198,8 +345,8 @@ This guide walks you through setting up Google OAuth2 authentication for your au
 ### Testing Commands
 
 ```bash
-# Test environment variables are loaded
-curl -X GET http://localhost:3000/auth/google
+# Test Google OAuth authorization URL generation
+curl -X GET http://localhost:3000/auth/oauth/google
 # Should redirect to Google OAuth page
 
 # Test callback endpoint

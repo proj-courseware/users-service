@@ -8,49 +8,70 @@ This guide walks you through setting up GitHub OAuth2 authentication for your au
 - Your authentication service running locally or deployed
 - Admin access to create GitHub Apps or OAuth Apps
 
-## Step 1: Create a GitHub OAuth App
+## Step 1: Create GitHub OAuth Apps (Development & Production)
+
+> **💡 Best Practice**: Create separate OAuth apps for development and production environments for better security and isolation.
+
+### Create Development OAuth App
 
 1. **Go to GitHub Developer Settings**
 
    - Visit [GitHub Developer Settings](https://github.com/settings/developers)
    - Sign in to your GitHub account
 
-2. **Create New OAuth App**
+2. **Create New OAuth App for Development**
 
    - Click "OAuth Apps" in the left sidebar
    - Click "New OAuth App"
 
-## Step 2: Configure OAuth App Settings
+## Step 2: Configure Development OAuth App
 
-1. **Fill Application Information**
+1. **Fill Development Application Information**
 
-   - **Application name**: Enter your app name (e.g., "My Authentication Service")
-   - **Homepage URL**: Your application homepage
-     - Development: `http://localhost:3000`
-     - Production: `https://yourdomain.com`
-   - **Application description**: Brief description of your app (optional)
-   - **Authorization callback URL**: Where GitHub redirects after authentication
-     - Development: `http://localhost:3000/auth/oauth/github/callback`
-     - Production: `https://yourdomain.com/auth/oauth/github/callback`
+   - **Application name**: Use a clear development name (e.g., "my-app-local" or "my-app-dev")
+   - **Homepage URL**: `http://localhost:3000`
+   - **Application description**: "Development environment for [Your App Name]" (optional)
+   - **Authorization callback URL**: `http://localhost:3000/auth/oauth/github/callback`
 
-2. **Enable Device Flow** (Optional)
+2. **Register Development Application**
 
-   - Check this if you need device flow authentication
-   - Usually not needed for web applications
+   - Click "Register application"
 
-3. **Register Application**
+### Create Production OAuth App
+
+3. **Create Second OAuth App for Production**
+
+   - Click "New OAuth App" again
+   - **Application name**: Use your production app name (e.g., "my-app")
+   - **Homepage URL**: `https://yourdomain.com`
+   - **Application description**: Brief description of your production app (optional)
+   - **Authorization callback URL**: `https://yourdomain.com/auth/oauth/github/callback`
+
+4. **Register Production Application**
 
    - Click "Register application"
 
 ## Step 3: Get OAuth Credentials
 
-1. **Copy Client Credentials**
-   After registration, you'll see:
+### Development App Credentials
+
+1. **Copy Development Client Credentials**
+   From your development OAuth app:
 
    - **Client ID**: Copy this value (it's public)
    - **Client Secret**: Click "Generate a new client secret" and copy the value
 
    ⚠️ **Important**: Save the client secret immediately - you won't be able to see it again!
+
+### Production App Credentials
+
+2. **Copy Production Client Credentials**
+   From your production OAuth app:
+
+   - **Client ID**: Copy this value (it's public)
+   - **Client Secret**: Click "Generate a new client secret" and copy the value
+
+   ⚠️ **Important**: Keep production credentials secure and separate from development!
 
 ## Step 4: Configure Scopes and Permissions
 
@@ -64,21 +85,35 @@ The authentication service will request these scopes during the OAuth flow.
 
 ## Step 5: Configure Your Authentication Service
 
-1. **Environment Variables**
+### Development Environment
 
-   Add these variables to your `.env` file:
+1. **Local Environment Variables**
+
+   Add these variables to your `.env` file for development:
 
    ```env
-   # GitHub OAuth2 Configuration
-   GITHUB_CLIENT_ID=your_github_client_id_here
-   GITHUB_CLIENT_SECRET=your_github_client_secret_here
+   # GitHub OAuth2 Configuration (Development)
+   GITHUB_CLIENT_ID=your_development_github_client_id_here
+   GITHUB_CLIENT_SECRET=your_development_github_client_secret_here
    GITHUB_REDIRECT_URI=http://localhost:3000/auth/oauth/github/callback
-
-   # For production, use:
-   # GITHUB_REDIRECT_URI=https://yourdomain.com/auth/oauth/github/callback
    ```
 
-2. **Verify Environment Schema Configuration**
+### Production Environment
+
+2. **Production Environment Variables**
+
+   For production, use separate credentials:
+
+   ```env
+   # GitHub OAuth2 Configuration (Production)
+   GITHUB_CLIENT_ID=your_production_github_client_id_here
+   GITHUB_CLIENT_SECRET=your_production_github_client_secret_here
+   GITHUB_REDIRECT_URI=https://yourdomain.com/auth/oauth/github/callback
+   ```
+
+   > **🔒 Security Tip**: Never commit production credentials to version control. Use environment variable management tools like AWS Secrets Manager, Azure Key Vault, or similar.
+
+3. **Verify Environment Schema Configuration**
 
    The GitHub OAuth environment variables are already configured in `src/env.ts`. You can verify they exist by checking lines 79-81:
 
@@ -150,30 +185,47 @@ GitHub OAuth2 flow works as follows:
    - After authorization, you should be redirected back to your application via the callback URL
    - Check your application logs for authentication success/failure messages
 
-## Step 8: Production Setup
+## Step 8: Environment Management Best Practices
 
-### For Production Deployment
+### Development vs Production Separation
 
-1. **Update OAuth App Settings**
+The approach of creating separate OAuth apps (`my-app` and `myapp-local`) is common practice. Here are additional tips:
 
-   - Go back to your GitHub OAuth App settings
-   - Update the "Homepage URL" to your production domain
-   - Update the "Authorization callback URL" to your production callback
+1. **Environment File Management**
 
-2. **Security Considerations**
+   ```bash
+   # Development
+   .env                    # Local development (gitignored)
+   .env.example           # Template for new developers
+
+   # Production
+   .env.production        # Production template (gitignored)
+   # Use deployment tools to inject actual production values
+   ```
+
+2. **Team Collaboration**
+
+   - Share development OAuth app credentials with your team
+   - Keep production credentials restricted to deployment systems
+   - Document which OAuth app is for which environment
+
+### Production Deployment Security
+
+1. **HTTPS Requirements**
 
    - Use HTTPS for all production URLs
-   - Store client secret securely (environment variables, secrets manager)
+   - GitHub requires HTTPS for production OAuth apps
+
+2. **Credential Management**
+
+   - Store client secrets securely (environment variables, secrets manager)
+   - Use deployment tools to inject production environment variables
+   - Never commit production credentials to version control
+
+3. **OAuth Security**
    - Implement proper state validation to prevent CSRF attacks
    - Consider rate limiting OAuth endpoints
-
-3. **Update Environment Variables**
-
-   ```env
-   GITHUB_CLIENT_ID=your_github_client_id_here
-   GITHUB_CLIENT_SECRET=your_github_client_secret_here
-   GITHUB_REDIRECT_URI=https://yourdomain.com/auth/oauth/github/callback
-   ```
+   - Monitor OAuth usage and failed attempts
 
 ## Step 9: Advanced Configuration
 
