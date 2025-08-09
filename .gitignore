@@ -15,6 +15,7 @@ node_modules/
 # env
 .env
 .env.production
+client_secret_google_oauth.json
 
 # logs
 logs/
