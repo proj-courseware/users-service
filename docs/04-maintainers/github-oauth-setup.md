@@ -389,7 +389,7 @@ const tokenResponse = await fetch(
       client_secret: githubConfig.clientSecret,
       code: authorizationCode,
     }),
-  }
+  },
 );
 
 // Get user information

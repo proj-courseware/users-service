@@ -469,7 +469,7 @@ const tokenResponse = await fetch(
       client_secret: linkedinConfig.clientSecret,
       redirect_uri: linkedinConfig.redirectUri,
     }),
-  }
+  },
 );
 
 // Get user information
