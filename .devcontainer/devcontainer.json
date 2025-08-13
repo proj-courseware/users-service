@@ -23,8 +23,5 @@
     }
   },
   "postCreateCommand": "pnpm install",
-  "remoteUser": "node",
-  "dockerComposeOptions": {
-    "projectName": "users-service"
-  }
+  "remoteUser": "node"
 }
