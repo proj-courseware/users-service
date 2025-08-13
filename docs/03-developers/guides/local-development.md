@@ -18,12 +18,12 @@ Before starting, ensure you have the following installed:
 ```bash
 git clone https://github.com/proj-courseware/users-service.git
 cd users-service
-cp .env.example .env
+cp docker/.env.example docker/.env
 ```
 
 ### 2. Configure Environment
 
-Edit `.env` file with your settings (see [Environment Variables Guide](./environment-variables.md) for details):
+Edit `docker/.env` file with your settings (see [Environment Variables Guide](./environment-variables.md) for details):
 
 ```bash
 # Required for basic functionality
@@ -82,7 +82,7 @@ The API will be available at `http://localhost:3000`
 ```bash
 git clone https://github.com/proj-courseware/users-service.git
 cd users-service
-cp .env.example .env
+cp docker/.env.example docker/.env
 pnpm install
 ```
 
@@ -256,7 +256,7 @@ sudo chown -R $(whoami) ~/.npm
 
 **Environment Variables Not Loading**
 
-- Ensure `.env` file exists in project root
+- Ensure `docker/.env` file exists in the docker folder
 - Check for typos in variable names
 - Restart development server after changes
 
@@ -265,7 +265,7 @@ sudo chown -R $(whoami) ~/.npm
 Enable debug logging:
 
 ```bash
-# In .env file
+# In docker/.env file
 DEBUG=*
 LOG_LEVEL=debug
 
@@ -276,10 +276,14 @@ pnpm dev
 ### Container Issues
 
 ```bash
-# Rebuild container
-docker-compose down
-docker-compose build --no-cache
-docker-compose up
+# Rebuild container using the new Docker structure
+pnpm docker:dev:down
+pnpm docker:dev
+
+# Or manually
+docker compose -f docker/docker-compose.dev.yml down
+docker compose -f docker/docker-compose.dev.yml build --no-cache
+docker compose -f docker/docker-compose.dev.yml up
 ```
 
 ## Next Steps

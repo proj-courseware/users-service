@@ -89,7 +89,7 @@ The authentication service will request these scopes during the OAuth flow.
 
 1. **Local Environment Variables**
 
-   Add these variables to your `.env` file for development:
+   Add these variables to your `docker/.env` file for development:
 
    ```env
    # GitHub OAuth2 Configuration (Development)
@@ -102,7 +102,7 @@ The authentication service will request these scopes during the OAuth flow.
 
 2. **Production Environment Variables**
 
-   For production, use separate credentials:
+   For production, use separate credentials in `docker/.env.production`:
 
    ```env
    # GitHub OAuth2 Configuration (Production)
@@ -195,12 +195,12 @@ The approach of creating separate OAuth apps (`my-app` and `myapp-local`) is com
 
    ```bash
    # Development
-   .env                    # Local development (gitignored)
-   .env.example           # Template for new developers
+   docker/.env                    # Local development (gitignored)
+   docker/.env.example           # Template for new developers
 
    # Production
-   .env.production        # Production template (gitignored)
-   # Use deployment tools to inject actual production values
+   docker/.env.production        # Production template (gitignored)
+   # Use deployment tools to inject actual production environment variables
    ```
 
 2. **Team Collaboration**

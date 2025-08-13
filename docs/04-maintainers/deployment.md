@@ -58,67 +58,25 @@ git clone https://github.com/proj-courseware/users-service.git
 cd users-service
 
 # Create production environment file
-cp .env.example .env.production
+cp docker/.env.example docker/.env.production
 
 # Edit production environment
-nano .env.production
+nano docker/.env.production
 ```
 
 ### 3. Production Docker Compose
 
-Create `docker-compose.prod.yml`:
+The project now includes a production Docker Compose file at `docker/docker-compose.prod.yml`. You can use it directly:
 
-```yaml
-version: "3.8"
+```bash
+# Start production environment
+pnpm docker:prod
 
-services:
-  users-service:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    restart: unless-stopped
-    ports:
-      - "3000:3000"
-    environment:
-      - NODE_ENV=production
-    env_file:
-      - .env.production
-    depends_on:
-      - mongodb
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-
-  mongodb:
-    image: mongo:7
-    restart: unless-stopped
-    ports:
-      - "27017:27017"
-    environment:
-      MONGO_INITDB_ROOT_USERNAME: ${MONGODB_USER}
-      MONGO_INITDB_ROOT_PASSWORD: ${MONGODB_PASSWORD}
-      MONGO_INITDB_DATABASE: ${MONGODB_DATABASE}
-    volumes:
-      - mongodb_data:/data/db
-      - ./scripts/mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro
-
-  nginx:
-    image: nginx:alpine
-    restart: unless-stopped
-    ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - ./nginx.conf:/etc/nginx/nginx.conf:ro
-      - ./ssl:/etc/nginx/ssl:ro
-    depends_on:
-      - users-service
-
-volumes:
-  mongodb_data:
+# Or manually
+docker compose --env-file docker/.env.production -f docker/docker-compose.prod.yml up --build
 ```
+
+**Note**: The production compose file only includes the application container. For production, use managed database services or external databases instead of running MongoDB in containers.
 
 ### 4. Nginx Configuration
 
@@ -185,10 +143,10 @@ http {
 
 ```bash
 # Build and start services
-docker-compose -f docker-compose.prod.yml up -d --build
+docker compose -f docker/docker-compose.prod.yml up -d --build
 
 # Check logs
-docker-compose -f docker-compose.prod.yml logs -f
+docker compose -f docker/docker-compose.prod.yml logs -f
 
 # Verify health
 curl https://your-domain.com/health
@@ -224,7 +182,7 @@ sudo systemctl enable mongod
 # Clone and build
 git clone https://github.com/proj-courseware/users-service.git
 cd users-service
-cp .env.example .env
+cp docker/.env.example docker/.env
 pnpm install
 pnpm build
 ```
@@ -245,7 +203,7 @@ module.exports = {
         NODE_ENV: "production",
         PORT: 3000,
       },
-      env_file: ".env",
+      env_file: "docker/.env",
       error_file: "./logs/err.log",
       out_file: "./logs/out.log",
       log_file: "./logs/combined.log",
@@ -527,8 +485,8 @@ aws secretsmanager create-secret --name "users-service/jwt-refresh-secret" --sec
 
 ```bash
 # Secure file permissions
-chmod 600 .env.production
-chown app:app .env.production
+chmod 600 docker/.env.production
+chown app:app docker/.env.production
 ```
 
 ## Monitoring and Logging
@@ -555,7 +513,8 @@ pm2 flush  # Clear logs
 **Docker Logs:**
 
 ```bash
-docker-compose logs -f users-service
+# Using the new Docker structure
+docker compose -f docker/docker-compose.prod.yml logs -f app
 docker logs container-name --tail 100
 ```
 
@@ -712,7 +671,7 @@ upstream users_service {
 
 ```bash
 # Check logs
-docker-compose logs users-service
+docker compose -f docker/docker-compose.prod.yml logs app
 pm2 logs users-service
 
 # Check environment variables
@@ -793,7 +752,7 @@ jobs:
           script: |
             cd /path/to/app
             git pull origin main
-            docker-compose -f docker-compose.prod.yml up -d --build
+            docker compose -f docker/docker-compose.prod.yml up -d --build
 ```
 
 For detailed environment configuration, see the [Environment Variables Guide](./environment-variables.md).

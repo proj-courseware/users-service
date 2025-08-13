@@ -167,7 +167,7 @@ LinkedIn OAuth2 uses scopes to control access. For authentication, you'll typica
 
 1. **Local Environment Variables**
 
-   Add these variables to your `.env` file for development:
+   Add these variables to your `docker/.env` file for development:
 
    ```env
    # LinkedIn OAuth2 Configuration (Development)
@@ -180,7 +180,7 @@ LinkedIn OAuth2 uses scopes to control access. For authentication, you'll typica
 
 2. **Production Environment Variables**
 
-   For production deployment, use your production app credentials:
+   For production deployment, use your production app credentials in `docker/.env.production`:
 
    ```env
    # LinkedIn OAuth2 Configuration (Production)
@@ -200,7 +200,7 @@ LinkedIn OAuth2 uses scopes to control access. For authentication, you'll typica
    LINKEDIN_REDIRECT_URI: z.string().url().optional(),
    ```
 
-   **Note**: The variables are marked as `optional()` to provide flexibility during development. When you set them in your `.env` file, they become available to your application.
+   **Note**: The variables are marked as `optional()` to provide flexibility during development. When you set them in your `docker/.env` file, they become available to your application.
 
 ## Step 7: Understanding LinkedIn OAuth Flow
 
@@ -261,11 +261,11 @@ The approach of creating separate LinkedIn apps (`courseware` and `courseware-lo
 
    ```bash
    # Development
-   .env                    # Local development (gitignored)
-   .env.example           # Template for new developers
+   docker/.env                    # Local development (gitignored)
+   docker/.env.example           # Template for new developers
 
    # Production
-   .env.production        # Production template (gitignored)
+   docker/.env.production        # Production template (gitignored)
    # Use deployment tools to inject actual production values
    ```
 

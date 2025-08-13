@@ -17,8 +17,8 @@ git clone https://github.com/proj-courseware/users-service.git
 cd users-service
 
 # Setup environment
-cp .env.example .env
-# Edit .env with your settings (see Configuration below)
+cp docker/.env.example docker/.env
+# Edit docker/.env with your settings (see Configuration below)
 
 # Start with Docker (Recommended)
 code .  # Open in VS Code
@@ -28,6 +28,10 @@ pnpm install && pnpm dev
 
 # OR start with Node.js directly
 pnpm install && pnpm dev
+
+# OR use Docker commands directly
+pnpm docker:dev      # Start development environment
+pnpm docker:prod     # Start production environment
 ```
 
 ### Verify Setup
@@ -60,6 +64,12 @@ pnpm start
 pnpm lint
 pnpm lint:fix
 pnpm type-check
+
+# Docker commands
+pnpm docker:dev          # Start development environment
+pnpm docker:dev:down     # Stop development environment
+pnpm docker:prod         # Start production environment
+pnpm docker:prod:down    # Stop production environment
 ```
 
 ### Testing
@@ -88,13 +98,24 @@ users-service/
 │   └── routes/           # Route definitions and mounting
 ├── tests/                # Comprehensive test suite (290+ tests)
 ├── docs/                 # API documentation and guides
-├── specs/         # Feature development planning
-└── docker/              # Docker configuration files
+├── docker/               # Docker configuration files
+│   ├── Dockerfile.dev    # Development Dockerfile
+│   ├── Dockerfile.prod   # Production Dockerfile
+│   ├── docker-compose.dev.yml    # Development services
+│   ├── docker-compose.prod.yml   # Production services
+│   ├── .env              # Development environment variables
+│   └── .env.production   # Production environment variables
+└── .devcontainer/        # VS Code Dev Container configuration
 ```
 
 ## ⚙️ Configuration
 
 ### Essential Environment Variables
+
+The service uses environment-specific configuration files located in the `docker/` folder:
+
+- **Development**: `docker/.env` - For local development and Docker development environment
+- **Production**: `docker/.env.production` - For production Docker environment
 
 ```bash
 # Database Configuration
@@ -120,6 +141,7 @@ SMTP_FROM_ADDRESS=no-reply@example.com  # From email address
 - **🏗️ [Project Overview](OVERVIEW.md)** - Architecture and design principles
 - **🔧 [Local Development Guide](docs/guides/local-development.md)** - Comprehensive setup instructions
 - **🚀 [Deployment Guide](docs/guides/deployment.md)** - Production deployment options
+- **🐳 [Docker Guide](docker/README.md)** - Docker setup and usage instructions
 
 ## 🤝 Contributing
 

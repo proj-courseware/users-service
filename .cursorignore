@@ -1,2 +1,2 @@
-!.env
-!.env.example
+!docker/.env
+!docker/.env.example

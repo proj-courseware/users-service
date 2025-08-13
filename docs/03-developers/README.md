@@ -99,7 +99,7 @@ This documentation serves:
 
 ```bash
 # Environment Setup
-cp .env.example .env                    # Copy environment template
+cp docker/.env.example docker/.env     # Copy environment template
 code .                                  # Open in VS Code
 # Choose: "Rebuild and Reopen in Container"
 
@@ -116,9 +116,13 @@ pnpm type-check                       # TypeScript validation
 pnpm build                            # Production build
 
 # Docker Operations
-docker-compose up                     # Start all services
-docker-compose down                   # Stop and cleanup
-docker-compose logs -f app            # View application logs
+pnpm docker:dev                       # Start development environment
+pnpm docker:dev:down                  # Stop development environment
+pnpm docker:prod                      # Start production environment
+pnpm docker:prod:down                 # Stop production environment
+# Or manually:
+docker compose -f docker/docker-compose.dev.yml up
+docker compose -f docker/docker-compose.dev.yml down
 ```
 
 ### Key Development URLs
@@ -157,8 +161,8 @@ SMTP_SECURE=false
 
 ### Development Workflow Checklist
 
-- [ ] Environment variables configured in `.env`
-- [ ] Docker containers running (`docker-compose up`)
+- [ ] Environment variables configured in `docker/.env`
+- [ ] Docker containers running (`pnpm docker:dev`)
 - [ ] Application starts successfully (`pnpm dev`)
 - [ ] Database connection established
 - [ ] Email testing working (Mailpit at localhost:8025)

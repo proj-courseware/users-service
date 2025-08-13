@@ -1,6 +1,6 @@
 # Docker Usage for Development and Production
 
-This directory contains all the necessary files to build and run your users authentication service using Docker for both development and production environments.
+This directory contains **all** the necessary files to build and run your users authentication service using Docker for both development and production environments. This is the single source of truth for Docker configuration.
 
 ---
 
@@ -10,6 +10,8 @@ This directory contains all the necessary files to build and run your users auth
 - Copy or create the following environment files in this `docker` directory:
   - `.env` (for development)
   - `.env.production` (for production)
+
+**Note**: The root-level Docker files have been removed. All Docker operations now use the files in this `docker/` folder.
 
 **Example `.env` file:**
 
@@ -56,9 +58,17 @@ Make sure to update the values as needed for your setup.
 
 ### 1. Build and Start All Services
 
-From the project root, run:
+**Recommended**: Use the package.json scripts from the project root:
 
 ```bash
+# From project root
+pnpm docker:dev
+```
+
+**Alternative**: Run Docker Compose directly:
+
+```bash
+# From project root
 docker compose --env-file docker/.env -f docker/docker-compose.dev.yml up --build
 ```
 
@@ -68,7 +78,13 @@ docker compose --env-file docker/.env -f docker/docker-compose.dev.yml up --buil
 
 ### 2. Stopping Services
 
-You can press `Ctrl+C` to stop the services or run:
+**Recommended**: Use the package.json scripts:
+
+```bash
+pnpm docker:dev:down
+```
+
+**Alternative**: Run Docker Compose directly:
 
 ```bash
 docker compose -f docker/docker-compose.dev.yml down
@@ -78,9 +94,17 @@ docker compose -f docker/docker-compose.dev.yml down
 
 ### 1. Build and Start the App
 
-From the project root, run:
+**Recommended**: Use the package.json scripts from the project root:
 
 ```bash
+# From project root
+pnpm docker:prod
+```
+
+**Alternative**: Run Docker Compose directly:
+
+```bash
+# From project root
 docker compose --env-file docker/.env.production -f docker/docker-compose.prod.yml up --build
 ```
 
@@ -90,7 +114,13 @@ docker compose --env-file docker/.env.production -f docker/docker-compose.prod.y
 
 ### 2. Stopping the App
 
-You can press `Ctrl+C` to stop the services or run:
+**Recommended**: Use the package.json scripts:
+
+```bash
+pnpm docker:prod:down
+```
+
+**Alternative**: Run Docker Compose directly:
 
 ```bash
 docker compose -f docker/docker-compose.prod.yml down
@@ -99,12 +129,16 @@ docker compose -f docker/docker-compose.prod.yml down
 ## Notes
 
 - **Environment Files:** Both `.env` and `.env.production` must be present in the `docker` directory before running the respective compose files.
+- **Package.json Scripts:** Use `pnpm docker:dev` and `pnpm docker:prod` for easier Docker management from the project root.
 - **Database Access:** In development, you can connect to the databases using the credentials and ports defined in your `.env` file.
 - **Production Databases:** The production compose file does **not** start database containers. For production, use managed database services or external databases.
+- **Single Source of Truth:** All Docker configuration is now centralized in this `docker/` folder. Root-level Docker files have been removed.
 
 ## Troubleshooting
 
-- If you encounter issues with ports, ensure the `PORT` and other variables in your `.env` files match your application's configuration.
-- If you change dependencies, rebuild the images with the `--build` flag.
+- **Port Issues:** If you encounter issues with ports, ensure the `PORT` and other variables in your `.env` files match your application's configuration.
+- **Dependencies:** If you change dependencies, rebuild the images with the `--build` flag or use the package.json scripts.
+- **Environment Files:** Make sure your `.env` files are in the `docker/` directory, not in the project root.
+- **VS Code Dev Container:** The `.devcontainer/devcontainer.json` now points to `docker/docker-compose.dev.yml`. If you have issues, ensure this path is correct.
 
-For more details, see the main [`docs/docker.md`](../docs/docker.md).
+For more details, see the main [`docs/03-developers/knowledge/docker.md`](../docs/03-developers/knowledge/docker.md).

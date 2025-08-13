@@ -33,7 +33,7 @@ This authentication service supports OAuth2 integration with three major provide
 
 ## Environment Variables Summary
 
-After setting up all providers, your `.env` file should include:
+After setting up all providers, your `docker/.env` file should include:
 
 ```env
 # Google OAuth2

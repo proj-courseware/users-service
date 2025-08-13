@@ -1,8 +1,13 @@
 import dotenv from "dotenv";
 import { z } from "zod";
 
-// Load environment variables from .env file
-dotenv.config();
+// Load environment variables from docker folder based on NODE_ENV
+const envFile =
+  process.env.NODE_ENV === "production"
+    ? "docker/.env.production"
+    : "docker/.env";
+
+dotenv.config({ path: envFile });
 
 // Define the schema to validate the environment variables
 export const envSchema = z.object({

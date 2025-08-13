@@ -461,11 +461,11 @@ CORS_ORIGIN=https://yourdomain.com,https://app.yourdomain.com
 
 ```bash
 # Set secure permissions
-chmod 600 .env.production
-chown app:app .env.production
+chmod 600 docker/.env.production
+chown app:app docker/.env.production
 
 # Verify no secrets in git
-git log --all --full-history -- .env*
+git log --all --full-history -- docker/.env*
 ```
 
 ## Validation and Testing
@@ -555,7 +555,23 @@ GOOGLE_REDIRECT_URI=http://localhost:3000/auth/oauth/google/callback
 
 ## Environment Templates
 
+### Environment File Locations
+
+The project uses environment-specific configuration files located in the `docker/` folder:
+
+- **Development**: `docker/.env` - For local development and Docker development environment
+- **Production**: `docker/.env.production` - For production Docker environment
+
 ### .env.example (Template)
+
+Copy the example file to create your environment configuration:
+
+```bash
+# From project root
+cp docker/.env.example docker/.env
+```
+
+The template contains:
 
 ```bash
 # Application
@@ -575,8 +591,8 @@ JWT_REFRESH_SECRET=your-super-secret-refresh-key-change-in-production
 JWT_ACCESS_EXPIRY_MINUTES=15
 JWT_REFRESH_EXPIRY_DAYS=7
 
-# Email Configuration (MailHog for development)
-SMTP_HOST=mailhog
+# Email Configuration (Mailpit for development)
+SMTP_HOST=mailpit
 SMTP_PORT=1025
 SMTP_SECURE=false
 SMTP_USER=

@@ -208,7 +208,7 @@ This guide walks you through setting up Google OAuth2 authentication for your au
 
 1. **Local Environment Variables**
 
-   Add these variables to your `.env` file for development:
+   Add these variables to your `docker/.env` file for development:
 
    ```env
    # Google OAuth2 Configuration (Development)
@@ -221,7 +221,7 @@ This guide walks you through setting up Google OAuth2 authentication for your au
 
 2. **Production Environment Variables**
 
-   For production, use separate credentials:
+   For production, use separate credentials in `docker/.env.production`:
 
    ```env
    # Google OAuth2 Configuration (Production)
@@ -279,11 +279,11 @@ The approach of creating separate Google Cloud projects (`my-app` and `my-app-lo
 
    ```bash
    # Development
-   .env                    # Local development (gitignored)
-   .env.example           # Template for new developers
+   docker/.env                    # Local development (gitignored)
+   docker/.env.example           # Template for new developers
 
    # Production
-   .env.production        # Production template (gitignored)
+   docker/.env.production        # Production template (gitignored)
    # Use deployment tools to inject actual production values
    ```
 

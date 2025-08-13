@@ -93,7 +93,7 @@ This documentation is designed for:
 curl https://your-domain.com/health
 
 # View logs (Docker)
-docker-compose logs -f users-service
+docker compose -f docker/docker-compose.prod.yml logs -f app
 
 # View logs (PM2)
 pm2 logs users-service

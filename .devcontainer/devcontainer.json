@@ -1,6 +1,6 @@
 {
   "name": "Backend Template",
-  "dockerComposeFile": "../docker-compose.yml",
+  "dockerComposeFile": "../docker/docker-compose.dev.yml",
   "service": "app",
   "workspaceFolder": "/app",
   "forwardPorts": [3000, 3001], // Assuming the API runs on port 3000 and mock frontend on port 3001

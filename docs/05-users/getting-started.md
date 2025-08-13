@@ -10,8 +10,7 @@
 > [!IMPORTANT]  
 > **Authentication Required:** Most endpoints require a Bearer token. Include `Authorization: Bearer <your-access-token>` in your requests.
 
-> [!TIP]
-> **Local Development:** Check verification emails at `http://localhost:8025` (Mailpit). For production setup, configure SMTP settings in your environment variables.
+> [!TIP] > **Local Development:** Check verification emails at `http://localhost:8025` (Mailpit). For production setup, configure SMTP settings in your environment variables.
 
 ## Quick Integration
 

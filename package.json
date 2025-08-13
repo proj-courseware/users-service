@@ -29,7 +29,11 @@
     "validate": "pnpm type-check && pnpm lint:fix && pnpm format:fix && pnpm test",
     "clean": "rm -rf dist coverage",
     "clean:all": "rm -rf dist coverage node_modules",
-    "mock-frontend": "tsx scripts/mock-frontend.ts"
+    "mock-frontend": "tsx scripts/mock-frontend.ts",
+    "docker:dev": "docker compose --env-file docker/.env -f docker/docker-compose.dev.yml up --build",
+    "docker:dev:down": "docker compose -f docker/docker-compose.dev.yml down",
+    "docker:prod": "docker compose --env-file docker/.env.production -f docker/docker-compose.prod.yml up --build",
+    "docker:prod:down": "docker compose -f docker/docker-compose.prod.yml down"
   },
   "dependencies": {
     "@hono/node-server": "^1.14.2",

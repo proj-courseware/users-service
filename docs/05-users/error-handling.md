@@ -425,6 +425,7 @@ class RetryClient {
    ```
 
 3. **Implement Token Refresh:**
+
    ```javascript
    async function refreshTokenIfNeeded() {
      try {
@@ -628,6 +629,7 @@ class RetryClient {
    ```
 
 2. **Implement Reconnection Logic:**
+
    ```javascript
    class ReconnectingEventSource {
      constructor(url, options = {}) {
